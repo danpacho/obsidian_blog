@@ -1,0 +1,27 @@
+{
+    "name": "@blogger/contents_builder",
+    "version": "0.1.0",
+    "description": "Obsidian plugin for extract vault to contents.",
+    "author": "danpacho",
+    "license": "MIT",
+    "type": "module",
+    "keywords": [],
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup src/index.ts --format=cjs,esm --dts",
+        "build:fast": "tsup src/index.ts --format=cjs,esm"
+    },
+    "devDependencies": {
+        "chokidar": "^3.6.0",
+        "glob": "^10.3.10"
+    }
+}
