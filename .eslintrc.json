@@ -11,7 +11,8 @@
         "prettier",
         "plugin:prettier/recommended",
         "plugin:@typescript-eslint/recommended",
-        "plugin:astro/recommended"
+        "plugin:astro/recommended",
+        "plugin:tailwindcss/recommended"
     ],
     "plugins": ["prettier", "import", "@typescript-eslint"],
     "settings": {
