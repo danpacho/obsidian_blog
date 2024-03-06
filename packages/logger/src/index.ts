@@ -1,9 +1,18 @@
+import boxen, { Options } from 'boxen'
 import c from 'chalk'
+
 interface LoggerOptions {
     name: string
     spaceSize?: number
     tabSize?: number
+    useDate?: boolean
 }
+interface LogOption {
+    enter?: boolean
+    depth?: number
+    prefix?: boolean
+}
+
 /* eslint-disable no-console */
 export class Logger {
     public constructor(options: LoggerOptions | undefined = undefined) {
@@ -12,14 +21,20 @@ export class Logger {
             this._tabSize = tabSize ?? 4
             this._spaceSize = spaceSize ?? 1
             this.name = name
+            this._useDate = options.useDate ?? false
         }
-        this.info(`Logger: ${this.name} initialized.`)
+        this.info(`${this.name} logger initialized`)
     }
     private name: string = 'Logger'
+    private _useDate: boolean = false
     private _tabSize: number = 4
     private _spaceSize: number = 1
     private join(...stringVector: string[]): string {
         return stringVector.join(this.spaceStr)
+    }
+    private $c: typeof c = c
+    public get c(): typeof c {
+        return this.$c
     }
     private $log(messages: string[], enter: boolean = false) {
         console.log(
@@ -29,35 +44,58 @@ export class Logger {
 
     public log(
         message: string,
-        options: { enter?: boolean; depth?: number } = {
+        options: LogOption = {
             enter: false,
             depth: 0,
+            prefix: true,
         }
     ) {
         const { enter, depth } = options
         const depthStr =
             depth && depth > 0 ? `${this.tabStr.repeat(depth)}` : ''
         const messageWithPrefix = `${this.name}: ${message}`
-        this.$log([depthStr, c.gray('›'), messageWithPrefix], enter)
+        const logMessage = options.prefix
+            ? [depthStr, this.c.gray('›'), messageWithPrefix]
+            : [message]
+        this.$log(logMessage, enter)
+    }
+    public box(message: string, options?: Options & LogOption) {
+        this.log(boxen(message, options), options)
     }
     public info(message: string) {
         console.info(
-            this.join(c.bgBlueBright.bold(` INFO - ${this.name} `), message)
+            this.join(
+                this.c.bgBlueBright.bold.black(` INFO `),
+                this.c.blue(this.name),
+                message
+            )
         )
     }
     public warn(message: string) {
         console.warn(
-            this.join(c.bgYellow.bold(` WARN - ${this.name} `), message)
+            this.join(
+                this.c.bgYellow.bold.black(` WARN `),
+                this.c.yellow(this.name),
+                message
+            )
         )
     }
     public error(message: string) {
         console.error(
-            this.join(c.bgRed.bold(` ERROR - ${this.name} `), message)
+            this.join(
+                this.c.bgRed.bold.black(` ERROR `),
+                this.c.red(this.name),
+                message
+            )
         )
     }
     public success(message: string) {
         console.log(
-            this.join(c.bgGreen.bold(` SUCCESS - ${this.name} `), message)
+            this.join(
+                this.c.bgGreen.bold.black(` SUCCESS `),
+                this.c.green(this.name),
+                message
+            )
         )
     }
     public tab(message?: string) {
