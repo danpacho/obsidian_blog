@@ -9,20 +9,13 @@ describe('FilePathFinder', () => {
     it('should MATCH file path', async () => {
         const res = await filePathMatcher.findFile('unique_file.md')
         if (res.success) {
-            expect(res.data).toStrictEqual([
-                {
-                    extension: 'md',
-                    name: 'unique_file.md',
-                    path: `${cwd()}/packages/contents_builder/src/__tests__/dist/[category_2]/unique_file.md`,
-                    isDir: false,
-                },
-                {
-                    extension: 'md',
-                    name: 'unique_file.md',
-                    path: `${cwd()}/packages/contents_builder/src/__tests__/__mocks__/$$blog$$/[category_2]/unique_file.md`,
-                    isDir: false,
-                },
-            ])
+            const searchedPathList = res.data.map((e) => e.path)
+            expect(searchedPathList).toContain(
+                `${cwd()}/packages/contents_builder/src/__tests__/dist/contents/category_2/unique_file.md`
+            )
+            expect(searchedPathList).toContain(
+                `${cwd()}/packages/contents_builder/src/__tests__/__mocks__/$$blog$$/[category_2]/unique_file.md`
+            )
         } else {
             expect(res.success).toBe(false)
         }

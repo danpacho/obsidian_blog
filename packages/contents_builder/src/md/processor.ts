@@ -7,9 +7,9 @@ import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Node, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
-import type { BuildReport } from '../file_tree/builder'
-import { AudioFileNode, ImageFileNode } from '../file_tree/node'
+import type { BuildReport } from '../builder/builder'
 import type { IOManager } from '../io_manager'
+import { AudioFileNode, ImageFileNode } from '../parser/node'
 
 interface MdProcessorConstructor {
     ioManager: IOManager
