@@ -1,9 +1,25 @@
-import { mkdir, rm, rmdir, unlink, writeFile } from 'node:fs/promises'
+import {
+    access,
+    constants,
+    mkdir,
+    rm,
+    rmdir,
+    unlink,
+    writeFile,
+} from 'node:fs/promises'
 import { PromiseCallbacks, Promisify } from '../utils/promisify'
 
 export class FileWriter {
     public constructor() {}
 
+    public async checkFileExists(filePath: string): Promise<boolean> {
+        try {
+            await access(filePath, constants.F_OK)
+            return true
+        } catch {
+            return false
+        }
+    }
     /**
      * Writes data to a file.
      * @param filePath The path to the file.
@@ -29,6 +45,8 @@ export class FileWriter {
                 encoding: 'utf-8',
                 signal,
             })
+            await this.checkFileExists(filePath)
+
             handler?.onSuccess?.(controller)
 
             return {
