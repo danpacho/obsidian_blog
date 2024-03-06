@@ -76,4 +76,11 @@ describe('FileWriter', () => {
         )
         expect(folderDeleteOperation.success).toBe(false)
     })
+
+    it('should DELETE folder __FORCE', async () => {
+        const forceDeleteOperation = await writer.deleteFolder__FORCE(
+            `${basePath}/@test`
+        )
+        expect(forceDeleteOperation.success).toBe(true)
+    })
 })
