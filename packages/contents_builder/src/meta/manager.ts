@@ -2,11 +2,11 @@ import Matter from 'gray-matter'
 import type { IOManager } from '../io_manager'
 import type { Promisify, Stateful } from '../utils/promisify'
 
-type PolymorphicMeta = Record<string, unknown>
+export type PolymorphicMeta = Record<string, unknown>
 
-interface FrontmatterBuilderConstructor<Schema extends PolymorphicMeta> {
-    parser: (frontMatter: unknown) => Schema
-    generator: (frontMatter: PolymorphicMeta) => Schema
+export interface MetaManagerConstructor<MetaShape extends PolymorphicMeta> {
+    parser: (frontMatter: unknown) => MetaShape
+    generator: (frontMatter: PolymorphicMeta) => MetaShape
     ioManager: IOManager
 }
 
@@ -27,7 +27,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
     }
 
     public constructor(
-        private readonly options: FrontmatterBuilderConstructor<MetaShape>
+        private readonly options: MetaManagerConstructor<MetaShape>
     ) {}
 
     public generate(frontMatter: PolymorphicMeta): MetaShape {
@@ -51,7 +51,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
         language: 'yaml',
     }
 
-    public read(pureString: string): MetaData<PolymorphicMeta> {
+    public static read(pureString: string): MetaData<PolymorphicMeta> {
         const { data: meta, content } = Matter(
             pureString,
             MetaManager.MatterOptions
@@ -61,19 +61,19 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
             content,
         }
     }
-    public stringify(metaData: MetaData<PolymorphicMeta>): string {
+    public static stringify(metaData: MetaData<PolymorphicMeta>): string {
         return Matter.stringify(
             metaData.content,
             metaData.meta,
             MetaManager.MatterOptions
         )
     }
-    public test(pureString: string): boolean {
+    public static test(pureString: string): boolean {
         return Matter.test(pureString)
     }
 
     private extractMetaData(pureString: string): MetaData<MetaShape> {
-        const { meta, content } = this.read(pureString)
+        const { meta, content } = MetaManager.read(pureString)
 
         return {
             meta: this.safeParse(meta),
@@ -82,7 +82,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
     }
 
     public extractFromMd(md: string): Stateful<MetaData<MetaShape>> {
-        if (!this.test(md)) {
+        if (!MetaManager.test(md)) {
             return {
                 success: false,
                 error: new Error('Not a valid markdown file'),
@@ -124,7 +124,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
         }
 
         try {
-            const injected = this.stringify(validMetaData)
+            const injected = MetaManager.stringify(validMetaData)
             const writeResult = await this.$io.writer.write({
                 data: injected,
                 filePath: injectPath,
