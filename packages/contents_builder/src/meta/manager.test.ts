@@ -35,10 +35,10 @@ describe('MetaManager', () => {
         expect(manager).toBeDefined()
     })
     it('should include <gray-matter> methods', () => {
-        expect(manager.test(pureMdString)).toBe(true)
+        expect(MetaManager.test(pureMdString)).toBe(true)
 
-        const readResult = manager.read(pureMdString)
-        expect(manager.read(pureMdString)).toEqual({
+        const readResult = MetaManager.read(pureMdString)
+        expect(MetaManager.read(pureMdString)).toEqual({
             meta: {
                 title: 'Test title',
                 date: new Date('2024-03-01'),
@@ -46,7 +46,7 @@ describe('MetaManager', () => {
             content: '# Inner contents\n- yes',
         })
 
-        const stringified = manager.stringify(readResult)
+        const stringified = MetaManager.stringify(readResult)
         expect(stringified).toBe(expectedTransformedString)
     })
 
