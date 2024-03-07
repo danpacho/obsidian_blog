@@ -17,8 +17,11 @@ export abstract class FTreeNode {
           }
         | undefined = undefined
     public fileName: string
-    public buildPath: string | undefined = undefined
-    public buildID: UUID | undefined = undefined
+    public buildInfo: {
+        id?: UUID
+        path?: string
+        folderType?: 'route' | 'group' | 'series'
+    } = {}
 
     public constructor(
         public readonly absolutePath: string,
