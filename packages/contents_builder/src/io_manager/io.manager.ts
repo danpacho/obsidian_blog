@@ -11,8 +11,8 @@ export class IOManager {
 
     public async cpFile(
         { from, to, type }: { from: string; to: string; type?: 'media' },
-        handler?: PromiseCallbacks<Buffer, Error>
-    ): Promisify<Buffer>
+        handler?: PromiseCallbacks<Uint8Array, Error>
+    ): Promisify<Uint8Array>
     public async cpFile(
         { from, to, type }: { from: string; to: string; type?: 'text' },
         handler?: PromiseCallbacks<string, Error>
@@ -23,8 +23,8 @@ export class IOManager {
             to,
             type = 'text',
         }: { from: string; to: string; type?: 'media' | 'text' },
-        handler?: PromiseCallbacks<Buffer | string, Error>
-    ): Promisify<Buffer | string> {
+        handler?: PromiseCallbacks<Uint8Array | string, Error>
+    ): Promisify<Uint8Array | string> {
         const copyTarget =
             type === 'text'
                 ? await this.reader.readFile(from)
