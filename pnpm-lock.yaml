@@ -125,6 +125,9 @@ importers:
 
   packages/contents_builder:
     dependencies:
+      gray-matter:
+        specifier: ^4.0.3
+        version: 4.0.3
       mdast-util-to-markdown:
         specifier: ^2.1.0
         version: 2.1.0

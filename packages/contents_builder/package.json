@@ -21,12 +21,11 @@
         "build:fast": "tsup src/index.ts --format=cjs,esm",
         "sync:schema": "npx astro sync"
     },
-    "devDependencies": {
-        "@blogger/logger": "workspace:^",
-        "chokidar": "^3.6.0",
-        "glob": "^10.3.10"
-    },
     "dependencies": {
+        "@blogger/logger": "workspace:^",
+        "glob": "^10.3.10",
+        "chokidar": "^3.6.0",
+        "gray-matter": "^4.0.3",
         "mdast-util-to-markdown": "^2.1.0",
         "remark": "^15.0.1",
         "remark-frontmatter": "^5.0.0",
