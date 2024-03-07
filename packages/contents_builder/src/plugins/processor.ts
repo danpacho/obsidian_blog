@@ -7,7 +7,7 @@ import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Node, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
-import type { BuildReport } from '../builder/builder'
+import type { BuildReport } from '../builder/reporter'
 import type { IOManager } from '../io_manager'
 import { AudioFileNode, ImageFileNode } from '../parser/node'
 
@@ -166,5 +166,13 @@ export class MdProcessor {
         const processed = await this.$processor.process(markdown)
 
         return processed.toString()
+    }
+}
+
+export class MarkdownProcessor {
+    public constructor() {}
+
+    public get processor() {
+        return remark()
     }
 }
