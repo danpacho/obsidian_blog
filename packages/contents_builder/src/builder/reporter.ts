@@ -1,7 +1,7 @@
 import type { UUID } from 'crypto'
-import type { IOManager } from '../io_manager'
 import type { FTreeNode, NodeType } from '../parser/node'
 import type { Promisify, Stateful } from '../utils/promisify'
+import type { FileBuilderConstructor } from './builder'
 
 export interface BuildReport {
     name: string
@@ -15,10 +15,7 @@ export interface BuildReport {
     state: 'CACHED' | 'ADDED' | 'UPDATED'
 }
 
-interface BuildReporterConstructor {
-    readonly ioManager: IOManager
-    readonly buildPath: string
-}
+interface BuildReporterConstructor extends FileBuilderConstructor {}
 export class BuildReporter {
     public constructor(public readonly option: BuildReporterConstructor) {}
 
