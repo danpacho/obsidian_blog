@@ -18,7 +18,10 @@ export interface FileBuilderConstructor {
     readonly fileTreeParser: FileTreeParser
     readonly ioManager: IOManager
     readonly assetsPath: string
-    readonly buildPath: string
+    readonly buildPath: {
+        content: string
+        assets: string
+    }
     readonly logger: Logger
 }
 export class FileBuilder {
@@ -55,32 +58,19 @@ export class FileBuilder {
     }
 
     private constructor(private readonly option: FileBuilderConstructor) {
-        this.$reporter = new BuildReporter({
-            ioManager: option.ioManager,
-            buildPath: option.buildPath,
-        })
-        this.$buildLogger = new BuildResultLogger({
-            ioManager: option.ioManager,
-            buildPath: option.buildPath,
-            parser: option.fileTreeParser,
-            logger: option.logger,
-        })
+        this.$reporter = new BuildReporter(option)
+        this.$buildLogger = new BuildResultLogger(option)
     }
 
     public static async create(
         option: FileBuilderConstructor
     ): Promise<FileBuilder> {
-        const zenBuild = await option.ioManager.writer.createFolder(
-            option.buildPath
-        )
-        if (zenBuild.success)
-            option.logger.info(`GENERATE file tree at\n${option.buildPath}\n`)
-
-        if (!zenBuild.success)
-            option.logger.info('BUILD folder already exists, skipping...')
+        await option.ioManager.writer.createFolder(option.buildPath.content)
+        await option.ioManager.writer.createFolder(option.buildPath.assets)
 
         const builder = new FileBuilder(option)
         builder.use(CorePlugins)
+
         return builder
     }
 
@@ -161,6 +151,11 @@ export class FileBuilder {
 
         await this.$parser.walkAST(ast.children, async (node) => {
             const { buildInfo, absolutePath, category } = node
+            if (buildInfo.shouldSkip) {
+                this.$m.info(`Skipped: ${node.fileName}`)
+                return
+            }
+
             if (!buildInfo.id || !buildInfo.path || !category) return
 
             if (this.checkCache(buildInfo.id)) {
