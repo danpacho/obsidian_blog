@@ -7,6 +7,7 @@ export type NodeType =
     | 'IMAGE_FILE'
     | 'AUDIO_FILE'
     | 'UNKNOWN_FILE'
+export type BuildFolderType = 'route' | 'group' | 'series' | 'root'
 
 export abstract class FTreeNode {
     public readonly children: FTreeNode[] | undefined = undefined
@@ -20,8 +21,11 @@ export abstract class FTreeNode {
     public buildInfo: {
         id?: UUID
         path?: string
-        folderType?: 'route' | 'group' | 'series'
-    } = {}
+        folderType?: BuildFolderType
+        shouldSkip: boolean
+    } = {
+        shouldSkip: false,
+    }
 
     public constructor(
         public readonly absolutePath: string,
