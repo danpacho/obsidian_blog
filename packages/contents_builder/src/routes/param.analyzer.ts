@@ -7,6 +7,7 @@ type SingleParamAnalyzeResult =
     | {
           isDynamicParam: false
           isMultiple: false
+          dividerName: string
       }
 
 export interface ParamAnalyzerConstructor {
@@ -152,6 +153,7 @@ export class ParamAnalyzer {
         return {
             isDynamicParam: false,
             isMultiple: false,
+            dividerName: singleParamString,
         }
     }
 

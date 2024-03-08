@@ -62,6 +62,7 @@ describe('ParamAnalyzer', () => {
             const paramString = 'param'
             const result = analyzer.analyzeSingleParam(paramString)
             expect(result).toEqual({
+                dividerName: 'param',
                 isDynamicParam: false,
                 isMultiple: false,
             })
@@ -82,6 +83,7 @@ describe('ParamAnalyzer', () => {
                     {
                         isDynamicParam: false,
                         isMultiple: false,
+                        dividerName: '<not-dynamic]',
                     },
                     {
                         isDynamicParam: true,
