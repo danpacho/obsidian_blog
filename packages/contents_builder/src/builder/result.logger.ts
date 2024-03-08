@@ -1,18 +1,11 @@
-import type { Logger } from '@blogger/logger'
-import type { IOManager } from '../io_manager'
 import type { FTreeNode, FolderNode } from '../parser/node'
-import type { FileTreeParser } from '../parser/parser'
+import type { FileBuilderConstructor } from './builder'
 import type { BuildReport } from './reporter'
 
-interface BuildResultLoggerConstructor {
-    readonly ioManager: IOManager
-    readonly buildPath: string
-    readonly parser: FileTreeParser
-    readonly logger: Logger
-}
+interface BuildResultLoggerConstructor extends FileBuilderConstructor {}
 export class BuildResultLogger {
     private get $parser() {
-        return this.option.parser
+        return this.option.fileTreeParser
     }
     private get $io() {
         return this.option.ioManager
@@ -23,9 +16,13 @@ export class BuildResultLogger {
 
     public constructor(public readonly option: BuildResultLoggerConstructor) {}
 
+    private setupContentAST(): void {
+        this.$parser.updateRootFolder(this.option.buildPath.content)
+    }
+    private setupAssetsAST(): void {
+        this.$parser.updateRootFolder(this.option.buildPath.assets)
+    }
     private async getAST(): Promise<FolderNode | undefined> {
-        this.option.parser.updateRootFolder(this.option.buildPath)
-
         if (this.$parser.ast?.children.length !== 0) return this.$parser.ast
 
         const ast = await this.$parser.parse()
@@ -57,13 +54,14 @@ export class BuildResultLogger {
     }
 
     public async writeLog(buildReport: Array<BuildReport>): Promise<void> {
-        const buildAST = await this.getAST()
-        if (buildAST === undefined) {
+        this.setupContentAST()
+        const contentBuildAST = await this.getAST()
+        if (contentBuildAST === undefined) {
             this.$m.log('Failed to write build report')
             return
         }
 
-        const buildName = buildAST.fileName
+        const buildName = contentBuildAST.fileName
 
         this.$m.box(`Build Report: ${new Date().toLocaleString()}`, {
             prefix: false,
@@ -71,15 +69,40 @@ export class BuildResultLogger {
             padding: 0.75,
         })
         this.$m.log(
-            this.$m.c.green(` ● ${buildName} » ${this.option.buildPath}`),
+            this.$m.c.green(
+                ` ● ${buildName} » ${this.option.buildPath.content}`
+            ),
             {
                 prefix: false,
             }
         )
+        await this.walkASTForLog(contentBuildAST, buildReport)
 
+        this.setupAssetsAST()
+        const assetBuildAST = await this.getAST()
+        if (assetBuildAST === undefined) {
+            this.$m.log('Failed to write asset build report')
+            return
+        }
+
+        this.$m.log(
+            this.$m.c.green(
+                ` ● ${buildName} » ${this.option.buildPath.assets}`
+            ),
+            {
+                prefix: false,
+            }
+        )
+        await this.walkASTForLog(assetBuildAST, buildReport)
+    }
+
+    private async walkASTForLog(
+        ast: FolderNode,
+        buildReport: Array<BuildReport>
+    ): Promise<void> {
         const buildLog: Array<string> = []
         await this.$parser.walkAST(
-            buildAST.children,
+            ast.children,
             async (node, i, tot) => {
                 const buildState = buildReport.find(
                     (report) => report.path.build === node.absolutePath
