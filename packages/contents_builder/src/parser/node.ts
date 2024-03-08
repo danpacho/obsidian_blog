@@ -8,6 +8,12 @@ export type NodeType =
     | 'AUDIO_FILE'
     | 'UNKNOWN_FILE'
 export type BuildFolderType = 'route' | 'group' | 'series' | 'root'
+export type BuildInfo = {
+    id?: UUID
+    path?: string
+    folderType?: BuildFolderType
+    shouldSkip: boolean
+}
 
 export abstract class FTreeNode {
     public readonly children: FTreeNode[] | undefined = undefined
@@ -18,13 +24,19 @@ export abstract class FTreeNode {
           }
         | undefined = undefined
     public fileName: string
-    public buildInfo: {
-        id?: UUID
-        path?: string
-        folderType?: BuildFolderType
-        shouldSkip: boolean
-    } = {
+    public buildInfo: BuildInfo = {
         shouldSkip: false,
+    }
+    public updateBuildInfo({
+        id,
+        folderType,
+        path,
+        shouldSkip,
+    }: Partial<BuildInfo>): void {
+        if (id) this.buildInfo.id = id
+        if (path) this.buildInfo.path = path
+        if (folderType) this.buildInfo.folderType = folderType
+        if (shouldSkip) this.buildInfo.shouldSkip = shouldSkip
     }
 
     public constructor(
