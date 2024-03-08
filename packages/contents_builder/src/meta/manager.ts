@@ -5,8 +5,8 @@ import type { Promisify, Stateful } from '../utils/promisify'
 export type PolymorphicMeta = Record<string, unknown>
 
 export interface MetaManagerConstructor<MetaShape extends PolymorphicMeta> {
-    parser: (frontMatter: unknown) => MetaShape
-    generator: (frontMatter: PolymorphicMeta) => MetaShape
+    parser: (meta: unknown) => MetaShape
+    generator: (meta: PolymorphicMeta) => MetaShape
     ioManager: IOManager
 }
 
