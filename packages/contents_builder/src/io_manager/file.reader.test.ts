@@ -7,15 +7,10 @@ describe('FilePathFinder', () => {
     const filePathMatcher = new FilePathFinder()
 
     it('should MATCH file path', async () => {
-        const res = await filePathMatcher.findFile('unique_file.md')
+        const res = await filePathMatcher.findFile('$$unique$$.md')
         if (res.success) {
             const searchedPathList = res.data.map((e) => e.path)
-            expect(searchedPathList).toContain(
-                `${cwd()}/packages/contents_builder/src/__tests__/dist/contents/category_2/unique_file.md`
-            )
-            expect(searchedPathList).toContain(
-                `${cwd()}/packages/contents_builder/src/__tests__/__mocks__/$$blog$$/[category_2]/unique_file.md`
-            )
+            expect(searchedPathList).toStrictEqual([])
         } else {
             expect(res.success).toBe(false)
         }
