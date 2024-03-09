@@ -157,31 +157,59 @@ export class ParamAnalyzer {
         }
     }
 
+    private getValidParamString(paramString: string): string {
+        return paramString.split('/').filter(Boolean).join('/')
+    }
+
+    private isValidParamStructure(
+        paramAnalyzedResult: Array<SingleParamAnalyzeResult>
+    ): boolean {
+        const dynamicMultipleParamIndex = paramAnalyzedResult.findIndex(
+            (param) => param.isDynamicParam && param.isMultiple
+        )
+        if (dynamicMultipleParamIndex === -1) return true
+        const length = paramAnalyzedResult.length
+
+        const dynamicShouldBeLast = dynamicMultipleParamIndex === length - 1
+        if (dynamicShouldBeLast) return true
+
+        return false
+    }
+
     public analyzeParam(paramString: string): {
         dynamicParams: Array<string>
         result: Array<SingleParamAnalyzeResult>
     } {
-        if (this.isSingleParamString(paramString)) {
-            const single = this.analyzeSingleParam(paramString)
+        const validParamString = this.getValidParamString(paramString)
+        if (this.isSingleParamString(validParamString)) {
+            const single = this.analyzeSingleParam(validParamString)
             return {
                 result: [single],
                 dynamicParams: single.isDynamicParam ? [single.paramName] : [],
             }
         }
 
-        const multipleParamString = paramString.split('/').filter(Boolean)
+        const multipleParamString = validParamString.split('/').filter(Boolean)
         const result = multipleParamString.map((param) =>
             this.analyzeSingleParam(param)
         )
 
+        if (!this.isValidParamStructure(result)) {
+            throw new TypeError(
+                `Invalid param structure: ${validParamString}, multiple dynamic param should be the last param.`
+            )
+        }
+
+        const dynamicParams = result
+            .map((param) => {
+                if (param.isDynamicParam) return param.paramName
+                return null
+            })
+            .filter(Boolean) as Array<string>
+
         return {
             result,
-            dynamicParams: result
-                .map((param) => {
-                    if (param.isDynamicParam) return param.paramName
-                    return null
-                })
-                .filter(Boolean) as Array<string>,
+            dynamicParams,
         }
     }
 }
