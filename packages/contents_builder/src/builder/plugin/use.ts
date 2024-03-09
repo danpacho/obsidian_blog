@@ -1,8 +1,7 @@
-import type { ContentsModifierPlugin, FileTreePlugin } from './interface'
+import type { BuilderPlugin } from './interface'
 
-type ListOrSingle<T> = Array<T> | T
-
-export type UsePlugin = {
-    'build:file:tree'?: ListOrSingle<FileTreePlugin>
-    'build:contents'?: ListOrSingle<ContentsModifierPlugin>
+type ToPluginOption<T> = {
+    [PluginKey in keyof T]?: Array<T[PluginKey]> | T[PluginKey]
 }
+
+export type UsePlugin = ToPluginOption<BuilderPlugin>
