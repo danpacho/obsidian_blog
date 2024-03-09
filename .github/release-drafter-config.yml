@@ -38,4 +38,4 @@ version-resolver:
 template: |
     $CHANGES
 
-    **Full Changelog**: https://github.com/danpacho/tailwindest/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+    **Full Changelog**: https://github.com/danpacho/obsidian-blogger/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
