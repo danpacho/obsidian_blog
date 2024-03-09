@@ -14,19 +14,21 @@ export interface BuildReport {
     createdAt: string
     state: 'CACHED' | 'ADDED' | 'UPDATED'
 }
+export type BuildReportSet = Array<BuildReport>
 
+//TODO: report path setter
 interface BuildReporterConstructor extends FileBuilderConstructor {}
 export class BuildReporter {
     public constructor(public readonly option: BuildReporterConstructor) {}
 
-    public readonly totalReport: Array<BuildReport> = []
-    public get cachedReport(): Array<BuildReport> {
+    public readonly totalReport: BuildReportSet = []
+    public get cachedReport(): BuildReportSet {
         return this.totalReport.filter((report) => report.state === 'CACHED')
     }
-    public get updatedReport(): Array<BuildReport> {
+    public get updatedReport(): BuildReportSet {
         return this.totalReport.filter((report) => report.state === 'UPDATED')
     }
-    public get addedReport(): Array<BuildReport> {
+    public get addedReport(): BuildReportSet {
         return this.totalReport.filter((report) => report.state === 'ADDED')
     }
 
@@ -40,7 +42,7 @@ export class BuildReporter {
 
     public get reportPath(): string {
         const REPORT_FILE_NAME = 'build_report.json' as const
-        return `${this.option.buildPath}/${REPORT_FILE_NAME}`
+        return `${this.option.buildPath.assets}/${REPORT_FILE_NAME}`
     }
 
     public addReport(
@@ -129,7 +131,7 @@ export class BuildReporter {
         }
     }
 
-    public async writeReport(): Promisify<Array<BuildReport>> {
+    public async writeReport(): Promisify<BuildReportSet> {
         const reportWrite = await this.option.ioManager.writer.write({
             filePath: this.reportPath,
             data: this.reportJSON,
@@ -148,7 +150,7 @@ export class BuildReporter {
         }
     }
 
-    public async loadReport(): Promisify<Array<BuildReport>> {
+    public async loadReport(): Promisify<BuildReportSet> {
         const reportLoad = await this.option.ioManager.reader.readFile(
             this.reportPath
         )
@@ -160,15 +162,13 @@ export class BuildReporter {
             }
         }
 
-        const loadedBuildReport = JSON.parse(
-            reportLoad.data
-        ) as Array<BuildReport>
+        const loadedBuildReport = JSON.parse(reportLoad.data) as BuildReportSet
 
         this.totalReport.push(...loadedBuildReport)
 
         return {
             success: true,
-            data: JSON.parse(reportLoad.data) as Array<BuildReport>,
+            data: JSON.parse(reportLoad.data) as BuildReportSet,
         }
     }
 }
