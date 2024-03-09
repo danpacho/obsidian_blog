@@ -1,7 +1,7 @@
 import { t } from '@metal-box/type'
 import { describe, expect, it } from 'vitest'
 import { IOManager } from '../io_manager'
-import { MetaManager } from './manager'
+import { MetaEngine } from './engine'
 
 describe('MetaManager', () => {
     const io = new IOManager()
@@ -15,7 +15,7 @@ describe('MetaManager', () => {
             date: new Date(meta.date),
         }))
 
-    const manager = new MetaManager({
+    const manager = new MetaEngine({
         ioManager: io,
         parser: Meta.parse,
         generator: (meta) => ({
@@ -35,10 +35,10 @@ describe('MetaManager', () => {
         expect(manager).toBeDefined()
     })
     it('should include <gray-matter> methods', () => {
-        expect(MetaManager.test(pureMdString)).toBe(true)
+        expect(MetaEngine.test(pureMdString)).toBe(true)
 
-        const readResult = MetaManager.read(pureMdString)
-        expect(MetaManager.read(pureMdString)).toEqual({
+        const readResult = MetaEngine.read(pureMdString)
+        expect(MetaEngine.read(pureMdString)).toEqual({
             meta: {
                 title: 'Test title',
                 date: new Date('2024-03-01'),
@@ -46,7 +46,7 @@ describe('MetaManager', () => {
             content: '# Inner contents\n- yes',
         })
 
-        const stringified = MetaManager.stringify(readResult)
+        const stringified = MetaEngine.stringify(readResult)
         expect(stringified).toBe(expectedTransformedString)
     })
 
@@ -167,5 +167,28 @@ describe('MetaManager', () => {
                 injected: `---\ndate: '2024-05-05'\ntitle: Hello World\n---\nThis is UPDATED invalid injected contents.\n`,
             })
         }
+    })
+
+    it('should define engine with custom parser and generator', async () => {
+        const NewMeta = t.object({
+            $title: t.string,
+            $date: t.date,
+        })
+        const newManager = manager.updateEngine({
+            parser: NewMeta.parse,
+            generator: (meta) => ({
+                $date: new Date(),
+                $title: 'Hello World',
+                ...meta,
+            }),
+        })
+        expect(newManager).toBeDefined()
+
+        const inputData = {
+            $title: 'Hello World',
+            $date: new Date(),
+        }
+        const parsed = newManager.parse(inputData)
+        expect(parsed).toEqual(inputData)
     })
 })
