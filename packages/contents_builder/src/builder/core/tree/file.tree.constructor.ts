@@ -1,4 +1,3 @@
-// import { t } from '@metal-box/type'
 import type { BuildFolderType, FTreeNode, NodeType } from '../../../parser/node'
 import type { Promisify } from '../../../utils/promisify'
 import type { BuilderPlugin } from '../../plugin'
@@ -21,33 +20,10 @@ export const FileTreeConstructor = (
         },
     }
 ): BuilderPlugin['build:file:tree'] => {
-    return async ({
-        ast,
-        ioManager,
-        uuidEncoder,
-        buildPath,
-        logger,
-        // metaEngine,
-    }) => {
-        // const engine = metaEngine({
-        //     generator(meta) {
-        //         return {
-        //             title: 'DEFAULT_TITLE',
-        //             date: new Date(),
-        //             description: 'DEFAULT_DESCRIPTION',
-        //             tags: [],
-        //             ...meta,
-        //         }
-        //     },
-        //     parser: t.object({
-        //         title: t.string,
-        //         description: t.string,
-        //         date: t.date,
-        //         tags: t.array(t.string),
-        //     }).parse,
-        // })
-
+    return async ({ ast, ioManager, uuidEncoder, buildPath, logger }) => {
         const rootPath = ast.absolutePath
+        const getSafeRoutePath = (path: string): string =>
+            `/${path.split('/').filter(Boolean).join('/')}`
 
         const analyzeFileName = (
             folderName?: string
@@ -81,10 +57,13 @@ export const FileTreeConstructor = (
             }
         }
 
-        const getBuildRouteInfo = (
-            node: FTreeNode,
+        const getBuildRouteInfo = ({
+            node,
+            rootPath,
+        }: {
+            node: FTreeNode
             rootPath: string
-        ): {
+        }): {
             buildPath: string
         } & ReturnType<typeof analyzeFileName> => {
             const absPath = node.absolutePath
@@ -125,11 +104,15 @@ export const FileTreeConstructor = (
 
             return { buildPath: buildFolderPath, ...folderType }
         }
+        const buildPathStore: Map<string, string> = new Map()
 
-        const getAssetBuildInfo = async (
-            node: FTreeNode,
-            buildPath: string
-        ): Promisify<
+        const getAssetBuildInfo = async ({
+            node,
+            buildBasePath,
+        }: {
+            node: FTreeNode
+            buildBasePath: string
+        }): Promisify<
             Pick<BuildReport, 'buildID' | 'path'> & {
                 category: NodeType
             }
@@ -142,7 +125,9 @@ export const FileTreeConstructor = (
                       : 'unknown'
 
             const buildID = uuidEncoder(node.absolutePath)
-            const assetBuildPath: string = `${buildPath}/${assetPrefix}/${buildID}.${node.fileExtension}`
+            const assetBuildPath: string = getSafeRoutePath(
+                `${buildBasePath}/${assetPrefix}/${buildID}.${node.fileExtension}`
+            )
 
             return {
                 success: true,
@@ -157,11 +142,17 @@ export const FileTreeConstructor = (
             }
         }
 
-        const getContentsBuildInfo = async (
-            node: FTreeNode,
-            buildRoute: ReturnType<typeof getBuildRouteInfo>,
-            buildPath: string
-        ): Promisify<
+        const getContentsBuildInfo = async ({
+            node,
+            buildRouteInfo,
+            buildBasePath,
+            buildPathStore,
+        }: {
+            node: FTreeNode
+            buildRouteInfo: ReturnType<typeof getBuildRouteInfo>
+            buildBasePath: string
+            buildPathStore: Map<string, string>
+        }): Promisify<
             Pick<BuildReport, 'buildID' | 'path'> & {
                 category: NodeType
             }
@@ -173,14 +164,31 @@ export const FileTreeConstructor = (
                     error: textFile.error,
                 }
             }
+            const contentBuildPath: string = getSafeRoutePath(
+                `${buildBasePath}${buildRouteInfo.buildPath}/${node.fileName}`
+            )
+
+            const isUniqueBuildPath = !buildPathStore.has(contentBuildPath)
+            if (isUniqueBuildPath) {
+                buildPathStore.set(contentBuildPath, node.absolutePath)
+            }
+
+            const uniqueContentBuildPath = isUniqueBuildPath
+                ? contentBuildPath
+                : getSafeRoutePath(
+                      `${buildBasePath}${buildRouteInfo.buildPath}/${uuidEncoder(
+                          node.absolutePath
+                      ).slice(0, 5)}_${node.fileName}`
+                  )
+
             const buildID = uuidEncoder(`${textFile.data}${node.absolutePath}`)
-            const postBuildPath: string = `${buildPath}${buildRoute.buildPath}/${node.fileName}`
+
             return {
                 success: true,
                 data: {
                     buildID,
                     path: {
-                        build: postBuildPath,
+                        build: uniqueContentBuildPath,
                         origin: node.absolutePath,
                     },
                     category: node.category,
@@ -189,7 +197,11 @@ export const FileTreeConstructor = (
         }
 
         return async (node) => {
-            const buildRouteInfo = getBuildRouteInfo(node, rootPath)
+            const buildRouteInfo = getBuildRouteInfo({
+                node,
+                rootPath,
+            })
+
             if (node.category === 'TEXT_FILE') {
                 if (
                     options.contents?.skipFolderTypes?.includes(
@@ -202,11 +214,12 @@ export const FileTreeConstructor = (
                     return
                 }
 
-                const postBuildInfo = await getContentsBuildInfo(
+                const postBuildInfo = await getContentsBuildInfo({
                     node,
                     buildRouteInfo,
-                    buildPath.content
-                )
+                    buildBasePath: buildPath.content,
+                    buildPathStore,
+                })
 
                 if (!postBuildInfo.success) {
                     logger.error(
@@ -232,10 +245,10 @@ export const FileTreeConstructor = (
                     return
                 }
 
-                const assetBuildInfo = await getAssetBuildInfo(
+                const assetBuildInfo = await getAssetBuildInfo({
                     node,
-                    buildPath.assets
-                )
+                    buildBasePath: buildPath.assets,
+                })
                 if (!assetBuildInfo.success) {
                     logger.error(
                         `File ${logger.c.underline(node.fileName)} is rejected due to read error`
