@@ -10,7 +10,7 @@ import {
 import { FTreeNode, FolderNode } from '../parser/node'
 import type { FileTreeParser } from '../parser/parser'
 import { CorePlugins } from './core'
-import { type BuilderPlugin, Pluggable, type UsePlugin } from './plugin'
+import { type BuilderPlugin, Pluggable, type PluginAdapter } from './plugin'
 import { type BuildReportSet, BuildReporter } from './reporter'
 import { BuildResultLogger } from './result.logger'
 
@@ -40,7 +40,7 @@ export class FileBuilder {
     public use({
         'build:file:tree': treeConstructorPlugins,
         'build:contents': updatedContentsModifierPlugins,
-    }: UsePlugin): FileBuilder {
+    }: PluginAdapter): FileBuilder {
         treeConstructorPlugins &&
             this.treeConstructorPluggable.use(treeConstructorPlugins)
 
