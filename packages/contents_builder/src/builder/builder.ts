@@ -2,22 +2,21 @@ import type { UUID } from 'crypto'
 import { createHash } from 'crypto'
 import type { Logger } from '@blogger/logger'
 import type { IOManager } from '../io_manager'
+import {
+    MetaEngine,
+    MetaEngineConstructor,
+    PolymorphicMeta,
+} from '../meta/engine'
 import { FTreeNode, FolderNode } from '../parser/node'
 import type { FileTreeParser } from '../parser/parser'
 import { CorePlugins } from './core'
-import {
-    type ContentsModifierPlugin,
-    type FileTreePlugin,
-    Pluggable,
-    type UsePlugin,
-} from './plugin'
-import { type BuildReport, BuildReporter } from './reporter'
+import { type BuilderPlugin, Pluggable, type UsePlugin } from './plugin'
+import { type BuildReportSet, BuildReporter } from './reporter'
 import { BuildResultLogger } from './result.logger'
 
 export interface FileBuilderConstructor {
     readonly fileTreeParser: FileTreeParser
     readonly ioManager: IOManager
-    readonly assetsPath: string
     readonly buildPath: {
         content: string
         assets: string
@@ -25,18 +24,19 @@ export interface FileBuilderConstructor {
     readonly logger: Logger
 }
 export class FileBuilder {
-    private readonly treeConstructorPluggable: Pluggable<FileTreePlugin> =
-        new Pluggable()
-    private readonly contentsModifierPluggable: Pluggable<ContentsModifierPlugin> =
-        new Pluggable()
+    private readonly treeConstructorPluggable: Pluggable<
+        BuilderPlugin['build:file:tree']
+    > = new Pluggable()
+    private readonly contentsModifierPluggable: Pluggable<
+        BuilderPlugin['build:contents']
+    > = new Pluggable()
 
     private get $m(): Logger {
         return this.option.logger
     }
     private readonly $reporter: BuildReporter
     private readonly $buildLogger: BuildResultLogger
-    private readonly buildUpdatedReport: Array<BuildReport> = []
-
+    private readonly buildUpdatedReport: BuildReportSet = []
     public use({
         'build:file:tree': treeConstructorPlugins,
         'build:contents': updatedContentsModifierPlugins,
@@ -60,6 +60,8 @@ export class FileBuilder {
     private constructor(private readonly option: FileBuilderConstructor) {
         this.$reporter = new BuildReporter(option)
         this.$buildLogger = new BuildResultLogger(option)
+        // Should bind this context for Plugin callings
+        this.createMetaManager = this.createMetaManager.bind(this)
     }
 
     public static async create(
@@ -89,6 +91,12 @@ export class FileBuilder {
         return uuid
     }
 
+    private createMetaManager<MetaShape extends PolymorphicMeta>(
+        engine: Omit<MetaEngineConstructor<MetaShape>, 'ioManager'>
+    ) {
+        return MetaEngine.create(engine, this.$io)
+    }
+
     private checkCache(buildID: UUID): boolean {
         return this.$reporter.reportUUID.has(buildID)
     }
@@ -100,6 +108,7 @@ export class FileBuilder {
             const walkerPlugin = await plugin({
                 ast,
                 uuidEncoder: this.encodeHashUUID,
+                metaEngine: this.createMetaManager,
                 ...this.option,
             })
             await this.$parser.walkAST(ast.children, walkerPlugin, true)
@@ -122,6 +131,7 @@ export class FileBuilder {
                     added: this.$reporter.addedReport,
                 },
                 uuidEncoder: this.encodeHashUUID,
+                metaEngine: this.createMetaManager,
                 ...this.option,
             })
 
@@ -196,10 +206,9 @@ export class FileBuilder {
 
         if (loadedReport.success) {
             const previousBuildReport = loadedReport.data
-            const removedReport: Array<BuildReport> =
-                previousBuildReport.filter(
-                    (report) => !buildedFileOriginList.has(report.path.origin)
-                )
+            const removedReport: BuildReportSet = previousBuildReport.filter(
+                (report) => !buildedFileOriginList.has(report.path.origin)
+            )
             for (const report of removedReport) {
                 const remove = await this.$io.writer.deleteFile(
                     report.path.build
@@ -245,6 +254,6 @@ export class FileBuilder {
         await this.buildContents(ast)
 
         // Phase4: Report build result
-        await this.$buildLogger.writeLog(this.$reporter.totalReport)
+        await this.$buildLogger.writeBuilderLog(this.$reporter.totalReport)
     }
 }
