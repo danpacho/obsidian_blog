@@ -55,6 +55,10 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         )
     }
 
+    private get isGeneratorDefined(): boolean {
+        return Boolean(this.generator)
+    }
+
     public constructor(
         private readonly engine: MetaEngineConstructor<MetaShape>
     ) {}
@@ -66,17 +70,22 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         return this.parser(frontMatter)
     }
     public safeParse(frontMatter: PolymorphicMeta): MetaShape {
-        if (!this.generator) {
+        if (!this.isGeneratorDefined) {
             throw new Error(
                 'Generator is not defined, you should define generator to use safeParse'
             )
         }
         try {
-            const parsed = this.parse(frontMatter)
+            const parsed = this.parse(this.generate(frontMatter))
             return parsed
         } catch {
             return this.generate(frontMatter)!
         }
+    }
+    private $parse(frontMatter: PolymorphicMeta): MetaShape {
+        return this.isGeneratorDefined
+            ? this.safeParse(frontMatter)
+            : this.parse(frontMatter)
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,7 +119,7 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         const { meta, content } = MetaEngine.read(pureString)
 
         return {
-            meta: this.safeParse(meta),
+            meta: this.$parse(meta),
             content,
         }
     }
@@ -151,7 +160,7 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         injected: string
     }> {
         const { injectPath, metaData } = injectOption
-        const validMeta: MetaShape = this.safeParse(metaData.meta)
+        const validMeta: MetaShape = this.$parse(metaData.meta)
         const validMetaData: MetaData<MetaShape> = {
             meta: validMeta,
             content: metaData.content,
