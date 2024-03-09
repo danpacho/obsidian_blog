@@ -1,7 +1,7 @@
 import type { BuilderPlugin } from './interface'
 
-type ToPluginOption<T> = {
+type Adapter<T> = {
     [PluginKey in keyof T]?: Array<T[PluginKey]> | T[PluginKey]
 }
 
-export type UsePlugin = ToPluginOption<BuilderPlugin>
+export type PluginAdapter = Adapter<BuilderPlugin>
