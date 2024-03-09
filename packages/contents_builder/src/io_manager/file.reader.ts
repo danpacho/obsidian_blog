@@ -61,6 +61,13 @@ export class FileReader {
         return parts.length > 1 ? parts.pop() : undefined
     }
 
+    public static getPureFileName(fileName: string): string {
+        return fileName.replace(
+            `.${FileReader.getExtension(fileName)}` ?? '',
+            ''
+        )
+    }
+
     public async readDir(
         path: string,
         handler?: PromiseCallbacks<Array<DirectoryNode>, Error>,
