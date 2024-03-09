@@ -33,12 +33,10 @@ describe('FileTreeGenerator', async () => {
         logger: new Logger({
             name: 'Builder',
         }),
-        // buildPath: '/Users/june/Documents/obsidian-build',
         buildPath: {
-            content: `${process.cwd()}/packages/contents_builder/src/__tests__/dist/content`,
+            content: `${process.cwd()}/packages/contents_builder/src/__tests__/dist/contents`,
             assets: `${process.cwd()}/packages/contents_builder/src/__tests__/dist/assets`,
         },
-        assetsPath: 'public/assets',
     })
 
     it('should pass', () => {
