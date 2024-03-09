@@ -4,9 +4,9 @@ import type { Promisify, Stateful } from '../utils/promisify'
 
 export type PolymorphicMeta = Record<string, unknown>
 
-export interface MetaManagerConstructor<MetaShape extends PolymorphicMeta> {
+export interface MetaEngineConstructor<MetaShape extends PolymorphicMeta> {
     parser: (meta: unknown) => MetaShape
-    generator: (meta: PolymorphicMeta) => MetaShape
+    generator?: (meta: PolymorphicMeta) => MetaShape
     ioManager: IOManager
 }
 
@@ -15,33 +15,67 @@ interface MetaData<MetaShape extends PolymorphicMeta> {
     content: string
 }
 
-export class MetaManager<MetaShape extends PolymorphicMeta> {
+export class MetaEngine<MetaShape extends PolymorphicMeta> {
     private get $io() {
-        return this.options.ioManager
+        return this.engine.ioManager
     }
     private get parser() {
-        return this.options.parser
+        return this.engine.parser
     }
     private get generator() {
-        return this.options.generator
+        return this.engine?.generator
+    }
+    public static create<NewMetaShape extends PolymorphicMeta>(
+        engineInjection: Omit<MetaEngineConstructor<NewMetaShape>, 'ioManager'>,
+        ioManager: IOManager
+    ): MetaEngine<NewMetaShape> {
+        return new MetaEngine<NewMetaShape>({
+            ...engineInjection,
+            ioManager,
+        })
+    }
+
+    public updateEngine<NewMetaShape extends PolymorphicMeta>(
+        newEngineComponent: Omit<
+            MetaEngineConstructor<NewMetaShape>,
+            'ioManager'
+        >
+    ): MetaEngine<NewMetaShape> {
+        return new MetaEngine<NewMetaShape>(
+            newEngineComponent.generator
+                ? {
+                      generator: newEngineComponent.generator,
+                      parser: newEngineComponent.parser,
+                      ioManager: this.$io,
+                  }
+                : {
+                      parser: newEngineComponent.parser,
+                      ioManager: this.$io,
+                  }
+        )
     }
 
     public constructor(
-        private readonly options: MetaManagerConstructor<MetaShape>
+        private readonly engine: MetaEngineConstructor<MetaShape>
     ) {}
 
-    public generate(frontMatter: PolymorphicMeta): MetaShape {
-        return this.generator(frontMatter)
+    public generate(frontMatter: PolymorphicMeta): MetaShape | undefined {
+        return this.generator?.(frontMatter)
     }
     public parse(frontMatter: unknown): MetaShape {
         return this.parser(frontMatter)
     }
     public safeParse(frontMatter: PolymorphicMeta): MetaShape {
+        if (!this.generator) {
+            throw new Error(
+                'Generator is not defined, you should define generator to use safeParse'
+            )
+        }
         try {
             const parsed = this.parse(frontMatter)
             return parsed
         } catch {
-            return this.generate(frontMatter)
+            return this.generate(frontMatter)!
         }
     }
 
@@ -54,7 +88,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
     public static read(pureString: string): MetaData<PolymorphicMeta> {
         const { data: meta, content } = Matter(
             pureString,
-            MetaManager.MatterOptions
+            MetaEngine.MatterOptions
         )
         return {
             meta,
@@ -65,7 +99,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
         return Matter.stringify(
             metaData.content,
             metaData.meta,
-            MetaManager.MatterOptions
+            MetaEngine.MatterOptions
         )
     }
     public static test(pureString: string): boolean {
@@ -73,7 +107,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
     }
 
     private extractMetaData(pureString: string): MetaData<MetaShape> {
-        const { meta, content } = MetaManager.read(pureString)
+        const { meta, content } = MetaEngine.read(pureString)
 
         return {
             meta: this.safeParse(meta),
@@ -82,7 +116,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
     }
 
     public extractFromMd(md: string): Stateful<MetaData<MetaShape>> {
-        if (!MetaManager.test(md)) {
+        if (!MetaEngine.test(md)) {
             return {
                 success: false,
                 error: new Error('Not a valid markdown file'),
@@ -124,7 +158,7 @@ export class MetaManager<MetaShape extends PolymorphicMeta> {
         }
 
         try {
-            const injected = MetaManager.stringify(validMetaData)
+            const injected = MetaEngine.stringify(validMetaData)
             const writeResult = await this.$io.writer.write({
                 data: injected,
                 filePath: injectPath,
