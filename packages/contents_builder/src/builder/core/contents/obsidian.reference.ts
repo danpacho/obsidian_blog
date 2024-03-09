@@ -6,7 +6,7 @@ import type { Plugin } from 'unified'
 import type { Literal, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
 import { AudioFileNode, ImageFileNode } from '../../../parser/node'
-import type { ContentsModifierPlugin } from '../../plugin'
+import type { BuilderPlugin } from '../../plugin'
 
 const RemarkObsidianReferencePlugin: Plugin<
     [
@@ -15,7 +15,9 @@ const RemarkObsidianReferencePlugin: Plugin<
                 origin: string
                 build: string
             }>
-            ioManager: Parameters<ContentsModifierPlugin>[0]['ioManager']
+            ioManager: Parameters<
+                BuilderPlugin['build:contents']
+            >[0]['ioManager']
         },
     ]
 > = (options) => {
@@ -93,7 +95,7 @@ const RemarkObsidianReferencePlugin: Plugin<
     }
 }
 
-export const ObsidianReference: ContentsModifierPlugin = async ({
+export const ObsidianReference: BuilderPlugin['build:contents'] = async ({
     buildReport,
     ioManager,
 }) => {
