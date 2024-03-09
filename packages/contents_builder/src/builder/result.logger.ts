@@ -1,6 +1,6 @@
 import type { FTreeNode, FolderNode } from '../parser/node'
 import type { FileBuilderConstructor } from './builder'
-import type { BuildReport } from './reporter'
+import type { BuildReport, BuildReportSet } from './reporter'
 
 interface BuildResultLoggerConstructor extends FileBuilderConstructor {}
 export class BuildResultLogger {
@@ -16,12 +16,6 @@ export class BuildResultLogger {
 
     public constructor(public readonly option: BuildResultLoggerConstructor) {}
 
-    private setupContentAST(): void {
-        this.$parser.updateRootFolder(this.option.buildPath.content)
-    }
-    private setupAssetsAST(): void {
-        this.$parser.updateRootFolder(this.option.buildPath.assets)
-    }
     private async getAST(): Promise<FolderNode | undefined> {
         if (this.$parser.ast?.children.length !== 0) return this.$parser.ast
 
@@ -53,52 +47,45 @@ export class BuildResultLogger {
         }
     }
 
-    public async writeLog(buildReport: Array<BuildReport>): Promise<void> {
-        this.setupContentAST()
-        const contentBuildAST = await this.getAST()
-        if (contentBuildAST === undefined) {
-            this.$m.log('Failed to write build report')
-            return
-        }
-
-        const buildName = contentBuildAST.fileName
-
-        this.$m.box(`Build Report: ${new Date().toLocaleString()}`, {
+    private writeBuildReportHeader(): void {
+        const localDate = new Date().toLocaleString()
+        this.$m.box(`${this.$m.c.green('Build Report')} - ${localDate}`, {
             prefix: false,
             borderStyle: 'round',
             padding: 0.75,
         })
-        this.$m.log(
-            this.$m.c.green(
-                ` ● ${buildName} » ${this.option.buildPath.content}`
-            ),
-            {
-                prefix: false,
-            }
-        )
-        await this.walkASTForLog(contentBuildAST, buildReport)
+    }
 
-        this.setupAssetsAST()
-        const assetBuildAST = await this.getAST()
-        if (assetBuildAST === undefined) {
-            this.$m.log('Failed to write asset build report')
+    private async writeASTLog(
+        targetRootDirPath: string,
+        buildReportSet: BuildReportSet
+    ): Promise<void> {
+        this.$parser.updateRootFolder(targetRootDirPath)
+
+        const ast = await this.getAST()
+        if (ast === undefined) {
+            this.$m.log(`Failed to write AST log for ${targetRootDirPath}`)
             return
         }
 
         this.$m.log(
-            this.$m.c.green(
-                ` ● ${buildName} » ${this.option.buildPath.assets}`
-            ),
+            this.$m.c.green(` ● ${ast.fileName} » ${targetRootDirPath}`),
             {
                 prefix: false,
             }
         )
-        await this.walkASTForLog(assetBuildAST, buildReport)
+        await this.walkASTForBuildLog(ast, buildReportSet)
     }
 
-    private async walkASTForLog(
+    public async writeBuilderLog(buildReport: BuildReportSet): Promise<void> {
+        this.writeBuildReportHeader()
+        await this.writeASTLog(this.option.buildPath.content, buildReport)
+        await this.writeASTLog(this.option.buildPath.assets, buildReport)
+    }
+
+    private async walkASTForBuildLog(
         ast: FolderNode,
-        buildReport: Array<BuildReport>
+        buildReport: BuildReportSet
     ): Promise<void> {
         const buildLog: Array<string> = []
         await this.$parser.walkAST(
