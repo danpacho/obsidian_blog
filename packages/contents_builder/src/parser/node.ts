@@ -17,26 +17,40 @@ export type BuildInfo = {
 
 export abstract class FTreeNode {
     public readonly children: FTreeNode[] | undefined = undefined
-    public parentInfo:
+    public fileName: string
+
+    public get parentInfo() {
+        return this._parentInfo
+    }
+    private _parentInfo:
         | {
               absolutePath: string
               fileName: string
           }
         | undefined = undefined
-    public fileName: string
-    public buildInfo: BuildInfo = {
+    public setParentInfo(parentInfo: {
+        absolutePath: string
+        fileName: string
+    }): void {
+        this._parentInfo = parentInfo
+    }
+
+    private _buildInfo: BuildInfo = {
         shouldSkip: false,
     }
-    public updateBuildInfo({
+    public get buildInfo(): BuildInfo {
+        return this._buildInfo
+    }
+    public setBuildInfo({
         id,
         folderType,
         path,
         shouldSkip,
     }: Partial<BuildInfo>): void {
-        if (id) this.buildInfo.id = id
-        if (path) this.buildInfo.path = path
-        if (folderType) this.buildInfo.folderType = folderType
-        if (shouldSkip) this.buildInfo.shouldSkip = shouldSkip
+        if (id) this._buildInfo.id = id
+        if (path) this._buildInfo.path = path
+        if (folderType) this._buildInfo.folderType = folderType
+        if (shouldSkip) this._buildInfo.shouldSkip = shouldSkip
     }
 
     public constructor(
@@ -50,13 +64,6 @@ export abstract class FTreeNode {
 
     public setLabel(label: string): void {
         this.label = label
-    }
-
-    public setParentInfo(parent: {
-        absolutePath: string
-        fileName: string
-    }): void {
-        this.parentInfo = parent
     }
 
     private static getFileName(basePath: string): string {
