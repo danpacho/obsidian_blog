@@ -228,7 +228,7 @@ export const FileTreeConstructor = (
                     return
                 }
 
-                node.updateBuildInfo({
+                node.setBuildInfo({
                     id: postBuildInfo.data.buildID,
                     path: postBuildInfo.data.path.build,
                     folderType: buildRouteInfo.type,
@@ -256,7 +256,7 @@ export const FileTreeConstructor = (
                     return
                 }
 
-                node.updateBuildInfo({
+                node.setBuildInfo({
                     id: assetBuildInfo.data.buildID,
                     path: assetBuildInfo.data.path.build,
                     folderType: buildRouteInfo.type,
