@@ -118,7 +118,7 @@ describe('MetaManager', () => {
         if (injected.success) {
             expect(injected.data).toEqual({
                 ...injectionOption,
-                injected: `---\ntitle: Hello World\ndate: 2024-03-01T00:00:00.000Z\n---\nThis is injected contents.\n`,
+                injected: `---\ndate: 2024-03-01T00:00:00.000Z\ntitle: Hello World\n---\nThis is injected contents.\n`,
             })
         }
     })
@@ -141,7 +141,7 @@ describe('MetaManager', () => {
         if (injected.success) {
             expect(injected.data).toEqual({
                 ...injectionOption,
-                injected: `---\ntitle: 'New title '\ndate: 2024-05-05T00:00:00.000Z\n---\nThis is UPDATED injected contents.\n`,
+                injected: `---\ndate: 2024-05-05T00:00:00.000Z\ntitle: 'New title '\n---\nThis is UPDATED injected contents.\n`,
             })
         }
     })
