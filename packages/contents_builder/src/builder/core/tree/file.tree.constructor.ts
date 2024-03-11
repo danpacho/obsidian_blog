@@ -19,7 +19,7 @@ export const FileTreeConstructor = (
             skipFolderTypes: ['root'],
         },
     }
-): BuilderPlugin['build:file:tree'] => {
+): BuilderPlugin['build:origin:tree'] => {
     return async ({ ast, ioManager, uuidEncoder, buildPath, logger }) => {
         const rootPath = ast.absolutePath
         const getSafeRoutePath = (path: string): string =>
