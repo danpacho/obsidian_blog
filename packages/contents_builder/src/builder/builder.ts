@@ -24,11 +24,11 @@ export interface FileBuilderConstructor {
     readonly logger: Logger
 }
 export class FileBuilder {
-    private readonly treeOriginConstructorPluggable: Pluggable<
+    private readonly treeBuildPluggable: Pluggable<
         BuilderPlugin['build:origin:tree']
     > = new Pluggable()
-    private readonly treeGeneratedConstructorPluggable: Pluggable<
-        BuilderPlugin['build:generated:tree']
+    private readonly generatedTreeWalkerPluggable: Pluggable<
+        BuilderPlugin['walk:generated:tree']
     > = new Pluggable()
     private readonly contentsModifierPluggable: Pluggable<
         BuilderPlugin['build:contents']
@@ -41,20 +41,17 @@ export class FileBuilder {
     private readonly $buildLogger: BuildResultLogger
     private readonly buildUpdatedReport: BuildReportSet = []
     public use({
-        'build:origin:tree': treeConstructorPlugins,
-        'build:contents': updatedContentsModifierPlugins,
-        'build:generated:tree': treeGeneratedConstructorPlugins,
+        'build:origin:tree': treeBuildPluginSet,
+        'walk:generated:tree': generatedTreeWalkerPluginSet,
+        'build:contents': contentsBuildPluginSet,
     }: PluginAdapter): FileBuilder {
-        treeConstructorPlugins &&
-            this.treeOriginConstructorPluggable.use(treeConstructorPlugins)
+        treeBuildPluginSet && this.treeBuildPluggable.use(treeBuildPluginSet)
 
-        updatedContentsModifierPlugins &&
-            this.contentsModifierPluggable.use(updatedContentsModifierPlugins)
+        generatedTreeWalkerPluginSet &&
+            this.generatedTreeWalkerPluggable.use(generatedTreeWalkerPluginSet)
 
-        treeGeneratedConstructorPlugins &&
-            this.treeGeneratedConstructorPluggable.use(
-                treeGeneratedConstructorPlugins
-            )
+        contentsBuildPluginSet &&
+            this.contentsModifierPluggable.use(contentsBuildPluginSet)
         return this
     }
 
@@ -121,8 +118,8 @@ export class FileBuilder {
 
         const pluginTarget =
             option.target === 'origin'
-                ? this.treeOriginConstructorPluggable
-                : this.treeGeneratedConstructorPluggable
+                ? this.treeBuildPluggable
+                : this.generatedTreeWalkerPluggable
 
         for (const plugin of pluginTarget.plugin) {
             const walkerPlugin = await plugin({

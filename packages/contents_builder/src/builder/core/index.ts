@@ -10,6 +10,6 @@ export const CorePlugins = {
         MetaBuilder(),
         StaticParamBuilder(),
     ],
-    'build:generated:tree': [PaginationBuilder()],
+    'walk:generated:tree': [PaginationBuilder()],
     'build:contents': [ObsidianReference],
 } as const satisfies PluginAdapter
