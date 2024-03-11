@@ -24,8 +24,11 @@ export interface FileBuilderConstructor {
     readonly logger: Logger
 }
 export class FileBuilder {
-    private readonly treeConstructorPluggable: Pluggable<
-        BuilderPlugin['build:file:tree']
+    private readonly treeOriginConstructorPluggable: Pluggable<
+        BuilderPlugin['build:origin:tree']
+    > = new Pluggable()
+    private readonly treeGeneratedConstructorPluggable: Pluggable<
+        BuilderPlugin['build:generated:tree']
     > = new Pluggable()
     private readonly contentsModifierPluggable: Pluggable<
         BuilderPlugin['build:contents']
@@ -38,15 +41,20 @@ export class FileBuilder {
     private readonly $buildLogger: BuildResultLogger
     private readonly buildUpdatedReport: BuildReportSet = []
     public use({
-        'build:file:tree': treeConstructorPlugins,
+        'build:origin:tree': treeConstructorPlugins,
         'build:contents': updatedContentsModifierPlugins,
+        'build:generated:tree': treeGeneratedConstructorPlugins,
     }: PluginAdapter): FileBuilder {
         treeConstructorPlugins &&
-            this.treeConstructorPluggable.use(treeConstructorPlugins)
+            this.treeOriginConstructorPluggable.use(treeConstructorPlugins)
 
         updatedContentsModifierPlugins &&
             this.contentsModifierPluggable.use(updatedContentsModifierPlugins)
 
+        treeGeneratedConstructorPlugins &&
+            this.treeGeneratedConstructorPluggable.use(
+                treeGeneratedConstructorPlugins
+            )
         return this
     }
 
@@ -65,13 +73,15 @@ export class FileBuilder {
     }
 
     public static async create(
-        option: FileBuilderConstructor
+        option: FileBuilderConstructor & {
+            disableCorePlugins?: true
+        }
     ): Promise<FileBuilder> {
         await option.ioManager.writer.createFolder(option.buildPath.content)
         await option.ioManager.writer.createFolder(option.buildPath.assets)
 
         const builder = new FileBuilder(option)
-        builder.use(CorePlugins)
+        if (!option.disableCorePlugins) builder.use(CorePlugins)
 
         return builder
     }
@@ -101,10 +111,20 @@ export class FileBuilder {
         return this.$reporter.reportUUID.has(buildID)
     }
 
-    private async buildFileTreeStructure(ast: FTreeNode): Promise<void> {
+    private async buildFileTreeStructure(
+        ast: FTreeNode,
+        option: {
+            target: 'origin' | 'generated'
+        }
+    ): Promise<void> {
         if (!ast.children) return
 
-        for (const plugin of this.treeConstructorPluggable.plugin) {
+        const pluginTarget =
+            option.target === 'origin'
+                ? this.treeOriginConstructorPluggable
+                : this.treeGeneratedConstructorPluggable
+
+        for (const plugin of pluginTarget.plugin) {
             const walkerPlugin = await plugin({
                 ast,
                 uuidEncoder: this.encodeHashUUID,
@@ -241,17 +261,28 @@ export class FileBuilder {
     }
 
     public async build(): Promise<void> {
-        const ast = await this.getAST()
-        if (!ast) return
+        const originAST = await this.getAST()
+        if (!originAST) return
 
-        // Phase1: Tree build phase
-        await this.buildFileTreeStructure(ast)
+        // Phase1: Origin Tree build phase
+        await this.buildFileTreeStructure(originAST, {
+            target: 'origin',
+        })
 
         // Phase2: File generation phase + caching logics
-        await this.buildFileTree(ast)
+        await this.buildFileTree(originAST)
+
+        // Phase3: Generated Tree build phase
+        // Update ast root path to reflect the generated files
+        this.$parser.updateRootFolder(this.option.buildPath.content)
+        const generatedAST = await this.getAST()
+        if (!generatedAST) return
+        await this.buildFileTreeStructure(generatedAST, {
+            target: 'generated',
+        })
 
         // Phase3: Contents modifier plugins
-        await this.buildContents(ast)
+        await this.buildContents(generatedAST)
 
         // Phase4: Report build result
         await this.$buildLogger.writeBuilderLog(this.$reporter.totalReport)
