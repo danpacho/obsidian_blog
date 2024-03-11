@@ -17,7 +17,7 @@ export const StaticParamBuilder = (
         paramShape: '/[category]/[...post]',
         ...defaultMetaBuilderOptions,
     }
-): BuilderPlugin['build:file:tree'] => {
+): BuilderPlugin['build:origin:tree'] => {
     const splitToPurePath = (path: string): Array<string> =>
         path.split('/').filter(Boolean).map(FileReader.getPureFileName)
 
@@ -104,7 +104,9 @@ export const StaticParamBuilder = (
                     injectPath: finalBuildPath,
                     metaData: {
                         content: mdContent.data,
-                        meta: staticParamsInfo.params,
+                        meta: {
+                            params: staticParamsInfo.params,
+                        },
                     },
                 })
             } else {
