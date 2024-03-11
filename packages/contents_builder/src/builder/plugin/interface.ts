@@ -41,6 +41,7 @@ type ContentsModifierPlugin = (
 >
 
 export type BuilderPlugin = {
-    'build:file:tree': FileTreePlugin
+    'build:origin:tree': FileTreePlugin
+    'build:generated:tree': FileTreePlugin
     'build:contents': ContentsModifierPlugin
 }
