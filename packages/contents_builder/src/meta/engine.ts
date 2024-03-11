@@ -151,6 +151,30 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         return this.extractFromMd(file.data)
     }
 
+    private getValidRecord(record: PolymorphicMeta): PolymorphicMeta {
+        const isRecord = (record: unknown): record is PolymorphicMeta =>
+            typeof record === 'object' &&
+            record !== null &&
+            !Array.isArray(record) &&
+            record.constructor === Object
+
+        return Object.entries(record).reduce<PolymorphicMeta>(
+            (acc, [key, value]) => {
+                if (!value) return acc
+
+                if (isRecord(value)) {
+                    value = this.getValidRecord(value)
+                } else if (Array.isArray(value)) {
+                    value = value.map(this.getValidRecord)
+                }
+
+                acc[key] = value
+                return acc
+            },
+            {}
+        )
+    }
+
     public async inject(injectOption: {
         metaData: MetaData<PolymorphicMeta>
         injectPath: string
@@ -160,7 +184,10 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         injected: string
     }> {
         const { injectPath, metaData } = injectOption
-        const validMeta: MetaShape = this.$parse(metaData.meta)
+
+        const validRecord: PolymorphicMeta = this.getValidRecord(metaData.meta)
+        const validMeta: MetaShape = this.$parse(validRecord)
+
         const validMetaData: MetaData<MetaShape> = {
             meta: validMeta,
             content: metaData.content,
