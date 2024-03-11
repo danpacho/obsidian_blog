@@ -11,14 +11,14 @@ import {
 interface PaginationBuilderOptions extends MetaGeneratorOptions {}
 
 type FTreeNode = Parameters<
-    Awaited<ReturnType<BuilderPlugin['build:origin:tree']>>
+    Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>
 >[0]
 
 export const PaginationBuilder = (
     option: PaginationBuilderOptions = {
         ...defaultMetaBuilderOptions,
     }
-): BuilderPlugin['build:origin:tree'] => {
+): BuilderPlugin['walk:generated:tree'] => {
     return async ({ metaEngine, logger }) => {
         const metaExtractor = metaEngine(option.contentMeta)
 
