@@ -1,6 +1,6 @@
 // import { prettyPrint } from '../../../utils/logger'
 import type { BuilderPlugin } from '../../../../plugin'
-import type { DefaultMeta } from './constant'
+import type { DefaultContentMeta } from './constant'
 export type MetaParser = Parameters<
     Parameters<BuilderPlugin['build:contents']>[0]['metaEngine']
 >[0]['parser']
@@ -34,7 +34,7 @@ export const ContentMetaParser: MetaParser = (input: unknown) => {
     const output: ReturnType<MetaParser> = {
         title,
         description,
-    } satisfies DefaultMeta
+    } satisfies DefaultContentMeta
 
     if (update !== undefined) {
         if (!is.Date(update)) {
