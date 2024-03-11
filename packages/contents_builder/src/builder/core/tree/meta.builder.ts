@@ -7,7 +7,7 @@ import {
 
 export const MetaBuilder = (
     option: MetaGeneratorOptions = defaultMetaBuilderOptions
-): BuilderPlugin['build:file:tree'] => {
+): BuilderPlugin['build:origin:tree'] => {
     return async ({ metaEngine, logger, ioManager }) => {
         const { contentMeta } = option
         const engine = metaEngine(contentMeta)
