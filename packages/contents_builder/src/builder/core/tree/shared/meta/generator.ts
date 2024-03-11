@@ -1,5 +1,5 @@
 import type { BuilderPlugin } from '../../../../plugin'
-import { MetaRequiredDefaultValue } from './constant'
+import { ContentMetaDefaultValueInjector } from './constant'
 
 export type MetaGenerator = Exclude<
     Parameters<
@@ -9,6 +9,6 @@ export type MetaGenerator = Exclude<
 >
 
 export const ContentMetaGenerator: MetaGenerator = (meta) => ({
-    ...MetaRequiredDefaultValue(),
+    ...ContentMetaDefaultValueInjector(),
     ...meta,
 })
