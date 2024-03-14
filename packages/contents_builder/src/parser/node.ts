@@ -1,4 +1,4 @@
-import { UUID } from 'crypto'
+import type { BuildInformation } from '../builder/core/store'
 import { FileReader } from '../io_manager/file.reader'
 
 export type NodeType =
@@ -7,13 +7,8 @@ export type NodeType =
     | 'IMAGE_FILE'
     | 'AUDIO_FILE'
     | 'UNKNOWN_FILE'
-export type BuildFolderType = 'route' | 'group' | 'series' | 'root'
-export type BuildInfo = {
-    id?: UUID
-    path?: string
-    folderType?: BuildFolderType
-    shouldSkip: boolean
-}
+
+type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id'>
 
 export abstract class FTreeNode {
     public readonly children: FTreeNode[] | undefined = undefined
@@ -35,22 +30,12 @@ export abstract class FTreeNode {
         this._parentInfo = parentInfo
     }
 
-    private _buildInfo: BuildInfo = {
-        shouldSkip: false,
-    }
-    public get buildInfo(): BuildInfo {
+    private _buildInfo: NodeBuildInfo | undefined = undefined
+    public get buildInfo(): NodeBuildInfo | undefined {
         return this._buildInfo
     }
-    public setBuildInfo({
-        id,
-        folderType,
-        path,
-        shouldSkip,
-    }: Partial<BuildInfo>): void {
-        if (id) this._buildInfo.id = id
-        if (path) this._buildInfo.path = path
-        if (folderType) this._buildInfo.folderType = folderType
-        if (shouldSkip) this._buildInfo.shouldSkip = shouldSkip
+    public injectBuildInfo(info: NodeBuildInfo): void {
+        this._buildInfo = info
     }
 
     public constructor(
