@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { IOManager } from '../io_manager'
 import { FileTreeParser } from './parser'
 
-describe('FileTreeParser', async () => {
-    const parser = await FileTreeParser.create({
+describe('FileTreeParser', () => {
+    const parser = new FileTreeParser({
         ioManager: new IOManager(),
         rootFolder: '$$blog$$',
     })
@@ -18,7 +18,7 @@ describe('FileTreeParser', async () => {
         expect(fileTree).toMatchSnapshot()
     })
 
-    const parserWithSyntax = await FileTreeParser.create({
+    const parserWithSyntax = new FileTreeParser({
         ioManager: new IOManager(),
         rootFolder: '$$blog$$',
         treeSyntax: {
