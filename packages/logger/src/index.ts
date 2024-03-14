@@ -23,7 +23,6 @@ export class Logger {
             this.name = name
             this._useDate = options.useDate ?? false
         }
-        this.info(`${this.name} logger initialized`)
     }
     private name: string = 'Logger'
     private _useDate: boolean = false
