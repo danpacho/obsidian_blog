@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { glob, globSync } from 'glob'
 import { PromiseCallbacks, Promisify, Stateful } from '../utils/promisify'
@@ -116,14 +117,15 @@ export class FilePathFinder {
     ): Promisify<DirectoryNode[]> {
         try {
             const isFileAlreadyExist = await stat(fileName)
-            if (isFileAlreadyExist.isFile()) {
+            const isDir = isFileAlreadyExist.isDirectory()
+            if (isFileAlreadyExist.isFile() || isDir) {
                 return {
                     success: true,
                     data: [
                         {
                             extension: FileReader.getExtension(fileName),
                             name: fileName,
-                            isDir: false,
+                            isDir,
                             path: fileName,
                         },
                     ],
@@ -173,6 +175,26 @@ export class FilePathFinder {
         extension?: string,
         ignore?: Array<string>
     ): Stateful<Array<DirectoryNode>> {
+        try {
+            const isFileAlreadyExist = statSync(fileName)
+            const isDir = isFileAlreadyExist.isDirectory()
+            if (isFileAlreadyExist.isFile() || isDir) {
+                return {
+                    success: true,
+                    data: [
+                        {
+                            extension: FileReader.getExtension(fileName),
+                            name: fileName,
+                            isDir,
+                            path: fileName,
+                        },
+                    ],
+                }
+            }
+        } catch {
+            // DO NOTHING
+        }
+
         const requestPathPattern = extension
             ? `**/${fileName}.${extension}`
             : `**/${fileName}`
