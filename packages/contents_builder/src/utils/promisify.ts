@@ -3,13 +3,15 @@ export type PromiseCallbacks<DataInterface, ErrorInterface extends Error> = {
     onError?: (err: ErrorInterface) => void
 }
 
-export type Stateful<DataInterface> =
+export type Stateful<DataInterface, ErrorInterface = unknown> =
     | {
           success: true
           data: DataInterface
       }
     | {
           success: false
-          error: unknown
+          error: ErrorInterface
       }
-export type Promisify<DataInterface> = Promise<Stateful<DataInterface>>
+export type Promisify<DataInterface, ErrorInterface = unknown> = Promise<
+    Stateful<DataInterface, ErrorInterface>
+>
