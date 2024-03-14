@@ -6,7 +6,7 @@ import FormattedDate from '../../components/FormattedDate.astro'
 import Header from '../../components/Header.astro'
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts'
 
-const posts = (await getCollection('blog')).sort(
+const categoryInfo = (await getCollection('category')).toSorted(
     (a, b) => a.data.pubDate.valueOf() - b.data.pubDate.valueOf()
 )
 ---
@@ -85,34 +85,45 @@ const posts = (await getCollection('blog')).sort(
             }
         </style>
     </head>
-    <body>
+    <body class="w-full">
         <Header />
-        <main>
-            <section>
-                <ul>
+        <main class="w-full">
+            <section class="w-full">
+                <ul class="flex w-full flex-col items-center justify-center">
                     {
-                        posts.map((post) => (
-                            <li>
-                                <a href={`/blog/${post.slug}/`}>
-                                    <img
-                                        width={720}
-                                        height={360}
-                                        src={post.data.heroImage}
-                                        alt=""
-                                    />
-                                    <h4 class="title">{post.data.title}</h4>
-                                    <p class="date">
-                                        <FormattedDate
-                                            date={post.data.pubDate}
-                                        />
-                                    </p>
-                                </a>
-                            </li>
-                        ))
+                        categoryInfo.map(
+                            ({
+                                data: { description, pubDate, title, banner },
+                                id,
+                            }) => {
+                                return (
+                                    <li class="flex flex-col items-center justify-start gap-1 rounded border">
+                                        <a href={`blog/${id}`}>
+                                            {banner && (
+                                                <img
+                                                    width={720}
+                                                    height={360}
+                                                    src={banner}
+                                                    alt=""
+                                                />
+                                            )}
+                                            <h1 class="title">{title}</h1>
+                                            <h3 class="text-xl font-medium">
+                                                {description}
+                                            </h3>
+                                            <p class="date">
+                                                <FormattedDate date={pubDate} />
+                                            </p>
+                                        </a>
+                                    </li>
+                                )
+                            }
+                        )
                     }
                 </ul>
             </section>
         </main>
+
         <Footer />
     </body>
 </html>
