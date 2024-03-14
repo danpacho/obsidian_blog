@@ -1,25 +1,25 @@
-import type { Promisify } from '../../../utils/promisify'
-import type { BuilderPlugin } from '../../plugin'
+import type { BuilderPlugin } from '../..'
+import type { Promisify } from '../../../../utils/promisify'
 import {
-    type MetaGeneratorOptions,
-    defaultMetaBuilderOptions,
+    type ContentMetaGeneratorOptions,
+    defaultContentMetaBuilderOptions,
 } from './shared/meta'
 import {
     DefaultContentMeta,
     DefaultPaginationInfo,
 } from './shared/meta/constant'
-interface PaginationBuilderOptions extends MetaGeneratorOptions {}
 
 type FTreeNode = Parameters<
     Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>
 >[0]
 
+export interface PaginationBuilderConfig extends ContentMetaGeneratorOptions {}
 export const PaginationBuilder = (
-    option: PaginationBuilderOptions = {
-        ...defaultMetaBuilderOptions,
+    option: PaginationBuilderConfig = {
+        ...defaultContentMetaBuilderOptions,
     }
 ): BuilderPlugin['walk:generated:tree'] => {
-    return async ({ metaEngine, logger }) => {
+    return async ({ meta: metaEngine, logger }) => {
         const metaExtractor = metaEngine(option.contentMeta)
 
         const buildPaginationMeta = async ({
@@ -56,7 +56,7 @@ export const PaginationBuilder = (
             const typedMeta = data.meta as unknown as DefaultContentMeta
 
             const href = typedMeta.params
-                ? Object.values(typedMeta.params).join('/')
+                ? `/${Object.values(typedMeta.params).join('/')}`
                 : undefined
             const title = typedMeta.title
             const description = typedMeta.description

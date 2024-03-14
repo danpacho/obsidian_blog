@@ -5,8 +5,8 @@ import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
-import { AudioFileNode, ImageFileNode } from '../../../parser/node'
-import type { BuilderPlugin } from '../../plugin'
+import type { BuilderPlugin } from '../..'
+import { AudioFileNode, ImageFileNode } from '../../../../parser/node'
 
 const RemarkObsidianReferencePlugin: Plugin<
     [
@@ -15,13 +15,11 @@ const RemarkObsidianReferencePlugin: Plugin<
                 origin: string
                 build: string
             }>
-            ioManager: Parameters<
-                BuilderPlugin['build:contents']
-            >[0]['ioManager']
+            io: Parameters<BuilderPlugin['build:contents']>[0]['io']
         },
     ]
 > = (options) => {
-    const { ioManager, imageReference } = options
+    const { io, imageReference } = options
 
     return (tree) => {
         visit(tree, 'paragraph', (node, index, parent: Parent | undefined) => {
@@ -44,7 +42,7 @@ const RemarkObsidianReferencePlugin: Plugin<
             }
             if (!link) return node
             const pureLink = getPureLink(link)
-            const searched = ioManager.finder.findFileSync(pureLink)
+            const searched = io.finder.findFileSync(pureLink)
 
             if (!searched.success) return node
             const { data } = searched
@@ -95,51 +93,51 @@ const RemarkObsidianReferencePlugin: Plugin<
     }
 }
 
-export const ObsidianReference: BuilderPlugin['build:contents'] = async ({
-    buildReport,
-    ioManager,
-}) => {
-    const { total, updated } = buildReport
+export const ObsidianReference =
+    (): BuilderPlugin['build:contents'] =>
+    async ({ buildStore, io }) => {
+        const assetReferencesUUIDList = buildStore
+            .filter(
+                ({ file_type }) =>
+                    file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
+            )
+            .map((report) => ({
+                build: report.build_path.build,
+                origin: report.build_path.origin,
+            }))
 
-    const assetReferencesUUIDList = total
-        .filter(({ type }) => type === 'IMAGE_FILE' || type === 'AUDIO_FILE')
-        .map((report) => ({
-            build: `/assets/images/${report.buildID}`,
-            origin: report.path.origin,
-        }))
-
-    const referenceUpdateTextFileList = updated.filter(
-        ({ type }) => type === 'TEXT_FILE'
-    )
-
-    const referenceUpdatedList = referenceUpdateTextFileList.reduce<
-        Promise<
-            {
-                modifiedContent: string
-                writePath: string
-            }[]
-        >
-    >(async (acc, textFile) => {
-        const awaitedAcc = await acc
-        const textFileContent = await ioManager.reader.readFile(
-            textFile.path.build
+        const referenceUpdateTextFileList = buildStore.filter(
+            ({ file_type }) => file_type === 'TEXT_FILE'
         )
-        if (textFileContent.success) {
-            const updatedVFile = await remark()
-                .use(RemarkObsidianReferencePlugin, {
-                    imageReference: assetReferencesUUIDList,
-                    ioManager,
+
+        const referenceUpdatedList = referenceUpdateTextFileList.reduce<
+            Promise<
+                {
+                    content: string
+                    writePath: string
+                }[]
+            >
+        >(async (acc, textFile) => {
+            const awaitedAcc = await acc
+            const textFileContent = await io.reader.readFile(
+                textFile.build_path.build
+            )
+            if (textFileContent.success) {
+                const updatedVFile = await remark()
+                    .use(RemarkObsidianReferencePlugin, {
+                        imageReference: assetReferencesUUIDList,
+                        io,
+                    })
+                    .use(remarkFrontmatter)
+                    .process(textFileContent.data)
+
+                awaitedAcc.push({
+                    content: updatedVFile.toString(),
+                    writePath: textFile.build_path.build,
                 })
-                .use(remarkFrontmatter)
-                .process(textFileContent.data)
+            }
+            return acc
+        }, Promise.resolve([]))
 
-            awaitedAcc.push({
-                modifiedContent: updatedVFile.toString(),
-                writePath: textFile.path.build,
-            })
-        }
-        return acc
-    }, Promise.resolve([]))
-
-    return referenceUpdatedList
-}
+        return referenceUpdatedList
+    }

@@ -1,14 +1,15 @@
-import { ParamAnalyzer } from '../../../routes'
-import type { BuilderPlugin } from '../../plugin'
+import type { BuilderPlugin } from '../..'
+import { ParamAnalyzer } from '../../../../routes'
 import {
-    type MetaGeneratorOptions,
-    defaultMetaBuilderOptions,
+    type ContentMetaGeneratorOptions,
+    defaultContentMetaBuilderOptions,
 } from './shared/meta'
 
+export interface MetaBuilderConfig extends ContentMetaGeneratorOptions {}
 export const MetaBuilder = (
-    option: MetaGeneratorOptions = defaultMetaBuilderOptions
+    option: MetaBuilderConfig = defaultContentMetaBuilderOptions
 ): BuilderPlugin['build:origin:tree'] => {
-    return async ({ metaEngine, logger, ioManager }) => {
+    return async ({ meta: metaEngine, logger, io: ioManager }) => {
         const { contentMeta } = option
         const engine = metaEngine(contentMeta)
         const paramAnalyzer = new ParamAnalyzer(option.paramAnalyzer)
@@ -16,7 +17,7 @@ export const MetaBuilder = (
         return async (node) => {
             if (node.category !== 'TEXT_FILE') return
 
-            const injectPath = node.buildInfo.path
+            const injectPath = node.buildInfo?.build_path
 
             if (!injectPath) {
                 logger.error(`build path not defined: ${node.absolutePath}`)
@@ -85,7 +86,7 @@ export const MetaBuilder = (
                 if (!pureMdContent.success) return
 
                 await engine.inject({
-                    injectPath,
+                    injectPath: injectPath.build,
                     metaData: {
                         content: pureMdContent.data,
                         meta: categoryInfo.find
@@ -100,7 +101,7 @@ export const MetaBuilder = (
 
             if (!seriesInfo.find) {
                 await engine.inject({
-                    injectPath,
+                    injectPath: injectPath.build,
                     metaData: {
                         content: metaExtractionResult.data.content,
                         meta: categoryInfo.find
@@ -117,7 +118,7 @@ export const MetaBuilder = (
             }
 
             await engine.inject({
-                injectPath,
+                injectPath: injectPath.build,
                 metaData: {
                     content: metaExtractionResult.data.content,
                     meta: categoryInfo.find
@@ -132,8 +133,8 @@ export const MetaBuilder = (
                           },
                 },
             })
-            logger.info(
-                `injected series meta: name ${seriesInfo.series}, at ${injectPath}`
+            logger.success(
+                `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
             )
             return
         }

@@ -1,21 +1,21 @@
-import { FileReader } from '../../../io_manager/file.reader'
-import { ParamAnalyzer } from '../../../routes'
-import type { BuilderPlugin } from '../../plugin'
+import type { BuilderPlugin } from '../..'
+import { FileReader } from '../../../../io_manager/file.reader'
+import { ParamAnalyzer } from '../../../../routes'
 import {
-    type MetaGeneratorOptions,
-    defaultMetaBuilderOptions,
+    type ContentMetaGeneratorOptions,
+    defaultContentMetaBuilderOptions,
 } from './shared/meta'
 
-interface StaticParamBuilderOptions extends MetaGeneratorOptions {
+type RecordShape = Record<string, string>
+
+export interface StaticParamBuilderOptions extends ContentMetaGeneratorOptions {
     paramShape: string
 }
-
-type RecordShape = Record<string, string>
 
 export const StaticParamBuilder = (
     option: StaticParamBuilderOptions = {
         paramShape: '/[category]/[...post]',
-        ...defaultMetaBuilderOptions,
+        ...defaultContentMetaBuilderOptions,
     }
 ): BuilderPlugin['build:origin:tree'] => {
     const splitToPurePath = (path: string): Array<string> =>
@@ -27,16 +27,20 @@ export const StaticParamBuilder = (
     const paramAnalyzer = new ParamAnalyzer(option.paramAnalyzer)
     const analyzed = paramAnalyzer.analyzeParam(option.paramShape)
 
-    return async ({ logger, ioManager, buildPath, metaEngine }) => {
+    return async ({ logger, io: ioManager, buildPath, meta: metaEngine }) => {
         const engine = metaEngine(option.contentMeta)
 
         return async (node) => {
             if (node.category !== 'TEXT_FILE') return
 
-            const finalBuildPath: string | undefined = node.buildInfo.path
+            const finalBuildPath: string | undefined =
+                node.buildInfo?.build_path.build
             if (!finalBuildPath) return
 
-            const paramBuildPath = finalBuildPath.replace(buildPath.content, '')
+            const paramBuildPath = finalBuildPath.replace(
+                buildPath.contents,
+                ''
+            )
             const buildList: Array<string> = splitToPurePath(paramBuildPath)
             const staticParamsContainer: RecordShape = createRecord(
                 analyzed.dynamicParams,
@@ -95,6 +99,7 @@ export const StaticParamBuilder = (
             )
 
             const metaDataResult = await engine.extractFromFile(finalBuildPath)
+            // console.log(staticParamsInfo, finalBuildPath)
             if (!metaDataResult.success) {
                 const mdContent =
                     await ioManager.reader.readFile(finalBuildPath)
