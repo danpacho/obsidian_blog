@@ -11,11 +11,11 @@ tags:
 
 ![image](./obsidian.png)
 
-<img src="/Users/june/Documents/project/obsidian-blogger/packages/contents_builder/src/md/__mocks__/build/build.png" alt="obsidian.png#hi_should_be_ignored">
+<img src="/Users/june/Documents/project/obsidian-blogger/packages/build_system/src/md/__mocks__/build/build.png" alt="obsidian.png#hi_should_be_ignored">
 
-<img src="/Users/june/Documents/project/obsidian-blogger/packages/contents_builder/src/md/__mocks__/build/build.png" alt="obsidian.png|500">
+<img src="/Users/june/Documents/project/obsidian-blogger/packages/build_system/src/md/__mocks__/build/build.png" alt="obsidian.png|500">
 
-<img src="/Users/june/Documents/project/obsidian-blogger/packages/contents_builder/src/md/__mocks__/build/build.png" alt="obsidian.png|300x500">
+<img src="/Users/june/Documents/project/obsidian-blogger/packages/build_system/src/md/__mocks__/build/build.png" alt="obsidian.png|300x500">
 
 > Other elements
 

@@ -109,8 +109,8 @@ describe('FileTreeGenerator', async () => {
             name: 'Builder',
         }),
         buildPath: {
-            contents: `${process.cwd()}/packages/contents_builder/src/__tests__/dist/contents`,
-            assets: `${process.cwd()}/packages/contents_builder/src/__tests__/dist/assets`,
+            contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
+            assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
         },
         pathGenerator: {
             contents: (node) => {

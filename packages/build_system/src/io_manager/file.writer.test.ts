@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { FileWriter } from './file.writer'
 describe('FileWriter', () => {
     const writer = new FileWriter()
-    const basePath = `${process.cwd()}/packages/contents_builder/src/io_manager/__mocks__`
+    const basePath = `${process.cwd()}/packages/build_system/src/io_manager/__mocks__`
     const writingTargetExtension = ['md', 'txt', 'html', 'png', 'jpg'] as const
 
     it('should WRITE to a file root folder exists', async () => {

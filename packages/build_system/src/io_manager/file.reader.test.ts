@@ -35,14 +35,14 @@ describe('FileReader', () => {
 
     it('should READ directory folder names', async () => {
         const folderNames = await reader.readDir(
-            `${cwd()}/packages/contents_builder/src/__tests__/__mocks__`
+            `${cwd()}/packages/build_system/src/__tests__/__mocks__`
         )
         if (folderNames.success) {
             expect(folderNames.data).toMatchSnapshot()
         }
 
         const allFolderNames = await reader.readDir(
-            `${cwd()}/packages/contents_builder/src/__tests__/__mocks__`,
+            `${cwd()}/packages/build_system/src/__tests__/__mocks__`,
             undefined,
             { recursive: true }
         )

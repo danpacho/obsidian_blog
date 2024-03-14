@@ -11,7 +11,7 @@ describe('MdProcessor', async () => {
         const mdPath = targetMdAbsPath.data[0]?.path
         if (!imgPath || !mdPath) throw new Error('No image or md file found')
 
-        const imgBuildPath = `${process.cwd()}/packages/contents_builder/src/md/__mocks__/build/build.png`
+        const imgBuildPath = `${process.cwd()}/packages/build_system/src/md/__mocks__/build/build.png`
         await io.cpFile({
             from: imgPath,
             to: imgBuildPath,
@@ -42,7 +42,7 @@ describe('MdProcessor', async () => {
 
                 await io.writer.write({
                     data: result,
-                    filePath: `${process.cwd()}/packages/contents_builder/src/md/__mocks__/build/obsidian_build.md`,
+                    filePath: `${process.cwd()}/packages/build_system/src/md/__mocks__/build/obsidian_build.md`,
                 })
             }
         })

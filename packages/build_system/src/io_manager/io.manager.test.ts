@@ -4,7 +4,7 @@ import { IOManager } from './io.manager'
 
 describe('IOManager', () => {
     const io = new IOManager()
-    const basePath = `${process.cwd()}/packages/contents_builder/src/io_manager/__mocks__`
+    const basePath = `${process.cwd()}/packages/build_system/src/io_manager/__mocks__`
 
     it('should WRITE file', async () => {
         const res = await io.writer.write({
