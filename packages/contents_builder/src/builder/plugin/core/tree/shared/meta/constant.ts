@@ -33,4 +33,15 @@ export const ContentMetaDefaultValueInjector = () => ({
 export interface DefaultCategoryMeta {
     title: string
     description: string
+    postCollection: Array<DefaultContentMeta>
 }
+
+export const CategoryMetaField = {
+    required: ['title', 'description'],
+    build: ['postCollection'],
+} as const
+
+export const CategoryMetaDefaultValueInjector = () => ({
+    title: 'DEFAULT CATEGORY TITLE',
+    description: 'DEFAULT CATEGORY DESCRIPTION',
+})

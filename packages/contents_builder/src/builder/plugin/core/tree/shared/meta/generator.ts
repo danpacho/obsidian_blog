@@ -1,9 +1,9 @@
-import type { BuilderPlugin } from '../../../../plugin'
+import type { BuilderPlugin } from '../../../..'
 import { ContentMetaDefaultValueInjector } from './constant'
 
 export type MetaGenerator = Exclude<
     Parameters<
-        Parameters<BuilderPlugin['build:contents']>[0]['metaEngine']
+        Parameters<BuilderPlugin['build:contents']>[0]['meta']
     >[0]['generator'],
     undefined
 >
