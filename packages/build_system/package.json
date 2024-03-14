@@ -1,7 +1,7 @@
 {
-    "name": "@blogger/contents_builder",
+    "name": "@blogger/build_system",
     "version": "0.1.0",
-    "description": "Obsidian plugin for extract vault to contents.",
+    "description": "Post build system",
     "author": "danpacho",
     "license": "MIT",
     "type": "module",
