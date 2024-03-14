@@ -7,7 +7,7 @@ import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Node, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
-import type { BuildReport } from '../builder/reporter'
+import { BuildInformation } from '../builder/core/store'
 import type { IOManager } from '../io_manager'
 import { AudioFileNode, ImageFileNode } from '../parser/node'
 
@@ -15,7 +15,7 @@ interface MdProcessorConstructor {
     ioManager: IOManager
 }
 export class MdProcessor {
-    private readonly imageReference: Array<BuildReport['path']> = []
+    private readonly imageReference: Array<BuildInformation['build_path']> = []
     public constructor(public readonly option: MdProcessorConstructor) {}
 
     private get $processor() {
@@ -33,7 +33,7 @@ export class MdProcessor {
     private transformEmbeddingReferenceList: Plugin<
         [
             {
-                imageReference: Array<BuildReport['path']>
+                imageReference: Array<BuildInformation['build_path']>
             },
         ]
     > = (options) => {
@@ -118,7 +118,7 @@ export class MdProcessor {
     private transformImageReferenceList: Plugin<
         [
             {
-                imageReference: Array<BuildReport['path']>
+                imageReference: Array<BuildInformation['build_path']>
             },
         ]
     > = (options) => {
@@ -158,7 +158,9 @@ export class MdProcessor {
         }
     }
 
-    public updateImageReferenceList(references: Array<BuildReport['path']>) {
+    public updateImageReferenceList(
+        references: Array<BuildInformation['build_path']>
+    ) {
         this.imageReference.push(...references)
     }
 
