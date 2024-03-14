@@ -38,6 +38,10 @@ export interface FileTreeParserConstructor {
     readonly treeSyntax?: Partial<FileTreeSyntax>
 }
 export class FileTreeParser {
+    public constructor(public readonly options: FileTreeParserConstructor) {
+        this.updateRootFolder(options.rootFolder)
+    }
+
     private _ast: FolderNode | undefined = undefined
     private get $reader(): FileReader {
         return this.options.ioManager.reader
@@ -48,20 +52,9 @@ export class FileTreeParser {
     public get ast(): FolderNode | undefined {
         return this._ast
     }
+
     public updateRootFolder(rootFolder: string): void {
-        this.options.rootFolder = rootFolder
-        this._ast = new FolderNode(rootFolder, 0, 'ROOT')
-    }
-
-    private constructor(public readonly options: FileTreeParserConstructor) {}
-
-    public static async create(
-        options: FileTreeParserConstructor
-    ): Promise<FileTreeParser> {
-        const parser = new FileTreeParser(options)
-        const { rootFolder } = options
-
-        const res = await parser.$finder.findFile(rootFolder)
+        const res = this.$finder.findFileSync(rootFolder)
         if (!res.success) {
             throw new Error(`Root path not found:\nCheck ${rootFolder}`)
         }
@@ -80,10 +73,8 @@ export class FileTreeParser {
             )
         }
 
-        // Set root ast path
-        parser._ast = new FolderNode(firstPath, 0, 'ROOT')
-
-        return parser
+        this.options.rootFolder = firstPath
+        this._ast = new FolderNode(firstPath, 0, 'ROOT')
     }
 
     private async generateTree(
@@ -165,17 +156,17 @@ export class FileTreeParser {
             i: number,
             children: Array<FTreeNode>
         ) => Promise<void>,
-        walkFolderNode: boolean = false
+        skipFolderNode: boolean = false
     ): Promise<void> {
         if (!children || children.length === 0) return
 
         for (let i = 0; i < children.length; i++) {
             const child = children[i]
             if (child instanceof FolderNode) {
-                if (walkFolderNode) {
+                if (!skipFolderNode) {
                     await walker(child, i, children)
                 }
-                await this.walkAST(child.children, walker, walkFolderNode)
+                await this.walkAST(child.children, walker, skipFolderNode)
             } else {
                 await walker(child!, i, children)
             }
