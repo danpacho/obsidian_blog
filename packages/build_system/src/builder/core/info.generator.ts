@@ -2,6 +2,7 @@ import { type UUID, createHash } from 'crypto'
 import { type IOManager } from '../../io_manager'
 import { FileReader } from '../../io_manager/file.reader'
 import { type FTreeNode } from '../../parser/node'
+import { PluginCommonConstructor } from '../plugin'
 import { type BuildInformation } from './store'
 /**
  * @description A unique identifier for a node
@@ -15,8 +16,14 @@ export interface BuildInfoGeneratorConstructor {
         assets: string
     }
     readonly pathGenerator: {
-        assets: (node: FTreeNode) => string
-        contents: (node: FTreeNode) => string
+        assets: (
+            node: FTreeNode,
+            config: PluginCommonConstructor
+        ) => Promise<string>
+        contents: (
+            node: FTreeNode,
+            config: PluginCommonConstructor
+        ) => Promise<string>
     }
 }
 export class BuildInfoGenerator {
@@ -74,7 +81,8 @@ export class BuildInfoGenerator {
      * @param originPath source path of the content
      */
     public async generateContentBuildInfo(
-        contentNode: FTreeNode
+        contentNode: FTreeNode,
+        config: PluginCommonConstructor
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const originPath = contentNode.absolutePath
 
@@ -84,7 +92,10 @@ export class BuildInfoGenerator {
 
         const buildBaseString = this.getBaseString(originPath, raw.data)
 
-        const generatedRoute = this.options.pathGenerator.contents(contentNode)
+        const generatedRoute = await this.options.pathGenerator.contents(
+            contentNode,
+            config
+        )
 
         const buildPath = this.getSafeRoutePath(
             `${this.options.buildPath.contents}/${generatedRoute}/${contentNode.fileName}`
@@ -107,6 +118,7 @@ export class BuildInfoGenerator {
      */
     public async generateAssetBuildInfo(
         assetNode: FTreeNode,
+        config: PluginCommonConstructor,
         strict: boolean = false
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const ASSET_PREFIX = {
@@ -134,7 +146,10 @@ export class BuildInfoGenerator {
             )
             const id = this.encodeHashUUID(buildBaseString)
 
-            const generatedRoute = this.options.pathGenerator.assets(assetNode)
+            const generatedRoute = await this.options.pathGenerator.assets(
+                assetNode,
+                config
+            )
 
             const buildPath = this.getSafeRoutePath(
                 `${this.options.buildPath.assets}/${prefix}/${id}_${generatedRoute}.${assetNode.fileExtension}`
@@ -156,7 +171,10 @@ export class BuildInfoGenerator {
         )
         const id = this.encodeHashUUID(buildBaseString)
 
-        const generatedRoute = this.options.pathGenerator.assets(assetNode)
+        const generatedRoute = await this.options.pathGenerator.assets(
+            assetNode,
+            config
+        )
 
         const buildPath = this.getSafeRoutePath(
             `${this.options.buildPath.assets}/${prefix}/${id}-${generatedRoute}.${assetNode.fileExtension}`
