@@ -1,6 +1,6 @@
 import type { BuilderPlugin } from '../../../..'
 import { prettyPrint } from '../../../../../../utils/logger'
-import type { DefaultCategoryMeta, DefaultContentMeta } from './constant'
+import type { DefaultCategoryMeta, DefaultContentMeta } from './interface'
 
 export type MetaParser = Parameters<
     Parameters<BuilderPlugin['build:contents']>[0]['meta']

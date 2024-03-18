@@ -7,7 +7,7 @@ import {
 import {
     DefaultContentMeta,
     DefaultPaginationInfo,
-} from './shared/meta/constant'
+} from './shared/meta/interface'
 
 type FTreeNode = Parameters<
     Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>
@@ -19,8 +19,8 @@ export const PaginationBuilder = (
         ...defaultContentMetaBuilderOptions,
     }
 ): BuilderPlugin['walk:generated:tree'] => {
-    return async ({ meta: metaEngine, logger }) => {
-        const metaExtractor = metaEngine(option.contentMeta)
+    return async ({ meta, logger }) => {
+        const metaExtractor = meta(option.contentMeta)
 
         const buildPaginationMeta = async ({
             engine,
@@ -80,6 +80,8 @@ export const PaginationBuilder = (
                 while (originIndex >= 0) {
                     const node = children[originIndex]
                     if (node?.category === 'TEXT_FILE') return node
+                    if (node?.fileName === 'description.md') return node
+
                     originIndex--
                     searchTextNodeBasedOnOriginIndex(
                         originIndex,
@@ -91,6 +93,8 @@ export const PaginationBuilder = (
                 while (originIndex < children.length) {
                     const node = children[originIndex]
                     if (node?.category === 'TEXT_FILE') return node
+                    if (node?.fileName === 'description.md') return node
+
                     originIndex++
                     searchTextNodeBasedOnOriginIndex(
                         originIndex,
@@ -105,6 +109,7 @@ export const PaginationBuilder = (
 
         return async (node, _, children) => {
             if (node.category !== 'TEXT_FILE') return
+            if (node.fileName === 'description.md') return
 
             const finalBuildPath = node.absolutePath
             const currNodeIndex = children.findIndex(
@@ -148,7 +153,7 @@ export const PaginationBuilder = (
                     : undefined,
             }
 
-            const injectResult = await metaExtractor.inject({
+            const injectResult = await metaExtractor.replace({
                 injectPath: finalBuildPath,
                 metaData: {
                     content: metaDataResult.data.content,
