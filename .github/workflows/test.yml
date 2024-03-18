@@ -28,6 +28,9 @@ jobs:
             - name: Format checking
               run: pnpm prettier && pnpm eslint
 
+            - name: Astro build
+              run: pnpm blog sync
+
             - name: Build testing
               run: pnpm build
 
