@@ -16,15 +16,9 @@ interface MetaData<MetaShape extends PolymorphicMeta> {
 }
 
 export class MetaEngine<MetaShape extends PolymorphicMeta> {
-    private get $io() {
-        return this.engine.ioManager
-    }
-    private get parser() {
-        return this.engine.parser
-    }
-    private get generator() {
-        return this.engine?.generator
-    }
+    public constructor(
+        private readonly engine: MetaEngineConstructor<MetaShape>
+    ) {}
     public static create<NewMetaShape extends PolymorphicMeta>(
         engineInjection: Omit<MetaEngineConstructor<NewMetaShape>, 'ioManager'>,
         ioManager: IOManager
@@ -33,6 +27,16 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
             ...engineInjection,
             ioManager,
         })
+    }
+
+    private get $io() {
+        return this.engine.ioManager
+    }
+    private get parser() {
+        return this.engine.parser
+    }
+    private get generator() {
+        return this.engine?.generator
     }
 
     public updateEngine<NewMetaShape extends PolymorphicMeta>(
@@ -58,10 +62,6 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
     private get isGeneratorDefined(): boolean {
         return Boolean(this.generator)
     }
-
-    public constructor(
-        private readonly engine: MetaEngineConstructor<MetaShape>
-    ) {}
 
     public generate(frontMatter: PolymorphicMeta): MetaShape | undefined {
         return this.generator?.(frontMatter)
@@ -151,7 +151,7 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         return this.extractFromMd(file.data)
     }
 
-    private getValidRecord(record: PolymorphicMeta): PolymorphicMeta {
+    private getValidRecord = (record: PolymorphicMeta): PolymorphicMeta => {
         const isRecord = (record: unknown): record is PolymorphicMeta =>
             typeof record === 'object' &&
             record !== null &&
@@ -175,11 +175,51 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
         )
     }
 
-    public async inject(injectOption: {
-        metaData: MetaData<PolymorphicMeta>
+    public async update(injectOption: {
+        meta: MetaData<PolymorphicMeta>['meta']
         injectPath: string
     }): Promisify<{
-        metaData: MetaData<PolymorphicMeta>
+        meta: MetaData<PolymorphicMeta>
+        injectPath: string
+        injected: string
+    }> {
+        const { injectPath, meta: metaData } = injectOption
+        try {
+            const originalMeta = await this.extractFromFile(injectPath)
+            if (!originalMeta.success) throw originalMeta.error
+            const injection = await this.replace({
+                injectPath,
+                metaData: {
+                    content: originalMeta.data.content,
+                    meta: {
+                        ...originalMeta.data.meta,
+                        // override the original meta with the new one
+                        ...metaData,
+                    },
+                },
+            })
+            if (!injection.success) throw injection.error
+            return {
+                success: true,
+                data: {
+                    meta: injection.data.metaData,
+                    injectPath: injection.data.injectPath,
+                    injected: injection.data.injected,
+                },
+            }
+        } catch (e) {
+            return {
+                success: false,
+                error: e,
+            }
+        }
+    }
+
+    public async replace(injectOption: {
+        metaData: MetaData<MetaShape>
+        injectPath: string
+    }): Promisify<{
+        metaData: MetaData<MetaShape>
         injectPath: string
         injected: string
     }> {
