@@ -8,12 +8,12 @@ import {
 
 type RecordShape = Record<string, string>
 
-export interface StaticParamBuilderOptions extends ContentMetaGeneratorOptions {
+export interface StaticParamBuilderConfig extends ContentMetaGeneratorOptions {
     paramShape: string
 }
 
 export const StaticParamBuilder = (
-    option: StaticParamBuilderOptions = {
+    option: StaticParamBuilderConfig = {
         paramShape: '/[category]/[...post]',
         ...defaultContentMetaBuilderOptions,
     }
@@ -27,11 +27,12 @@ export const StaticParamBuilder = (
     const paramAnalyzer = new ParamAnalyzer(option.paramAnalyzer)
     const analyzed = paramAnalyzer.analyzeParam(option.paramShape)
 
-    return async ({ logger, io: ioManager, buildPath, meta: metaEngine }) => {
-        const engine = metaEngine(option.contentMeta)
+    return async ({ logger, buildPath, meta }) => {
+        const engine = meta(option.contentMeta)
 
         return async (node) => {
             if (node.category !== 'TEXT_FILE') return
+            if (node.fileName === 'description.md') return
 
             const finalBuildPath: string | undefined =
                 node.buildInfo?.build_path.build
@@ -97,37 +98,32 @@ export const StaticParamBuilder = (
                     listPointer: 0,
                 }
             )
+            const href = analyzed.result.reduce<string>((acc, curr) => {
+                if (!curr.isDynamicParam) {
+                    return acc
+                }
 
-            const metaDataResult = await engine.extractFromFile(finalBuildPath)
-            // console.log(staticParamsInfo, finalBuildPath)
-            if (!metaDataResult.success) {
-                const mdContent =
-                    await ioManager.reader.readFile(finalBuildPath)
-                if (!mdContent.success) return
+                const { paramName } = curr
+                if (!curr.isMultiple) {
+                    acc += `/${staticParamsInfo.params[paramName]}`
+                    return acc
+                }
 
-                await engine.inject({
-                    injectPath: finalBuildPath,
-                    metaData: {
-                        content: mdContent.data,
-                        meta: {
-                            params: staticParamsInfo.params,
-                        },
-                    },
-                })
-            } else {
-                await engine.inject({
-                    injectPath: finalBuildPath,
-                    metaData: {
-                        content: metaDataResult.data.content,
-                        meta: {
-                            ...metaDataResult.data.meta,
-                            params: staticParamsInfo.params,
-                        },
-                    },
-                })
+                acc += `/${staticParamsInfo.params[paramName]}`
+                return acc
+            }, '')
+
+            const staticParamUpdate = await engine.update({
+                injectPath: finalBuildPath,
+                meta: {
+                    href,
+                    params: staticParamsInfo.params,
+                },
+            })
+
+            if (staticParamUpdate.success) {
+                logger.success(`injected static params to ${finalBuildPath}`)
             }
-
-            logger.success(`injected static params to ${finalBuildPath}`)
         }
     }
 }
