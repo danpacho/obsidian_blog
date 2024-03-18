@@ -22,17 +22,14 @@ jobs:
               name: Install pnpm
               id: pnpm-install
               with:
-                  version: 7
-                  run_install: false
-
-            - name: Install package dependencies
-              run: pnpm install --no-frozen-lockfile
+                  version: 8
+                  run_install: true
 
             - name: Format checking
               run: pnpm prettier && pnpm eslint
 
-            - name: Unit testing
-              run: pnpm test
-
             - name: Build testing
               run: pnpm build
+
+            - name: Unit testing
+              run: pnpm test
