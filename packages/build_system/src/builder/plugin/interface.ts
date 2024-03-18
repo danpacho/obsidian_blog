@@ -13,7 +13,7 @@ type MetaEngineCreator = <MetaShape extends PolymorphicMeta>(
     engine: Omit<MetaEngineConstructor<MetaShape>, 'ioManager'>
 ) => MetaEngine<MetaShape>
 
-interface PluginCommonConstructor
+export interface PluginCommonConstructor
     extends Omit<BuildSystemConstructor, 'parser' | 'corePluginConfig'> {
     meta: MetaEngineCreator
 }
@@ -32,6 +32,10 @@ type ContentsModifierPlugin = (
         writePath: string
     }>
 >
+
+export interface BuilderPluginConfig {
+    exclude: Array<string> | string | RegExp
+}
 
 export type BuilderPlugin = {
     /**
