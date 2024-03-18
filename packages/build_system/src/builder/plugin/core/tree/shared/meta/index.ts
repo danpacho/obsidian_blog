@@ -25,7 +25,6 @@ export interface CategoryDescriptionGeneratorOptions {
         parser: MetaParser
         generator: MetaGenerator
     }
-    paramAnalyzer?: ParamAnalyzerConstructor
 }
 export const defaultCategoryDescriptionBuilderOptions: CategoryDescriptionGeneratorOptions =
     {
