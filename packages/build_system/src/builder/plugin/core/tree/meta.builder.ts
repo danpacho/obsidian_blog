@@ -9,28 +9,19 @@ export interface MetaBuilderConfig extends ContentMetaGeneratorOptions {}
 export const MetaBuilder = (
     option: MetaBuilderConfig = defaultContentMetaBuilderOptions
 ): BuilderPlugin['build:origin:tree'] => {
-    return async ({ meta: metaEngine, logger, io: ioManager }) => {
+    return async ({ meta, logger }) => {
         const { contentMeta } = option
-        const engine = metaEngine(contentMeta)
         const paramAnalyzer = new ParamAnalyzer(option.paramAnalyzer)
+        const engine = meta(contentMeta)
 
-        return async (node) => {
-            if (node.category !== 'TEXT_FILE') return
-
-            const injectPath = node.buildInfo?.build_path
-
-            if (!injectPath) {
-                logger.error(`build path not defined: ${node.absolutePath}`)
-                return
-            }
-
-            const metaExtractionResult = await engine.extractFromFile(
-                node.absolutePath
-            )
-
-            const absSplit = node.absolutePath.split('/')
-
-            const seriesInfo = absSplit.reduceRight<{
+        const getSeriesInfo = async (
+            originPath: string
+        ): Promise<{
+            series: string | undefined
+            seriesOrder: number | undefined
+        }> => {
+            const absSplit = originPath.split('/')
+            const seriesName = absSplit.reduceRight<{
                 find: boolean
                 series: string | undefined
             }>(
@@ -49,7 +40,51 @@ export const MetaBuilder = (
                     find: false,
                     series: undefined,
                 }
-            )
+            ).series
+            if (!seriesName)
+                return {
+                    series: undefined,
+                    seriesOrder: undefined,
+                }
+
+            const seriesOrderMeta = await engine.extractFromFile(originPath)
+
+            if (
+                !seriesOrderMeta.success ||
+                (seriesOrderMeta.success &&
+                    'seriesOrder' in seriesOrderMeta.data.meta === false)
+            ) {
+                const newMeta = {
+                    series: seriesName,
+                    seriesOrder: 1,
+                }
+                await engine.update({
+                    injectPath: originPath,
+                    meta: {
+                        seriesOrder: 1,
+                    },
+                })
+                return newMeta
+            }
+
+            return {
+                series: seriesName,
+                seriesOrder: Number(seriesOrderMeta.data.meta.seriesOrder),
+            }
+        }
+
+        return async (node) => {
+            if (node.category !== 'TEXT_FILE') return
+            if (node.fileName === 'description.md') return
+
+            const injectPath = node.buildInfo?.build_path
+
+            if (!injectPath) {
+                logger.error(`build path not defined: ${node.absolutePath}`)
+                return
+            }
+
+            const absSplit = injectPath.origin.split('/')
 
             const categoryInfo = absSplit.reduceRight<{
                 find: boolean
@@ -73,69 +108,29 @@ export const MetaBuilder = (
                 }
             )
 
-            if (!metaExtractionResult.success) {
-                if (metaExtractionResult.error instanceof Error) {
-                    logger.warn(
-                        `meta extraction error: ${metaExtractionResult.error.message} at ${node.absolutePath}\ninject default meta instead`
-                    )
-                }
+            const seriesInfo = await getSeriesInfo(injectPath.origin)
 
-                const pureMdContent = await ioManager.reader.readFile(
-                    node.absolutePath
-                )
-                if (!pureMdContent.success) return
-
-                await engine.inject({
-                    injectPath: injectPath.build,
-                    metaData: {
-                        content: pureMdContent.data,
-                        meta: categoryInfo.find
-                            ? {
-                                  category: categoryInfo.category,
-                              }
-                            : {},
-                    },
-                })
-                return
-            }
-
-            if (!seriesInfo.find) {
-                await engine.inject({
-                    injectPath: injectPath.build,
-                    metaData: {
-                        content: metaExtractionResult.data.content,
-                        meta: categoryInfo.find
-                            ? {
-                                  ...metaExtractionResult.data.meta,
-                                  category: categoryInfo.category,
-                              }
-                            : {
-                                  ...metaExtractionResult.data.meta,
-                              },
-                    },
-                })
-                return
-            }
-
-            await engine.inject({
+            const updateBuild = await engine.update({
                 injectPath: injectPath.build,
-                metaData: {
-                    content: metaExtractionResult.data.content,
-                    meta: categoryInfo.find
-                        ? {
-                              ...metaExtractionResult.data.meta,
-                              series: seriesInfo.series,
-                              category: categoryInfo.category,
-                          }
-                        : {
-                              ...metaExtractionResult.data.meta,
-                              series: seriesInfo.series,
-                          },
+                meta: {
+                    category: categoryInfo.category,
+                    ...seriesInfo,
                 },
             })
-            logger.success(
-                `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
-            )
+
+            const updateOrigin = await engine.update({
+                injectPath: injectPath.origin,
+                meta: {
+                    category: categoryInfo.category,
+                    ...seriesInfo,
+                },
+            })
+
+            if (updateBuild.success && updateOrigin.success) {
+                logger.success(
+                    `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
+                )
+            }
             return
         }
     }
