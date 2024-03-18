@@ -1,5 +1,5 @@
 import { type Logger } from '@blogger/logger'
-import { ProcessOutput, $ as zx$ } from 'zx'
+import { ProcessOutput, cd, $ as zx$ } from 'zx'
 import { Queue } from '../utils/queue'
 // import { ShellError } from './shell.error'
 
@@ -9,7 +9,7 @@ interface ShellTraceStorageConstructor {
     logger: Logger
     maxTraceCount: number
 }
-class ShellTraceStorage {
+export class ShellTraceStorage {
     public constructor(private readonly options: ShellTraceStorageConstructor) {
         this.storage = new Queue<{
             command: Command
@@ -66,13 +66,12 @@ export class ShellScript {
 
     public readonly traceStorage: ShellTraceStorage
 
-    public async $(
-        commands: TemplateStringsArray,
-        ...expressions: Array<string>
-    ): Promise<ProcessOutput> {
+    public async $(command: string): Promise<ProcessOutput> {
         try {
-            const output: ProcessOutput = await zx$(commands, ...expressions)
-            this.traceStorage.add(commands.join(' '), output)
+            const output: ProcessOutput = await zx$([
+                command,
+            ] as unknown as TemplateStringsArray)
+            this.traceStorage.add(command, output)
             return output
         } catch (e) {
             //TODO: process shell error based on traceStorage
@@ -82,5 +81,9 @@ export class ShellScript {
                 throw new Error('Unknown Error')
             }
         }
+    }
+
+    public cd(path: string) {
+        cd(path)
     }
 }
