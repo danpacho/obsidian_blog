@@ -112,7 +112,7 @@ describe('MetaManager', () => {
             },
             injectPath: path,
         }
-        const injected = await manager.inject(injectionOption)
+        const injected = await manager.replace(injectionOption)
         expect(injected.success).toBe(true)
 
         if (injected.success) {
@@ -136,7 +136,7 @@ describe('MetaManager', () => {
             },
             injectPath: path,
         }
-        const injected = await manager.inject(injectionOption)
+        const injected = await manager.replace(injectionOption)
         expect(injected.success).toBe(true)
         if (injected.success) {
             expect(injected.data).toEqual({
@@ -149,7 +149,8 @@ describe('MetaManager', () => {
     it('should inject meta with invalid meta data', async () => {
         const path = `${process.cwd()}/packages/build_system/src/meta/__mocks__/meta.injected.md`
         const metaData = {
-            date: '2024-05-05',
+            date: new Date('2024-05-05'),
+            title: 'new title',
         }
         const injectionOption = {
             metaData: {
@@ -158,13 +159,13 @@ describe('MetaManager', () => {
             },
             injectPath: path,
         }
-        const injected = await manager.inject(injectionOption)
+        const injected = await manager.replace(injectionOption)
         expect(injected.success).toBe(true)
 
         if (injected.success) {
             expect(injected.data).toEqual({
                 ...injectionOption,
-                injected: `---\ndate: '2024-05-05'\ntitle: Hello World\n---\nThis is UPDATED invalid injected contents.\n`,
+                injected: `---\ndate: 2024-05-05T00:00:00.000Z\ntitle: new title\n---\nThis is UPDATED invalid injected contents.\n`,
             })
         }
     })
