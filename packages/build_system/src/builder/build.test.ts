@@ -113,22 +113,21 @@ describe('FileTreeGenerator', async () => {
             assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
         },
         pathGenerator: {
-            contents: (node) => {
-                const postGes = pathGen(node, parser.ast!.absolutePath)
-                return postGes
-            },
-            assets: () => '',
+            contents: async (node) => pathGen(node, parser.ast!.absolutePath),
+            assets: async () => '',
         },
-    })
-
-    builder.use({
-        'build:contents': [],
-        'build:origin:tree': [],
-        'walk:generated:tree': [],
     })
 
     it('should pass', () => {
         expect(builder).toBeDefined()
+    })
+
+    it('should use plugin', () => {
+        builder.use({
+            'build:origin:tree': [],
+            'walk:generated:tree': [],
+            'build:contents': [],
+        })
     })
 
     it('should build', async () => {
