@@ -124,7 +124,11 @@ export class BuildSystem {
                     case 'TEXT_FILE': {
                         const contentsBuildInfo =
                             await this.$buildInfoGenerator.generateContentBuildInfo(
-                                node
+                                node,
+                                {
+                                    ...this.option,
+                                    meta: this.createMetaManager,
+                                }
                             )
                         node.injectBuildInfo(contentsBuildInfo)
                         break
@@ -132,7 +136,11 @@ export class BuildSystem {
                     default: {
                         const assetsBuildInfo =
                             await this.$buildInfoGenerator.generateAssetBuildInfo(
-                                node
+                                node,
+                                {
+                                    ...this.option,
+                                    meta: this.createMetaManager,
+                                }
                             )
                         node.injectBuildInfo(assetsBuildInfo)
                         break
@@ -253,7 +261,7 @@ export class BuildSystem {
     }
 
     private async getGeneratedTree(): Promise<FolderNode | undefined> {
-        await this.$parser.updateRootFolder(this.option.buildPath.contents)
+        this.$parser.updateRootFolder(this.option.buildPath.contents)
 
         const generatedAST = await this.getAST()
         if (!generatedAST) return
@@ -294,7 +302,7 @@ export class BuildSystem {
             const cachePipe = await this.walkerCachePipe({
                 walker: walkerPlugin,
             })
-            await this.$parser.walkAST(generatedAST.children, cachePipe, true)
+            await this.$parser.walkAST(generatedAST.children, cachePipe)
         }
     }
 
