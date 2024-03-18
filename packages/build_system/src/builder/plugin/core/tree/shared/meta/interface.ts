@@ -1,7 +1,7 @@
 export const ContentMetaField = {
     required: ['title', 'description'],
     optional: ['update', 'category', 'tags'],
-    build: ['params', 'pagination'],
+    build: ['params', 'href', 'pagination', 'series', 'seriesInfo'],
 } as const
 
 type UndefinableString = string | undefined
@@ -18,11 +18,25 @@ export interface DefaultContentMeta {
     category?: string
     tags?: Array<string>
     params?: Record<string, string>
+    href?: string
+    series?: string
+    seriesOrder?: number
+    seriesInfo?: Array<
+        Pick<
+            DefaultContentMeta,
+            'title' | 'description' | 'href' | 'update' | 'seriesOrder'
+        >
+    >
     pagination?: {
         prev: DefaultPaginationInfo
         next: DefaultPaginationInfo
     }
 }
+
+/**
+ * @description Default content collection
+ */
+export interface ZenContentCollection extends Required<DefaultContentMeta> {}
 
 export const ContentMetaDefaultValueInjector = () => ({
     title: 'DEFAULT TITLE',
@@ -35,6 +49,11 @@ export interface DefaultCategoryMeta {
     description: string
     postCollection: Array<DefaultContentMeta>
 }
+
+/**
+ * @description Default category collection
+ */
+export interface ZenCategoryCollection extends Required<DefaultCategoryMeta> {}
 
 export const CategoryMetaField = {
     required: ['title', 'description'],
