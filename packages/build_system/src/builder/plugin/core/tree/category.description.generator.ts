@@ -1,7 +1,7 @@
-import { FTreeNode } from 'packages/build_system/src/parser/node'
-import { BuilderPlugin } from '../..'
+import type { FTreeNode } from 'packages/build_system/src/parser/node'
+import type { BuilderPlugin } from '../..'
 import {
-    CategoryDescriptionGeneratorOptions,
+    type CategoryDescriptionGeneratorOptions,
     defaultCategoryDescriptionBuilderOptions,
 } from './shared/meta'
 import type {
@@ -101,30 +101,33 @@ export const CategoryDescriptionGenerator =
             return postCollectionContainer
         }
 
-        return async (node, i, children) => {
-            if (node.category !== 'TEXT_FILE') return
-            if (node.fileName !== DESCRIPTION_FILENAME) return
-            if (!node.parentInfo) return
+        return {
+            name: 'CategoryDescriptionGenerator',
+            skipFolderNode: true,
+            walker: async (node, _, children) => {
+                if (node.fileName !== DESCRIPTION_FILENAME) return
+                if (!node.parentInfo) return
 
-            const postCollectionContainer =
-                await getPostCollectionContainer(children)
+                const postCollectionContainer =
+                    await getPostCollectionContainer(children)
 
-            const writePath: string = config?.path
-                ? `${config.path}/${node.parentInfo.fileName}.json`
-                : `${buildPath.contents}/${node.parentInfo.fileName}.json`
+                const writePath: string = config?.path
+                    ? `${config.path}/${node.parentInfo.fileName}.json`
+                    : `${buildPath.contents}/${node.parentInfo.fileName}.json`
 
-            const collectionRecord = await io.writer.write({
-                data: JSON.stringify(postCollectionContainer, null, 4),
-                filePath: writePath,
-            })
-            const descriptionDelete = await io.writer.deleteFile(
-                node.absolutePath
-            )
-            if (collectionRecord.success && descriptionDelete.success) {
-                logger.success(
-                    `Post collection for ${node.parentInfo.fileName} is generated`
+                const collectionRecord = await io.writer.write({
+                    data: JSON.stringify(postCollectionContainer, null, 4),
+                    filePath: writePath,
+                })
+                const descriptionDelete = await io.writer.deleteFile(
+                    node.absolutePath
                 )
-                return
-            }
+                if (collectionRecord.success && descriptionDelete.success) {
+                    logger.success(
+                        `Post collection for ${node.parentInfo.fileName} is generated`
+                    )
+                    return
+                }
+            },
         }
     }
