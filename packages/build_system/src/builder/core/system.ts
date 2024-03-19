@@ -1,4 +1,4 @@
-import type { Logger } from '@blogger/logger'
+import { Logger } from '@blogger/logger'
 import {
     MetaEngine,
     type MetaEngineConstructor,
@@ -6,8 +6,14 @@ import {
 } from '../../meta/engine'
 import type { FTreeNode, FolderNode } from '../../parser/node'
 import type { FileTreeParser } from '../../parser/parser'
-import { type BuilderPlugin, Pluggable, type PluginAdapter } from '../plugin'
-import { CorePlugins, CorePluginsConfig } from '../plugin/core'
+import {
+    type BuilderPlugin,
+    type ContentsModifierPluginConfig,
+    type FileTreePluginConfig,
+    type PluginAdapter,
+    PluginManager,
+} from '../plugin'
+import { CorePlugins, type CorePluginsConfig } from '../plugin/core'
 import { BuildResultLogger } from './build.logger'
 import {
     BuildCacheManager,
@@ -49,9 +55,22 @@ export class BuildSystem {
     }
 
     private readonly $store: BuildStore
+    private readonly $buildLogger: BuildResultLogger
     private readonly $cacheManager: BuildCacheManager
     private readonly $buildInfoGenerator: BuildInfoGenerator
-    private readonly $buildLogger: BuildResultLogger
+
+    private readonly treeBuildPluginManager: PluginManager<
+        BuilderPlugin['build:origin:tree'],
+        FileTreePluginConfig
+    > = new PluginManager({})
+    private readonly generatedTreeWalkerPluginManager: PluginManager<
+        BuilderPlugin['walk:generated:tree'],
+        FileTreePluginConfig
+    > = new PluginManager({})
+    private readonly contentsModifierPluginManger: PluginManager<
+        BuilderPlugin['build:contents'],
+        ContentsModifierPluginConfig
+    > = new PluginManager({})
 
     private get $parser(): FileTreeParser {
         return this.option.parser
@@ -63,28 +82,21 @@ export class BuildSystem {
         return this.option.logger
     }
 
-    private readonly treeBuildPluggable: Pluggable<
-        BuilderPlugin['build:origin:tree']
-    > = new Pluggable()
-    private readonly generatedTreeWalkerPluggable: Pluggable<
-        BuilderPlugin['walk:generated:tree']
-    > = new Pluggable()
-    private readonly contentsModifierPluggable: Pluggable<
-        BuilderPlugin['build:contents']
-    > = new Pluggable()
-
     public use({
         'build:origin:tree': treeBuildPluginSet,
         'walk:generated:tree': generatedTreeWalkerPluginSet,
         'build:contents': contentsBuildPluginSet,
     }: PluginAdapter): BuildSystem {
-        treeBuildPluginSet && this.treeBuildPluggable.use(treeBuildPluginSet)
+        treeBuildPluginSet &&
+            this.treeBuildPluginManager.$plug.use(treeBuildPluginSet)
 
         generatedTreeWalkerPluginSet &&
-            this.generatedTreeWalkerPluggable.use(generatedTreeWalkerPluginSet)
+            this.generatedTreeWalkerPluginManager.$plug.use(
+                generatedTreeWalkerPluginSet
+            )
 
         contentsBuildPluginSet &&
-            this.contentsModifierPluggable.use(contentsBuildPluginSet)
+            this.contentsModifierPluginManger.$plug.use(contentsBuildPluginSet)
 
         return this
     }
@@ -95,6 +107,7 @@ export class BuildSystem {
         }
         const ast = await this.$parser.parse()
         if (!ast) {
+            this.option.logger.updateName('ASTParser')
             this.$m.error('Failed to parse file AST')
             return undefined
         }
@@ -117,6 +130,7 @@ export class BuildSystem {
 
         await this.$cacheManager.setup()
 
+        this.option.logger.updateName('BuildStoreSync')
         await this.$parser.walkAST(
             originAST.children,
             async (node) => {
@@ -153,8 +167,7 @@ export class BuildSystem {
                     return
                 }
             },
-            // SKIP FOLDER NODE
-            true
+            true // SKIP FOLDER NODE
         )
 
         this.$cacheManager.syncRemovedStore()
@@ -165,44 +178,88 @@ export class BuildSystem {
         if (!originAST) return
         if (!originAST.children) return
 
-        for (const plugin of this.treeBuildPluggable.plugin) {
-            const walkerPlugin = await plugin({
-                meta: this.createMetaManager,
+        for (const plugin of this.treeBuildPluginManager.$plug.pluginList) {
+            const { walker, ...config } = await plugin({
                 ...this.option,
+                meta: this.createMetaManager,
             })
-            await this.$parser.walkAST(originAST.children, walkerPlugin)
+            this.option.logger.updateName(config.name)
+            const cachePipe = await this.walkerCachePipe({
+                walker,
+                pluginConfig: config,
+            })
+
+            await this.$parser.walkAST(
+                originAST.children,
+                cachePipe,
+                config.skipFolderNode ?? false
+            )
         }
     }
 
     private async walkerCachePipe({
         walker,
+        pluginConfig,
         whenCached,
     }: {
         walker: Parameters<FileTreeParser['walkAST']>[1]
+        pluginConfig?: FileTreePluginConfig | undefined
         whenCached?: (node: FTreeNode) => void
     }): Promise<Parameters<FileTreeParser['walkAST']>[1]> {
-        const cacheChecker = (node: FTreeNode): boolean => {
+        const cacheChecker = (
+            node: FTreeNode,
+            i: number,
+            children: Array<FTreeNode>
+        ): boolean => {
             const { buildInfo } = node
             if (!buildInfo?.id) return false
 
+            if (pluginConfig?.disableCache) return false
+
+            const fileName = node.fileName
+            if (pluginConfig?.exclude) {
+                if (typeof pluginConfig.exclude === 'string') {
+                    if (pluginConfig.exclude === fileName) {
+                        return true
+                    }
+                } else if (pluginConfig.exclude instanceof RegExp) {
+                    if (pluginConfig.exclude.test(fileName)) {
+                        return true
+                    }
+                } else {
+                    if (
+                        pluginConfig.exclude.some((ex) => fileName.includes(ex))
+                    ) {
+                        return true
+                    }
+                }
+            }
+
             const status = this.$cacheManager.checkStatus(buildInfo.id)
-            // console.log(status, node.fileName)
             if (!status.success) {
                 return false
             }
 
+            if (pluginConfig?.cacheChecker) {
+                // User-defined caching logic
+                return pluginConfig.cacheChecker(status.data, {
+                    node,
+                    i,
+                    total: children,
+                })
+            }
+
             if (status.data !== 'CACHED') {
+                // Default cache logic
                 return false
             }
 
-            //TODO: status handling at plugins interface
             whenCached?.(node)
             return true
         }
 
         return async (node, i, children) => {
-            //TODO: status handling at plugins interface
-            if (cacheChecker(node)) return
+            if (cacheChecker(node, i, children)) return
 
             await walker(node, i, children)
         }
@@ -213,6 +270,7 @@ export class BuildSystem {
         if (!originAST) return
         if (!originAST.children) return
 
+        this.option.logger.updateName('FileTreeBuilder')
         await this.$parser.walkAST(
             originAST.children,
             await this.walkerCachePipe({
@@ -260,13 +318,8 @@ export class BuildSystem {
         }
     }
 
-    private async getGeneratedTree(): Promise<FolderNode | undefined> {
-        this.$parser.updateRootFolder(this.option.buildPath.contents)
-
-        const generatedAST = await this.getAST()
-        if (!generatedAST) return
-        if (!generatedAST.children) return
-
+    private async injectBuildInfoToGeneratedTree(generatedAST: FolderNode) {
+        this.option.logger.updateName('InjectBuildInfo')
         await this.$parser.walkAST(
             generatedAST.children,
             async (node) => {
@@ -286,54 +339,98 @@ export class BuildSystem {
             },
             true
         )
+    }
+
+    private async getGeneratedTree({
+        shouldInjectBuildInfo,
+    }: {
+        shouldInjectBuildInfo: boolean
+    }): Promise<FolderNode | undefined> {
+        this.$parser.updateRootFolder(this.option.buildPath.contents)
+
+        const generatedAST = await this.getAST()
+        if (!generatedAST) return
+        if (!generatedAST.children) return
+
+        if (shouldInjectBuildInfo) {
+            await this.injectBuildInfoToGeneratedTree(generatedAST)
+        }
 
         return generatedAST
     }
 
     private async walkGeneratedTree(): Promise<void> {
-        const generatedAST = await this.getGeneratedTree()
+        const generatedAST = await this.getGeneratedTree({
+            shouldInjectBuildInfo: true,
+        })
         if (!generatedAST || !generatedAST) return
 
-        for (const plugin of this.generatedTreeWalkerPluggable.plugin) {
-            const walkerPlugin = await plugin({
+        for (const plugin of this.generatedTreeWalkerPluginManager.$plug
+            .pluginList) {
+            const { walker, ...config } = await plugin({
                 meta: this.createMetaManager,
                 ...this.option,
             })
+            this.option.logger.updateName(config.name)
+
             const cachePipe = await this.walkerCachePipe({
-                walker: walkerPlugin,
+                walker,
+                pluginConfig: config,
             })
-            await this.$parser.walkAST(generatedAST.children, cachePipe)
+
+            await this.$parser.walkAST(
+                generatedAST.children,
+                cachePipe,
+                config.skipFolderNode ?? false
+            )
         }
     }
 
     private async buildContents(): Promise<void> {
-        const generatedAST = await this.getGeneratedTree()
+        const generatedAST = await this.getGeneratedTree({
+            shouldInjectBuildInfo: false,
+        })
         if (!generatedAST) return
         if (!generatedAST.children) return
 
-        const updateTargetReport = this.$store
-            .getStoreList('current')
-            .filter(
-                (report) =>
-                    report.build_state === 'UPDATED' ||
-                    report.build_state === 'ADDED'
-            )
+        const totalTargetReport = this.$store.getStoreList('current')
+        const updateTargetReport = totalTargetReport.filter(
+            ({ build_state }) =>
+                build_state === 'UPDATED' || build_state === 'ADDED'
+        )
 
-        if (updateTargetReport.length === 0) return
+        const getTargetBuildStore = (
+            pluginConfig?: ContentsModifierPluginConfig
+        ) => {
+            if (!pluginConfig) return updateTargetReport
+            if (pluginConfig?.disableCache) return totalTargetReport
 
-        for (const plugin of this.contentsModifierPluggable.plugin) {
-            const pluginResult = await plugin({
-                buildStore: updateTargetReport,
+            if (pluginConfig.cacheChecker) {
+                return totalTargetReport.filter((report, i, total) =>
+                    pluginConfig.cacheChecker?.(report.build_state, {
+                        report,
+                        i,
+                        total,
+                    })
+                )
+            }
+
+            return updateTargetReport
+        }
+
+        for (const plugin of this.contentsModifierPluginManger.$plug
+            .pluginList) {
+            const { modifier, ...config } = await plugin({
                 meta: this.createMetaManager,
                 ...this.option,
             })
+            this.option.logger.updateName(config.name)
 
-            for (const {
-                content: modifiedContent,
-                writePath,
-            } of pluginResult) {
+            for (const { content, writePath } of await modifier(
+                getTargetBuildStore(config)
+            )) {
                 const updatedTextFile = await this.$io.writer.write({
-                    data: modifiedContent,
+                    data: content,
                     filePath: writePath,
                 })
 
@@ -345,12 +442,14 @@ export class BuildSystem {
     }
 
     private async logBuildResult(): Promise<void> {
+        this.option.logger.updateName('BuildResultLogger')
         await this.$buildLogger.writeBuilderLog(
             this.$store.getStoreList('current')
         )
     }
 
     private async cleanUp(): Promise<void> {
+        this.option.logger.updateName('CleanUp')
         const saved = await this.$cacheManager.save()
         if (!saved) {
             this.$m.error('Failed to save cache manager')
@@ -363,25 +462,25 @@ export class BuildSystem {
     // It's better to divide build steps as individual methods, do not add argument for it
     // External argument deps will increase coupling and decrease testability
     public async build(): Promise<void> {
-        // [ Phase1 ]:: Origin Tree build phase
+        // [ Phase1 ]:: Synchronize build store
         await this.syncBuildStore()
 
-        // [ Phase1 ]:: Origin Tree build phase
+        // [ Phase2 ]:: Build origin file tree structure
         await this.buildOriginFileTreeStructure()
 
-        // [ Phase2 ]:: File generation phase + caching logics
+        // [ Phase3 ]:: Build file tree and handle caching
         await this.buildFileTree()
 
-        // [ Phase3 ]:: Generated Tree build phase
+        // [ Phase4 ]:: Walk generated tree and apply plugins
         await this.walkGeneratedTree()
 
-        // [ Phase4 ]:: Contents modifier plugins
+        // [ Phase5 ]:: Apply contents modifier plugins
         await this.buildContents()
 
-        // [ Phase5 ]:: Report build result
+        // [ Phase6 ]:: Log build result
         await this.logBuildResult()
 
-        // [ Phase6 ]:: Clean up
+        // [ Phase7 ]:: Clean up and save cache manager
         await this.cleanUp()
     }
 }
