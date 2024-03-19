@@ -1,8 +1,9 @@
+export interface PluggableConstructor {}
 export class Pluggable<PlugShape> {
     private readonly _pluginSet: Set<PlugShape> = new Set<PlugShape>()
     private _pluginList: Array<PlugShape> = []
 
-    public constructor() {}
+    public constructor(private readonly options?: PluggableConstructor) {}
 
     public use(plugin: PlugShape | Array<PlugShape>): this {
         if (Array.isArray(plugin)) {
@@ -16,7 +17,7 @@ export class Pluggable<PlugShape> {
         return this
     }
 
-    public get plugin(): Array<PlugShape> {
+    public get pluginList(): Array<PlugShape> {
         return this._pluginList
     }
 }
