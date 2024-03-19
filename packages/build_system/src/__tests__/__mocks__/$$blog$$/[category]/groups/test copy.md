@@ -6,9 +6,9 @@ pubDate: Jul 08 2022
 heroImage: /blog-placeholder-3.jpg
 youtube: 'https://www.youtube.com/watch?v=sMivc3RIrFs'
 pagination:
-    prev:
-        title: series post is here
-        description: DEFAULT DESCRIPTION
+  prev:
+    title: series post is here
+    description: DEFAULT DESCRIPTION
 category: category
 ---
 

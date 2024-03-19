@@ -7,3 +7,4 @@ heroImage: /blog-placeholder-3.jpg
 youtube: 'https://www.youtube.com/watch?v=sMivc3RIrFs'
 category: category_2
 ---
+
