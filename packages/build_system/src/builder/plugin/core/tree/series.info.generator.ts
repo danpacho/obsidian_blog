@@ -55,32 +55,39 @@ export const SeriesInfoGenerator =
             return res
         }
 
-        // const getSeriesInfo
-        return async (node, i, children) => {
-            if (node.category === 'FOLDER') return
-            const metaRes = await engine.extractFromFile(node.absolutePath)
-            if (!metaRes.success) return
+        return {
+            name: 'SeriesInfoGenerator',
+            exclude: 'description.md',
+            skipFolderNode: true,
+            walker: async (node, i, children) => {
+                if (node.category === 'FOLDER') return
+                const metaRes = await engine.extractFromFile(node.absolutePath)
+                if (!metaRes.success) return
 
-            const meta = metaRes.data.meta
-            if ('series' in meta === false || typeof meta.series !== 'string')
-                return
+                const meta = metaRes.data.meta
+                if (
+                    'series' in meta === false ||
+                    typeof meta.series !== 'string'
+                )
+                    return
 
-            const seriesInfo = await getPostCollectionStore({
-                seriesName: meta.series,
-                children,
-            })
+                const seriesInfo = await getPostCollectionStore({
+                    seriesName: meta.series,
+                    children,
+                })
 
-            await engine.replace({
-                injectPath: node.absolutePath,
-                metaData: {
-                    content: metaRes.data.content,
-                    meta: {
-                        ...meta,
-                        seriesInfo,
+                await engine.replace({
+                    injectPath: node.absolutePath,
+                    metaData: {
+                        content: metaRes.data.content,
+                        meta: {
+                            ...meta,
+                            seriesInfo,
+                        },
                     },
-                },
-            })
+                })
 
-            logger.success(`injected series info to ${node.absolutePath}`)
+                logger.success(`injected series info to ${node.absolutePath}`)
+            },
         }
     }
