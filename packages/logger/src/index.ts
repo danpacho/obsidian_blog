@@ -58,6 +58,9 @@ export class Logger {
             : [message]
         this.$log(logMessage, enter)
     }
+    public updateName(name: string) {
+        this.name = name
+    }
     public box(message: string, options?: Options & LogOption) {
         this.log(boxen(message, options), options)
     }
