@@ -13,39 +13,45 @@ export const MetaValidator = (
 
         const engine = meta(contentMeta)
 
-        return async (node) => {
-            if (node.category !== 'TEXT_FILE') return
-            if (node.fileName === 'description.md') return
+        return {
+            name: 'MetaValidator',
+            exclude: 'description.md',
+            skipFolderNode: true,
+            walker: async (node) => {
+                if (node.category !== 'TEXT_FILE') return
+                if (!node.buildInfo) return
 
-            if (!node.buildInfo) return
-            const { build_path } = node.buildInfo
+                const { build_path } = node.buildInfo
 
-            const originValid = await engine.extractFromFile(build_path.origin)
-            if (originValid.success) return
-
-            const generatedMeta = engine.generate({})
-            if (!generatedMeta) {
-                logger.error(
-                    `Meta invalid: default meta generation error at ${build_path.origin}`
+                const originValid = await engine.extractFromFile(
+                    build_path.origin
                 )
-                return
-            }
+                if (originValid.success) return
 
-            const defaultGeneration = await engine.update({
-                injectPath: build_path.origin,
-                meta: generatedMeta,
-            })
+                const generatedMeta = engine.generate({})
+                if (!generatedMeta) {
+                    logger.error(
+                        `Meta invalid: default meta generation error at ${build_path.origin}`
+                    )
+                    return
+                }
 
-            if (!defaultGeneration.success) {
-                logger.error(
-                    `Meta invalid: default meta injection error at ${build_path.origin}`
-                )
-                return
-            } else {
-                logger.info(
-                    `Meta invalid: default meta injection success at ${build_path.origin}`
-                )
-            }
+                const defaultGeneration = await engine.update({
+                    injectPath: build_path.origin,
+                    meta: generatedMeta,
+                })
+
+                if (!defaultGeneration.success) {
+                    logger.error(
+                        `Meta invalid: default meta injection error at ${build_path.origin}`
+                    )
+                    return
+                } else {
+                    logger.info(
+                        `Meta invalid: default meta injection success at ${build_path.origin}`
+                    )
+                }
+            },
         }
     }
 }
