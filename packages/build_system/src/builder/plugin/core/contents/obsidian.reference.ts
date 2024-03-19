@@ -95,49 +95,55 @@ const RemarkObsidianReferencePlugin: Plugin<
 
 export const ObsidianReference =
     (): BuilderPlugin['build:contents'] =>
-    async ({ buildStore, io }) => {
-        const assetReferencesUUIDList = buildStore
-            .filter(
-                ({ file_type }) =>
-                    file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
-            )
-            .map((report) => ({
-                build: report.build_path.build,
-                origin: report.build_path.origin,
-            }))
+    async ({ io }) => {
+        return {
+            name: 'ObsidianReference',
+            modifier: async (buildStore) => {
+                const assetReferencesUUIDList = buildStore
+                    .filter(
+                        ({ file_type }) =>
+                            file_type === 'IMAGE_FILE' ||
+                            file_type === 'AUDIO_FILE'
+                    )
+                    .map((report) => ({
+                        build: report.build_path.build,
+                        origin: report.build_path.origin,
+                    }))
 
-        const referenceUpdateTextFileList = buildStore.filter(
-            ({ file_type }) => file_type === 'TEXT_FILE'
-        )
+                const referenceUpdateTextFileList = buildStore.filter(
+                    ({ file_type }) => file_type === 'TEXT_FILE'
+                )
 
-        const referenceUpdatedList = referenceUpdateTextFileList.reduce<
-            Promise<
-                {
-                    content: string
-                    writePath: string
-                }[]
-            >
-        >(async (acc, textFile) => {
-            const awaitedAcc = await acc
-            const textFileContent = await io.reader.readFile(
-                textFile.build_path.build
-            )
-            if (textFileContent.success) {
-                const updatedVFile = await remark()
-                    .use(RemarkObsidianReferencePlugin, {
-                        imageReference: assetReferencesUUIDList,
-                        io,
-                    })
-                    .use(remarkFrontmatter)
-                    .process(textFileContent.data)
+                const referenceUpdatedList =
+                    await referenceUpdateTextFileList.reduce<
+                        Promise<
+                            {
+                                content: string
+                                writePath: string
+                            }[]
+                        >
+                    >(async (acc, textFile) => {
+                        const awaitedAcc = await acc
+                        const textFileContent = await io.reader.readFile(
+                            textFile.build_path.build
+                        )
+                        if (textFileContent.success) {
+                            const updatedVFile = await remark()
+                                .use(RemarkObsidianReferencePlugin, {
+                                    imageReference: assetReferencesUUIDList,
+                                    io,
+                                })
+                                .use(remarkFrontmatter)
+                                .process(textFileContent.data)
 
-                awaitedAcc.push({
-                    content: updatedVFile.toString(),
-                    writePath: textFile.build_path.build,
-                })
-            }
-            return acc
-        }, Promise.resolve([]))
-
-        return referenceUpdatedList
+                            awaitedAcc.push({
+                                content: updatedVFile.toString(),
+                                writePath: textFile.build_path.build,
+                            })
+                        }
+                        return acc
+                    }, Promise.resolve([]))
+                return referenceUpdatedList
+            },
+        }
     }
