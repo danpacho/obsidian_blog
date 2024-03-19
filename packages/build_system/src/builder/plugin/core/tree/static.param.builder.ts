@@ -30,100 +30,106 @@ export const StaticParamBuilder = (
     return async ({ logger, buildPath, meta }) => {
         const engine = meta(option.contentMeta)
 
-        return async (node) => {
-            if (node.category !== 'TEXT_FILE') return
-            if (node.fileName === 'description.md') return
+        return {
+            name: 'StaticParamBuilder',
+            exclude: 'description.md',
+            skipFolderNode: true,
+            walker: async (node) => {
+                if (node.category !== 'TEXT_FILE') return
 
-            const finalBuildPath: string | undefined =
-                node.buildInfo?.build_path.build
-            if (!finalBuildPath) return
+                const finalBuildPath: string | undefined =
+                    node.buildInfo?.build_path.build
+                if (!finalBuildPath) return
 
-            const paramBuildPath = finalBuildPath.replace(
-                buildPath.contents,
-                ''
-            )
-            const buildList: Array<string> = splitToPurePath(paramBuildPath)
-            const staticParamsContainer: RecordShape = createRecord(
-                analyzed.dynamicParams,
-                ''
-            )
+                const paramBuildPath = finalBuildPath.replace(
+                    buildPath.contents,
+                    ''
+                )
+                const buildList: Array<string> = splitToPurePath(paramBuildPath)
+                const staticParamsContainer: RecordShape = createRecord(
+                    analyzed.dynamicParams,
+                    ''
+                )
 
-            const staticParamsInfo = analyzed.result.reduce<{
-                params: RecordShape
-                store: {
-                    nonDynamic: Array<string>
-                }
-                listPointer: number
-            }>(
-                (acc, curr) => {
+                const staticParamsInfo = analyzed.result.reduce<{
+                    params: RecordShape
+                    store: {
+                        nonDynamic: Array<string>
+                    }
+                    listPointer: number
+                }>(
+                    (acc, curr) => {
+                        if (!curr.isDynamicParam) {
+                            acc.store.nonDynamic.push(curr.dividerName)
+                            return acc
+                        }
+
+                        const { paramName } = curr
+
+                        if (!curr.isMultiple) {
+                            const fondedPath = buildList[acc.listPointer]
+                            if (!fondedPath) return acc
+
+                            const buildPath: string = [
+                                ...acc.store.nonDynamic,
+                                fondedPath,
+                            ].join('/')
+
+                            acc.listPointer += 1
+                            acc.params[paramName] = buildPath
+                            acc.store.nonDynamic = []
+                            return acc
+                        }
+
+                        const restPath: Array<string> = buildList.slice(
+                            acc.listPointer
+                        )
+                        const buildPathList: Array<string> = [
+                            ...acc.store.nonDynamic,
+                            ...restPath,
+                        ]
+                        acc.listPointer += buildPathList.length
+                        acc.params[paramName] = buildPathList.join('/')
+                        acc.store.nonDynamic = []
+                        return acc
+                    },
+                    {
+                        params: staticParamsContainer,
+                        store: {
+                            nonDynamic: [],
+                        },
+                        listPointer: 0,
+                    }
+                )
+                const href = analyzed.result.reduce<string>((acc, curr) => {
                     if (!curr.isDynamicParam) {
-                        acc.store.nonDynamic.push(curr.dividerName)
                         return acc
                     }
 
                     const { paramName } = curr
-
                     if (!curr.isMultiple) {
-                        const fondedPath = buildList[acc.listPointer]
-                        if (!fondedPath) return acc
-
-                        const buildPath: string = [
-                            ...acc.store.nonDynamic,
-                            fondedPath,
-                        ].join('/')
-
-                        acc.listPointer += 1
-                        acc.params[paramName] = buildPath
-                        acc.store.nonDynamic = []
+                        acc += `/${staticParamsInfo.params[paramName]}`
                         return acc
                     }
 
-                    const restPath: Array<string> = buildList.slice(
-                        acc.listPointer
-                    )
-                    const buildPathList: Array<string> = [
-                        ...acc.store.nonDynamic,
-                        ...restPath,
-                    ]
-                    acc.listPointer += buildPathList.length
-                    acc.params[paramName] = buildPathList.join('/')
-                    acc.store.nonDynamic = []
-                    return acc
-                },
-                {
-                    params: staticParamsContainer,
-                    store: {
-                        nonDynamic: [],
-                    },
-                    listPointer: 0,
-                }
-            )
-            const href = analyzed.result.reduce<string>((acc, curr) => {
-                if (!curr.isDynamicParam) {
-                    return acc
-                }
-
-                const { paramName } = curr
-                if (!curr.isMultiple) {
                     acc += `/${staticParamsInfo.params[paramName]}`
                     return acc
+                }, '')
+
+                const staticParamUpdate = await engine.update({
+                    injectPath: finalBuildPath,
+                    meta: {
+                        href,
+                        params: staticParamsInfo.params,
+                    },
+                })
+
+                if (staticParamUpdate.success) {
+                    logger.success(
+                        `injected static params to ${finalBuildPath}`
+                    )
                 }
-
-                acc += `/${staticParamsInfo.params[paramName]}`
-                return acc
-            }, '')
-
-            const staticParamUpdate = await engine.update({
-                injectPath: finalBuildPath,
-                meta: {
-                    href,
-                    params: staticParamsInfo.params,
-                },
-            })
-
-            if (staticParamUpdate.success) {
-                logger.success(`injected static params to ${finalBuildPath}`)
-            }
+            },
         }
     }
 }
