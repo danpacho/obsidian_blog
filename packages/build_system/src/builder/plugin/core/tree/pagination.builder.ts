@@ -4,13 +4,13 @@ import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
-import {
+import type {
     DefaultContentMeta,
     DefaultPaginationInfo,
 } from './shared/meta/interface'
 
 type FTreeNode = Parameters<
-    Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>
+    Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>['walker']
 >[0]
 
 export interface PaginationBuilderConfig extends ContentMetaGeneratorOptions {}
@@ -107,65 +107,70 @@ export const PaginationBuilder = (
             return undefined
         }
 
-        return async (node, _, children) => {
-            if (node.category !== 'TEXT_FILE') return
-            if (node.fileName === 'description.md') return
+        return {
+            name: 'PaginationBuilder',
+            exclude: 'description.md',
+            skipFolderNode: true,
+            disableCache: true,
+            walker: async (node, _, children) => {
+                if (node.category !== 'TEXT_FILE') return
 
-            const finalBuildPath = node.absolutePath
-            const currNodeIndex = children.findIndex(
-                (child) => child.absolutePath === node.absolutePath
-            )
-            if (currNodeIndex === -1) return
+                const finalBuildPath = node.absolutePath
+                const currNodeIndex = children.findIndex(
+                    (child) => child.absolutePath === node.absolutePath
+                )
+                if (currNodeIndex === -1) return
 
-            const prevTextNode = searchTextNodeBasedOnOriginIndex(
-                currNodeIndex - 1,
-                children,
-                'before'
-            )
-            const nextTextNode = searchTextNodeBasedOnOriginIndex(
-                currNodeIndex + 1,
-                children,
-                'after'
-            )
-            if (!prevTextNode && !nextTextNode) return
+                const prevTextNode = searchTextNodeBasedOnOriginIndex(
+                    currNodeIndex - 1,
+                    children,
+                    'before'
+                )
+                const nextTextNode = searchTextNodeBasedOnOriginIndex(
+                    currNodeIndex + 1,
+                    children,
+                    'after'
+                )
+                if (!prevTextNode && !nextTextNode) return
 
-            const prevPaginationMeta = await buildPaginationMeta({
-                engine: metaExtractor,
-                node: prevTextNode,
-            })
-            const nextPaginationMeta = await buildPaginationMeta({
-                engine: metaExtractor,
-                node: nextTextNode,
-            })
+                const prevPaginationMeta = await buildPaginationMeta({
+                    engine: metaExtractor,
+                    node: prevTextNode,
+                })
+                const nextPaginationMeta = await buildPaginationMeta({
+                    engine: metaExtractor,
+                    node: nextTextNode,
+                })
 
-            const metaDataResult =
-                await metaExtractor.extractFromFile(finalBuildPath)
+                const metaDataResult =
+                    await metaExtractor.extractFromFile(finalBuildPath)
 
-            if (!metaDataResult.success) return
+                if (!metaDataResult.success) return
 
-            const originalMeta = metaDataResult.data.meta
-            const paginationMeta = {
-                prev: prevPaginationMeta.success
-                    ? prevPaginationMeta.data
-                    : undefined,
-                next: nextPaginationMeta.success
-                    ? nextPaginationMeta.data
-                    : undefined,
-            }
+                const originalMeta = metaDataResult.data.meta
+                const paginationMeta = {
+                    prev: prevPaginationMeta.success
+                        ? prevPaginationMeta.data
+                        : undefined,
+                    next: nextPaginationMeta.success
+                        ? nextPaginationMeta.data
+                        : undefined,
+                }
 
-            const injectResult = await metaExtractor.replace({
-                injectPath: finalBuildPath,
-                metaData: {
-                    content: metaDataResult.data.content,
-                    meta: {
-                        ...originalMeta,
-                        pagination: paginationMeta,
+                const injectResult = await metaExtractor.replace({
+                    injectPath: finalBuildPath,
+                    metaData: {
+                        content: metaDataResult.data.content,
+                        meta: {
+                            ...originalMeta,
+                            pagination: paginationMeta,
+                        },
                     },
-                },
-            })
+                })
 
-            if (!injectResult.success) return
-            logger.success(`injected pagination meta to ${finalBuildPath}`)
+                if (!injectResult.success) return
+                logger.success(`injected pagination meta to ${finalBuildPath}`)
+            },
         }
     }
 }
