@@ -73,65 +73,69 @@ export const MetaBuilder = (
             }
         }
 
-        return async (node) => {
-            if (node.category !== 'TEXT_FILE') return
-            if (node.fileName === 'description.md') return
+        return {
+            name: 'MetaBuilder',
+            exclude: 'description.md',
+            skipFolderNode: true,
+            walker: async (node) => {
+                if (node.category !== 'TEXT_FILE') return
 
-            const injectPath = node.buildInfo?.build_path
+                const injectPath = node.buildInfo?.build_path
 
-            if (!injectPath) {
-                logger.error(`build path not defined: ${node.absolutePath}`)
-                return
-            }
-
-            const absSplit = injectPath.origin.split('/')
-
-            const categoryInfo = absSplit.reduceRight<{
-                find: boolean
-                category: string | undefined
-            }>(
-                (p, curr) => {
-                    if (p.find) return p
-
-                    const res = paramAnalyzer.analyzeSingleParam(curr)
-                    if (res.isDynamicParam) {
-                        return {
-                            find: true,
-                            category: res.paramName,
-                        }
-                    }
-                    return p
-                },
-                {
-                    find: false,
-                    category: undefined,
+                if (!injectPath) {
+                    logger.error(`build path not defined: ${node.absolutePath}`)
+                    return
                 }
-            )
 
-            const seriesInfo = await getSeriesInfo(injectPath.origin)
+                const absSplit = injectPath.origin.split('/')
 
-            const updateBuild = await engine.update({
-                injectPath: injectPath.build,
-                meta: {
-                    category: categoryInfo.category,
-                    ...seriesInfo,
-                },
-            })
+                const categoryInfo = absSplit.reduceRight<{
+                    find: boolean
+                    category: string | undefined
+                }>(
+                    (p, curr) => {
+                        if (p.find) return p
 
-            const updateOrigin = await engine.update({
-                injectPath: injectPath.origin,
-                meta: {
-                    category: categoryInfo.category,
-                    ...seriesInfo,
-                },
-            })
-
-            if (updateBuild.success && updateOrigin.success) {
-                logger.success(
-                    `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
+                        const res = paramAnalyzer.analyzeSingleParam(curr)
+                        if (res.isDynamicParam) {
+                            return {
+                                find: true,
+                                category: res.paramName,
+                            }
+                        }
+                        return p
+                    },
+                    {
+                        find: false,
+                        category: undefined,
+                    }
                 )
-            }
-            return
+
+                const seriesInfo = await getSeriesInfo(injectPath.origin)
+
+                const updateBuild = await engine.update({
+                    injectPath: injectPath.build,
+                    meta: {
+                        category: categoryInfo.category,
+                        ...seriesInfo,
+                    },
+                })
+
+                const updateOrigin = await engine.update({
+                    injectPath: injectPath.origin,
+                    meta: {
+                        category: categoryInfo.category,
+                        ...seriesInfo,
+                    },
+                })
+
+                if (updateBuild.success && updateOrigin.success) {
+                    logger.success(
+                        `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
+                    )
+                }
+                return
+            },
         }
     }
 }
