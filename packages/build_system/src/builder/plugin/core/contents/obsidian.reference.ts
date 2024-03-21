@@ -1,6 +1,5 @@
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { remark } from 'remark'
-import remarkFrontmatter from 'remark-frontmatter'
 import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Parent } from 'unist'
@@ -95,10 +94,10 @@ const RemarkObsidianReferencePlugin: Plugin<
 
 export const ObsidianReference =
     (): BuilderPlugin['build:contents'] =>
-    async ({ io }) => {
+    async ({ io, processor }) => {
         return {
             name: 'ObsidianReference',
-            modifier: async (buildStore) => {
+            modifier: async ({ buildStore }) => {
                 const assetReferencesUUIDList = buildStore
                     .filter(
                         ({ file_type }) =>
@@ -128,12 +127,12 @@ export const ObsidianReference =
                             textFile.build_path.build
                         )
                         if (textFileContent.success) {
-                            const updatedVFile = await remark()
+                            const updatedVFile = await processor
+                                .remark()
                                 .use(RemarkObsidianReferencePlugin, {
                                     imageReference: assetReferencesUUIDList,
                                     io,
                                 })
-                                .use(remarkFrontmatter)
                                 .process(textFileContent.data)
 
                             awaitedAcc.push({
@@ -143,6 +142,7 @@ export const ObsidianReference =
                         }
                         return acc
                     }, Promise.resolve([]))
+
                 return referenceUpdatedList
             },
         }
