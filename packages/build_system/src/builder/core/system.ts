@@ -1,4 +1,5 @@
 import { Logger } from '@blogger/logger'
+import { MarkdownProcessor } from '../../md/processor'
 import {
     MetaEngine,
     type MetaEngineConstructor,
@@ -44,6 +45,7 @@ export class BuildSystem {
         })
         this.$buildInfoGenerator = new BuildInfoGenerator(option)
         this.$buildLogger = new BuildResultLogger(option)
+        this.$mdProcessor = new MarkdownProcessor()
 
         // Should bind this context for Plugin callings
         this.createMetaManager = this.createMetaManager.bind(this)
@@ -58,6 +60,7 @@ export class BuildSystem {
     private readonly $buildLogger: BuildResultLogger
     private readonly $cacheManager: BuildCacheManager
     private readonly $buildInfoGenerator: BuildInfoGenerator
+    private readonly $mdProcessor: MarkdownProcessor
 
     private readonly treeBuildPluginManager: PluginManager<
         BuilderPlugin['build:origin:tree'],
@@ -218,18 +221,17 @@ export class BuildSystem {
 
             const fileName = node.fileName
             if (pluginConfig?.exclude) {
-                if (typeof pluginConfig.exclude === 'string') {
-                    if (pluginConfig.exclude === fileName) {
+                const { exclude } = pluginConfig
+                if (typeof exclude === 'string') {
+                    if (exclude === fileName) {
                         return true
                     }
-                } else if (pluginConfig.exclude instanceof RegExp) {
-                    if (pluginConfig.exclude.test(fileName)) {
+                } else if (exclude instanceof RegExp) {
+                    if (exclude.test(fileName)) {
                         return true
                     }
                 } else {
-                    if (
-                        pluginConfig.exclude.some((ex) => fileName.includes(ex))
-                    ) {
+                    if (exclude.some((ex) => fileName.includes(ex))) {
                         return true
                     }
                 }
@@ -422,13 +424,14 @@ export class BuildSystem {
             .pluginList) {
             const { modifier, ...config } = await plugin({
                 meta: this.createMetaManager,
+                processor: this.$mdProcessor,
                 ...this.option,
             })
             this.option.logger.updateName(config.name)
 
-            for (const { content, writePath } of await modifier(
-                getTargetBuildStore(config)
-            )) {
+            for (const { content, writePath } of await modifier({
+                buildStore: getTargetBuildStore(config),
+            })) {
                 const updatedTextFile = await this.$io.writer.write({
                     data: content,
                     filePath: writePath,
