@@ -1,3 +1,4 @@
+import type { MarkdownProcessor } from '../../md/processor'
 import type {
     MetaEngine,
     MetaEngineConstructor,
@@ -43,9 +44,12 @@ type TreeWalkingPlugin = (
     args: FileTreePluginConstructor
 ) => Promise<FileTreePluginReturn>
 
-interface ContentsModifierPluginConstructor extends PluginCommonConstructor {}
+interface ContentsModifierPluginConstructor extends PluginCommonConstructor {
+    processor: MarkdownProcessor
+}
 interface ContentsModifierPluginReturn extends PluginCommonConfig {
-    modifier: (buildStore: BuildStoreList) => Promise<
+    //TODO: Add rehype & remark & walk plugins for modifying the contests easily
+    modifier: (modifierConstructor: { buildStore: BuildStoreList }) => Promise<
         Array<{
             content: string
             writePath: string
