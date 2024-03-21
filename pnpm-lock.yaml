@@ -137,9 +137,15 @@ importers:
       gray-matter:
         specifier: ^4.0.3
         version: 4.0.3
+      mdast-util-from-markdown:
+        specifier: ^2.0.0
+        version: 2.0.0
       mdast-util-to-markdown:
         specifier: ^2.1.0
         version: 2.1.0
+      rehype:
+        specifier: ^13.0.1
+        version: 13.0.1
       remark:
         specifier: ^15.0.1
         version: 15.0.1
@@ -152,9 +158,18 @@ importers:
       unified:
         specifier: ^11.0.4
         version: 11.0.4
+      unist-util-filter:
+        specifier: ^5.0.1
+        version: 5.0.1
+      unist-util-find:
+        specifier: ^3.0.0
+        version: 3.0.0
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.0.0
+      vfile:
+        specifier: ^6.0.1
+        version: 6.0.1
       zx:
         specifier: ^7.2.3
         version: 7.2.3
@@ -4544,6 +4559,10 @@ packages:
     dependencies:
       p-locate: 5.0.0
 
+  /lodash.iteratee@4.7.0:
+    resolution: {integrity: sha512-yv3cSQZmfpbIKo4Yo45B1taEvxjNvcpF1CEOc0Y6dEyvhPIfEJE3twDwPgWTPQubcSgXyBwBKG6wpQvWMDOf6Q==}
+    dev: false
+
   /lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
     dev: true
@@ -7394,6 +7413,22 @@ packages:
       is-plain-obj: 4.1.0
       trough: 2.2.0
       vfile: 6.0.1
+    dev: false
+
+  /unist-util-filter@5.0.1:
+    resolution: {integrity: sha512-pHx7D4Zt6+TsfwylH9+lYhBhzyhEnCXs/lbq/Hstxno5z4gVdyc2WEW0asfjGKPyG4pEKrnBv5hdkO6+aRnQJw==}
+    dependencies:
+      '@types/unist': 3.0.2
+      unist-util-is: 6.0.0
+      unist-util-visit-parents: 6.0.1
+    dev: false
+
+  /unist-util-find@3.0.0:
+    resolution: {integrity: sha512-T7ZqS7immLjYyC4FCp2hDo3ksZ1v+qcbb+e5+iWxc2jONgHOLXPCpms1L8VV4hVxCXgWTxmBHDztuEZFVwC+Gg==}
+    dependencies:
+      '@types/unist': 3.0.2
+      lodash.iteratee: 4.7.0
+      unist-util-visit: 5.0.0
     dev: false
 
   /unist-util-is@5.2.1:
