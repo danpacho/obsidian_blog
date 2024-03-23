@@ -5,6 +5,8 @@
 dist
 .turbo
 benchmark
+content
+.obsidian
 
 # Dependencies
 node_modules/

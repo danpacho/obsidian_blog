@@ -56,7 +56,7 @@ export class ShellTraceStorage {
     }
 }
 
-interface ShellScriptConstructor extends ShellTraceStorageConstructor {}
+export interface ShellScriptConstructor extends ShellTraceStorageConstructor {}
 export class ShellScript {
     constructor(public readonly options: ShellScriptConstructor) {
         this.traceStorage = new ShellTraceStorage({
