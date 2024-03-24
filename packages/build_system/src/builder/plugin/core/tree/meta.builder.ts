@@ -5,7 +5,7 @@ import {
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
 
-export interface MetaBuilderConfig extends ContentMetaGeneratorOptions {}
+export type MetaBuilderConfig = ContentMetaGeneratorOptions
 export const MetaBuilder = (
     option: MetaBuilderConfig = defaultContentMetaBuilderOptions
 ): BuilderPlugin['build:origin:tree'] => {

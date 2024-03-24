@@ -4,9 +4,9 @@ import {
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
 
-export interface MetaValidatorConfig extends ContentMetaGeneratorOptions {}
+export type MetaValidatorConfig = ContentMetaGeneratorOptions
 export const MetaValidator = (
-    option: MetaValidatorConfig = defaultContentMetaBuilderOptions
+    option: MetaValidatorConfig = { ...defaultContentMetaBuilderOptions }
 ): BuilderPlugin['build:origin:tree'] => {
     return async ({ meta, logger }) => {
         const { contentMeta } = option

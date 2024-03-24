@@ -20,13 +20,13 @@ export interface PluginCommonConstructor
     meta: MetaEngineCreator
 }
 
-interface PluginCommonConfig {
+type PluginCommonConfig = {
     name: string
     disableCache?: boolean
 }
 
-interface FileTreePluginConstructor extends PluginCommonConstructor {}
-interface FileTreePluginReturn extends PluginCommonConfig {
+type FileTreePluginConstructor = PluginCommonConstructor
+type FileTreePluginReturn = PluginCommonConfig & {
     walker: Walker
     cacheChecker?: (
         state: BuildInformation['build_state'],
@@ -44,11 +44,10 @@ type TreeWalkingPlugin = (
     args: FileTreePluginConstructor
 ) => Promise<FileTreePluginReturn>
 
-interface ContentsModifierPluginConstructor extends PluginCommonConstructor {
+type ContentsModifierPluginConstructor = PluginCommonConstructor & {
     processor: MarkdownProcessor
 }
-interface ContentsModifierPluginReturn extends PluginCommonConfig {
-    //TODO: Add rehype & remark & walk plugins for modifying the contests easily
+type ContentsModifierPluginReturn = PluginCommonConfig & {
     modifier: (modifierConstructor: { buildStore: BuildStoreList }) => Promise<
         Array<{
             content: string
