@@ -1,33 +1,7 @@
-import { Logger } from '@blogger/logger'
 import { describe, expect, it } from 'vitest'
-import { IOManager } from '../io_manager'
-import { FTreeNode } from '../parser/node'
-import { FileTreeParser } from '../parser/parser'
-import { BuildSystem } from './core/system'
+import { FTreeNode } from './parser/node'
+import { System } from './system'
 describe('FileTreeGenerator', async () => {
-    const parser = new FileTreeParser({
-        rootFolder: '$$blog$$',
-        ioManager: new IOManager(),
-        treeSyntax: {
-            fileNameMatcher: ({ name, depth }) => {
-                if (depth >= 6) return false
-                const validFileNames = /[a-zA-Z0-9-_]/
-                return validFileNames.test(name)
-            },
-            folderNameMatcher: ({ depth, name }) => {
-                const startsWithAt = name.startsWith('@')
-                if (startsWithAt) return true
-
-                const first = name.at(0)
-                const last = name.at(-1)
-                if (first === '[' && last === ']') return depth < 3
-                if (first === '{' && last === '}') return depth < 3
-
-                return true
-            },
-        },
-    })
-
     const pathGen = (node: FTreeNode, rootPath: string) => {
         const analyzeFileName = (
             folderName?: string
@@ -102,28 +76,53 @@ describe('FileTreeGenerator', async () => {
         })
     }
 
-    const builder = new BuildSystem({
-        parser,
-        io: new IOManager(),
-        logger: new Logger({
-            name: 'Builder',
-        }),
-        buildPath: {
-            contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
-            assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
+    const system = new System({
+        builder: {
+            buildPath: {
+                contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
+                assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
+            },
+            pathGenerator: {
+                contents: async (node) => {
+                    const path =
+                        `${process.cwd()}/packages/build_system/src/__tests__/__mocks__/$$blog$$` as const
+                    return pathGen(node, path)
+                },
+                assets: async () => '',
+            },
         },
-        pathGenerator: {
-            contents: async (node) => pathGen(node, parser.ast!.absolutePath),
-            assets: async () => '',
+        parser: {
+            rootFolder: '$$blog$$',
+            treeSyntax: {
+                fileNameMatcher: ({ name, depth }) => {
+                    if (depth >= 6) return false
+                    const validFileNames = /[a-zA-Z0-9-_]/
+                    return validFileNames.test(name)
+                },
+                folderNameMatcher: ({ depth, name }) => {
+                    const startsWithAt = name.startsWith('@')
+                    if (startsWithAt) return true
+
+                    const first = name.at(0)
+                    const last = name.at(-1)
+                    if (first === '[' && last === ']') return depth < 3
+                    if (first === '{' && last === '}') return depth < 3
+
+                    return true
+                },
+            },
+        },
+        shell: {
+            maxTraceCount: 10,
         },
     })
 
     it('should pass', () => {
-        expect(builder).toBeDefined()
+        expect(system).toBeDefined()
     })
 
     it('should use plugin', () => {
-        builder.use({
+        system.builder.use({
             'build:origin:tree': [],
             'walk:generated:tree': [],
             'build:contents': [],
@@ -131,7 +130,7 @@ describe('FileTreeGenerator', async () => {
     })
 
     it('should build', async () => {
-        expect(builder.build).toBeDefined()
-        await builder.build()
+        expect(system.builder.build).toBeDefined()
+        await system.builder.build()
     })
 })
