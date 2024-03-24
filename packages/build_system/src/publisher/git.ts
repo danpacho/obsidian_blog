@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
-import { ProcessOutput } from 'zx'
-import { ShellScript, ShellScriptConstructor } from './shell.script'
+import { type ProcessOutput } from 'zx'
+import { ShellScript, type ShellScriptConstructor } from './shell.script'
 
 interface GitShellConstructor extends ShellScriptConstructor {}
 export class GitShell extends ShellScript {
@@ -13,6 +13,16 @@ export class GitShell extends ShellScript {
         destination: string
     ): Promise<ProcessOutput> {
         const command = `git clone ${repository} ${destination}`
+        return await this.$(command)
+    }
+
+    public async branch(branch: string): Promise<ProcessOutput> {
+        const command = `git checkout -b ${branch}`
+        return await this.$(command)
+    }
+
+    public async showBranch(): Promise<ProcessOutput> {
+        const command = `git branch`
         return await this.$(command)
     }
 
