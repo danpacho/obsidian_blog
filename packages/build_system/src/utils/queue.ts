@@ -6,25 +6,25 @@ export class Queue<Type> {
     ) {
         this.pointer = {
             rear: 1,
-            back: 1,
+            front: 1,
         }
     }
     public readonly queue: Map<number, Type> = new Map()
     private readonly pointer: {
         rear: number
-        back: number
+        front: number
     }
 
     public get full(): boolean {
-        return this.pointer.back - this.pointer.rear === this.options.size
+        return this.pointer.front - this.pointer.rear === this.options.size
     }
 
     public enqueue(target: Type): Type {
         if (this.full) {
             this.dequeue()
         }
-        this.queue.set(this.pointer.back, target)
-        this.pointer.back++
+        this.queue.set(this.pointer.front, target)
+        this.pointer.front++
         return target
     }
 
@@ -43,7 +43,7 @@ export class Queue<Type> {
     }
 
     public getTop() {
-        return this.queue.get(this.pointer.back - 1)
+        return this.queue.get(this.pointer.front - 1)
     }
 
     public getBottom() {
