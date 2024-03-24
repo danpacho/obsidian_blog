@@ -31,7 +31,7 @@ interface FileTreeSyntax extends FolderSyntax, FileSyntax {}
 
 export interface FileTreeParserConstructor {
     rootFolder: string
-    readonly ioManager: IOManager
+    readonly io: IOManager
     /**
      * @description A custom tree syntax to determine which files and folders should be included in the tree
      */
@@ -44,10 +44,10 @@ export class FileTreeParser {
 
     private _ast: FolderNode | undefined = undefined
     private get $reader(): FileReader {
-        return this.options.ioManager.reader
+        return this.options.io.reader
     }
     private get $finder(): FilePathFinder {
-        return this.options.ioManager.finder
+        return this.options.io.finder
     }
     public get ast(): FolderNode | undefined {
         return this._ast

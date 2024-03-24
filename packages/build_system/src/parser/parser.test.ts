@@ -4,7 +4,7 @@ import { FileTreeParser } from './parser'
 
 describe('FileTreeParser', () => {
     const parser = new FileTreeParser({
-        ioManager: new IOManager(),
+        io: new IOManager(),
         rootFolder: '$$blog$$',
     })
 
@@ -19,7 +19,7 @@ describe('FileTreeParser', () => {
     })
 
     const parserWithSyntax = new FileTreeParser({
-        ioManager: new IOManager(),
+        io: new IOManager(),
         rootFolder: '$$blog$$',
         treeSyntax: {
             fileNameMatcher: ({ name, depth }) => {
