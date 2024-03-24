@@ -20,6 +20,8 @@ describe('terminal.script', () => {
             'echo "Hello from dynamic zx!"',
             'git status',
         ])
+
+        s.logCommandHistory()
     })
 })
 
