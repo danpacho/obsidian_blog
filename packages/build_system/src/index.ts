@@ -1,2 +1,1 @@
-const a = 1
-export { a }
+export { System as BuildSystem } from './system'
