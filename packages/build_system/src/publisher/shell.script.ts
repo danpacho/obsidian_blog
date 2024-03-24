@@ -64,6 +64,9 @@ export class ShellScript {
         })
     }
 
+    private get $m() {
+        return this.options.logger
+    }
     public readonly traceStorage: ShellTraceStorage
 
     public async $(command: string): Promise<ProcessOutput> {
@@ -81,6 +84,15 @@ export class ShellScript {
                 throw new Error('Unknown Error')
             }
         }
+    }
+
+    public logCommandHistory(): void {
+        this.$m.info('Command History:')
+        this.traceStorage.getCommandTrace().forEach((command) => {
+            this.$m.log(`› ${this.$m.c.yellow(command)}`, {
+                prefix: false,
+            })
+        })
     }
 
     public cd(path: string) {
