@@ -1,5 +1,5 @@
 {
-    "name": "@blogger/obsidian-plugin-blogger",
+    "name": "@blogger/obsidian_plugin_blogger",
     "version": "0.1.0",
     "description": "Obsidian plugin for extract vault to contents.",
     "author": "danpacho",
@@ -16,10 +16,17 @@
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "tsup src/index.ts --format=cjs,esm --dts",
-        "build:fast": "tsup src/index.ts --format=cjs,esm"
+        "build": "tsup",
+        "build:fast": "tsup src/index.ts --format=cjs,esm",
+        "dev": "concurrently \"tsup\" \"node ./dist/hot_reload.mjs --parallel\""
+    },
+    "dependencies": {
+        "@blogger/build_system": "*workspaces",
+        "@blogger/logger": "workspace:^",
+        "builtin-modules": "^3.3.0",
+        "obsidian": "1.5.7-1"
     },
     "devDependencies": {
-        "obsidian": "1.5.7-1"
+        "watcher": "^2.3.0"
     }
 }
