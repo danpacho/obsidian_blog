@@ -14,16 +14,18 @@
 3. [x] Public folder also included
     - https://github.com/BryceRussell/astro-public
 4. [x] Improve build performance and enhance build system caching process
-5. [] Improve Error Handling at `StateFul` & `Promisify`
+5. [ ] Improve Error Handling at `StateFul` & `Promisify`
     - base error
     - file `IO`
     - `build system` **error**
+6. Satori integration
+7. FileTree AST JSON spec: rendering file tree UI based routing
 
 ## Make PublishingSystem
 
-1. vercel automatic deployment
+1. automatic deployment pipelines
     - https://docs.astro.build/en/guides/deploy/vercel/#project-configuration
-2. automatic pagination feature >> optional
+2. Discarded[x]. automatic pagination feature
     - https://docs.astro.build/en/guides/routing/#pagination
 3. astro-satori
     - https://github.com/cijiugechu/astro-satori?tab=readme-ov-file
