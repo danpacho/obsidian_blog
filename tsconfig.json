@@ -15,5 +15,11 @@
         "strictNullChecks": true
     },
     "include": ["packages"],
-    "exclude": ["node_modules", "dist", "site", "benchmarks"]
+    "exclude": [
+        "node_modules",
+        "dist",
+        "site",
+        "benchmarks",
+        "packages/obdisian_plugin_blogger/script"
+    ]
 }
