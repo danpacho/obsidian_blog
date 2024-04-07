@@ -65,15 +65,15 @@ export class BuildSystem {
     private readonly treeBuildPluginManager: PluginManager<
         BuilderPlugin['build:origin:tree'],
         FileTreePluginConfig
-    > = new PluginManager({})
+    > = new PluginManager()
     private readonly generatedTreeWalkerPluginManager: PluginManager<
         BuilderPlugin['walk:generated:tree'],
         FileTreePluginConfig
-    > = new PluginManager({})
+    > = new PluginManager()
     private readonly contentsModifierPluginManger: PluginManager<
         BuilderPlugin['build:contents'],
         ContentsModifierPluginConfig
-    > = new PluginManager({})
+    > = new PluginManager()
 
     private get $parser(): FileTreeParser {
         return this.option.parser
@@ -419,6 +419,11 @@ export class BuildSystem {
 
             return updateTargetReport
         }
+
+        console.log(
+            'Plugin',
+            this.contentsModifierPluginManger.$plug.pluginList.toString()
+        )
 
         for (const plugin of this.contentsModifierPluginManger.$plug
             .pluginList) {
