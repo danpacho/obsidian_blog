@@ -3,7 +3,6 @@ import { toMarkdown } from 'mdast-util-to-markdown'
 import { rehype } from 'rehype'
 import { remark } from 'remark'
 import remarkFrontmatter from 'remark-frontmatter'
-import remarkHtml from 'remark-html'
 import { filter } from 'unist-util-filter'
 import { find } from 'unist-util-find'
 import { visit } from 'unist-util-visit'
@@ -12,7 +11,7 @@ export class MarkdownProcessor {
     public constructor() {}
 
     public remark() {
-        const processor = remark().use([remarkHtml, remarkFrontmatter])
+        const processor = remark().use(remarkFrontmatter)
         return processor
     }
     public rehype() {
