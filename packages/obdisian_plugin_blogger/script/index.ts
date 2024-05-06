@@ -15,11 +15,23 @@ generateManifest({
 })
 
 const HotReload = async () => {
-    lg.log('Hot reload started')
+    const ROOT =
+        '/Users/june/Documents/plugin_test/.obsidian/plugins/obsidian-blogger' as const
 
+    lg.log('Hot reload started')
+    lg.log(`Building plugin at ${ROOT}`)
     const cpRes = await io.cpFile({
         from: `${process.cwd()}/dist/main.js`,
-        to: `${process.cwd()}/out/.plugin/main.js`,
+        to: `${ROOT}/main.js`,
+    })
+    await io.cpFile({
+        from: `${process.cwd()}/manifest.json`,
+        to: `${ROOT}/manifest.json`,
+    })
+
+    await io.writer.write({
+        data: '',
+        filePath: `${ROOT}/.hotreload`,
     })
 
     if (!cpRes.success) {
@@ -30,9 +42,9 @@ const HotReload = async () => {
     lg.log('Hot reload completed')
 }
 
-const c = `${process.cwd()}/src/index.ts`
-lg.info(`Plugin build started at ${c}`)
-const watcher = new Watcher(c)
+const WATCH_ROOT = `${process.cwd()}/src/plugin/main.ts`
+lg.info(`Plugin build started at ${WATCH_ROOT}`)
+const watcher = new Watcher(WATCH_ROOT)
 
 watcher.on('change', async () => {
     lg.info('Plugin changed')
