@@ -1,5 +1,5 @@
+import { FileReader } from '@blogger/helpers'
 import type { BuilderPlugin } from '../..'
-import { FileReader } from '../../../../io_manager/file.reader'
 import { ParamAnalyzer } from '../../../../routes'
 import {
     type ContentMetaGeneratorOptions,

@@ -1,6 +1,5 @@
+import type { IO as IOManager, Promisify, Stateful } from '@blogger/helpers'
 import Matter from 'gray-matter'
-import type { IOManager } from '../io_manager'
-import type { Promisify, Stateful } from '../utils/promisify'
 
 export type PolymorphicMeta = Record<string, unknown>
 

@@ -1,5 +1,5 @@
+import { IO as IOManager } from '@blogger/helpers'
 import { describe, expect, it } from 'vitest'
-import { IOManager } from '../io_manager'
 import { FileTreeParser } from './parser'
 
 describe('FileTreeParser', () => {

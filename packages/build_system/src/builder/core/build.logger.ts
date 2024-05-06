@@ -1,5 +1,5 @@
+import { IO as IOManager } from '@blogger/helpers'
 import type { Logger } from '@blogger/logger'
-import type { IOManager } from '../../io_manager'
 import type { FTreeNode, FolderNode } from '../../parser/node'
 import type { FileTreeParser } from '../../parser/parser'
 import { BuildInformation, BuildStoreList } from './store'

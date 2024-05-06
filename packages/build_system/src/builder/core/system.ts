@@ -420,11 +420,6 @@ export class BuildSystem {
             return updateTargetReport
         }
 
-        console.log(
-            'Plugin',
-            this.contentsModifierPluginManger.$plug.pluginList.toString()
-        )
-
         for (const plugin of this.contentsModifierPluginManger.$plug
             .pluginList) {
             const { modifier, ...config } = await plugin({

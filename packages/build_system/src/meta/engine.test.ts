@@ -1,6 +1,6 @@
+import { IO as IOManager } from '@blogger/helpers'
 import { t } from '@metal-box/type'
 import { describe, expect, it } from 'vitest'
-import { IOManager } from '../io_manager'
 import { MetaEngine } from './engine'
 
 describe('MetaManager', () => {

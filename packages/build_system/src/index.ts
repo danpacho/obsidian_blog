@@ -1,5 +1,6 @@
 export { System as BuildSystem } from './system'
-export { IOManager } from './io_manager'
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export * as Node from './parser/node'
 export {
     type FileTreePluginConfig,
     type ContentsModifierPluginConfig,

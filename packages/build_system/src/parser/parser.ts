@@ -1,5 +1,4 @@
-import { IOManager } from '../io_manager'
-import { FilePathFinder, FileReader } from '../io_manager/file.reader'
+import { FilePathFinder, FileReader, IO as IOManager } from '@blogger/helpers'
 import {
     AudioFileNode,
     FTreeNode,

@@ -1,6 +1,6 @@
+import { Queue } from '@blogger/helpers'
 import { type Logger } from '@blogger/logger'
 import { ProcessOutput, cd, $ as zx$ } from 'zx'
-import { Queue } from '../utils/queue'
 // import { ShellError } from './shell.error'
 
 type Command = string
@@ -15,7 +15,7 @@ export class ShellTraceStorage {
             command: Command
             output: ProcessOutput
         }>({
-            size: this.options.maxTraceCount,
+            maxSize: this.options.maxTraceCount,
         })
     }
 
@@ -29,30 +29,26 @@ export class ShellTraceStorage {
     }
 
     public get length() {
-        return this.storage.length
+        return this.storage.size
     }
 
     public getLatest() {
-        return this.storage.getTop()
+        return this.storage.front
     }
 
     public search(command: Command): ProcessOutput | undefined {
-        for (const trace of this.storage.queue.values()) {
+        for (const trace of this.storage.store) {
             if (trace.command === command) return trace.output
         }
         return undefined
     }
 
     public getCommandTrace(): Array<string> {
-        return Array.from(this.storage.queue.values()).map(
-            (trace) => trace.command
-        )
+        return Array.from(this.storage.store).map((trace) => trace.command)
     }
 
     public getOutputTrace(): Array<ProcessOutput> {
-        return Array.from(this.storage.queue.values()).map(
-            (trace) => trace.output
-        )
+        return Array.from(this.storage.store).map((trace) => trace.output)
     }
 }
 

@@ -1,5 +1,5 @@
+import type { Promisify } from '@blogger/helpers'
 import type { BuilderPlugin } from '../..'
-import type { Promisify } from '../../../../utils/promisify'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,

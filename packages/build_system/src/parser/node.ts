@@ -1,5 +1,5 @@
+import { FileReader } from '@blogger/helpers'
 import type { BuildInformation } from '../builder/core/store'
-import { FileReader } from '../io_manager/file.reader'
 
 export type NodeType =
     | 'FOLDER'

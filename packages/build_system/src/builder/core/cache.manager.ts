@@ -1,5 +1,5 @@
+import type { Stateful } from '@blogger/helpers'
 import type { FTreeNode } from '../../parser/node'
-import type { Stateful } from '../../utils/promisify'
 import type { NodeId } from './info.generator'
 import { BuildInformation, type BuildStore } from './store'
 

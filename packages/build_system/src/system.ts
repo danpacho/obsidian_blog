@@ -1,6 +1,6 @@
+import { IO as IOManager } from '@blogger/helpers'
 import { Logger } from '@blogger/logger'
 import { BuildSystem, type BuildSystemConstructor } from './builder'
-import { IOManager } from './io_manager'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 import { GitShell } from './publisher/git'
 import {

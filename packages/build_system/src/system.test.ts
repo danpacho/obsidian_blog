@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { FTreeNode } from './parser/node'
 import { System } from './system'
+
 describe('FileTreeGenerator', async () => {
     const pathGen = (node: FTreeNode, rootPath: string) => {
         const analyzeFileName = (
@@ -86,6 +87,8 @@ describe('FileTreeGenerator', async () => {
                 contents: async (node) => {
                     const path =
                         `${process.cwd()}/packages/build_system/src/__tests__/__mocks__/$$blog$$` as const
+                    // '/Users/june/Documents/obsidian_june'
+                    // '/Users/june/Documents/obsidian_june'
                     return pathGen(node, path)
                 },
                 assets: async () => '',
@@ -93,13 +96,14 @@ describe('FileTreeGenerator', async () => {
         },
         parser: {
             rootFolder: '$$blog$$',
+            // rootFolder: '/Users/june/Documents/obsidian_june',
             treeSyntax: {
                 fileNameMatcher: ({ name, depth }) => {
                     if (depth >= 6) return false
                     const validFileNames = /[a-zA-Z0-9-_]/
                     return validFileNames.test(name)
                 },
-                folderNameMatcher: ({ depth, name }) => {
+                folderNameMatcher: ({ name, depth }) => {
                     const startsWithAt = name.startsWith('@')
                     if (startsWithAt) return true
 
