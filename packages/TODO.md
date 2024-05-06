@@ -18,10 +18,23 @@
     - base error
     - file `IO`
     - `build system` **error**
-6. Satori integration
-7. FileTree AST JSON spec: rendering file tree UI based routing
+6. [ ] Satori integration
+7. [ ] FileTree AST JSON spec: rendering file tree UI based routing
+8. [ ] Improve performance of cp-paste md files using `stream` & handling `error`
 
-## Make PublishingSystem
+## Make PublishSystem
+
+> **PublishSystem**:
+>
+> 1. `build` system
+> 2. `deploy` system
+>
+> **Controller**:
+>
+> 1. obsidian-plugin: UI
+> 2. plugin-installation: CLI
+> 3. plugin-configuration: CLI
+> 4. plugin-activation: CLI
 
 1. automatic deployment pipelines
     - https://docs.astro.build/en/guides/deploy/vercel/#project-configuration
