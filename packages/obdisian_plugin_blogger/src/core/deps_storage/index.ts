@@ -67,14 +67,16 @@ export class DependencyTable {
      * Saves the package dependencies to the storage file.
      */
     public async save(): Promise<void> {
-        const store = JSON.stringify([...this.storage])
+        const store = JSON.stringify([...this.storage], null, 4)
         await this.io.writer.write({
             filePath: this.storagePath,
             data: store,
             handler: {
                 onSuccess: () => {
                     // eslint-disable-next-line no-console
-                    console.log('DependencyTable › saved')
+                    console.log(
+                        `DependencyTable › saved to ${this.storagePath}`
+                    )
                     this.status = 'saved'
                 },
                 onError: (err) => {
@@ -103,9 +105,12 @@ export class DependencyTable {
      * Deletes a package from the DependencyTable.
      * @param pkg The package to delete.
      */
-    public delete(pkg: Pkg): void {
+    public delete(pkg: Pkg): boolean {
+        if (!this.storage.has(DependencyTable.hash(pkg))) return false
+
         this.storage.delete(DependencyTable.hash(pkg))
         this.status = 'updated'
+        return true
     }
 
     /**
