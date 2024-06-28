@@ -37,7 +37,7 @@ interface CommandRecord {
 class CommandHistory {
     private readonly queue = new Queue<CommandRecord>()
 
-    constructor(limit: number = 100) {
+    public constructor(limit: number = 100) {
         this.queue.option.maxSize = limit
     }
 
@@ -88,7 +88,7 @@ export class BashExecutor {
      * @param command - The command to execute.
      * @returns A promise that resolves with the command output.
      */
-    $(
+    public $(
         command: string,
         log: boolean = false
     ): Promise<{ stdout: string; stderr: string }> {
@@ -146,7 +146,7 @@ export class BashExecutor {
      * Gets the elapsed time since the start of the last executed command.
      * @returns The elapsed time in seconds, or null if no command is active.
      */
-    getElapsedTime(): number | null {
+    public getElapsedTime(): number | null {
         if (!this.commandActive || this.startTime === null) {
             return null
         }
@@ -157,7 +157,7 @@ export class BashExecutor {
      * Retrieves a stream that emits the elapsed time since the start of the last executed command.
      * @param interval Checking interval in milliseconds.
      */
-    getElapsedTimeStream(interval: number = 100): Readable {
+    public getElapsedTimeStream(interval: number = 100): Readable {
         const elapsedTimeStream = new Readable({
             read() {},
             destroy(err, callback) {
@@ -180,7 +180,7 @@ export class BashExecutor {
      * Retrieves the command history.
      * @returns An array of command records.
      */
-    getCommandHistory(): CommandRecord[] {
+    public getCommandHistory(): CommandRecord[] {
         return this.history.getHistory()
     }
 }
