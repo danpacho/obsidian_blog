@@ -1,5 +1,5 @@
 import { ExecException, exec } from 'node:child_process'
-import { Stream } from 'node:stream'
+import { Readable } from 'node:stream'
 import { Queue } from '@blogger/helpers'
 
 interface CommandRecord {
@@ -88,12 +88,15 @@ export class BashExecutor {
      * @param command - The command to execute.
      * @returns A promise that resolves with the command output.
      */
-    $(command: string): Promise<{ stdout: string; stderr: string }> {
+    $(
+        command: string,
+        log: boolean = false
+    ): Promise<{ stdout: string; stderr: string }> {
         this.startTime = Date.now()
         this.commandActive = true
 
         // eslint-disable-next-line no-console
-        console.log(command)
+        if (log) console.log(command)
 
         try {
             const executionResult = new Promise<{
@@ -130,7 +133,7 @@ export class BashExecutor {
             })
             executionResult.then((e) => {
                 // eslint-disable-next-line no-console
-                console.log(e.stdout)
+                if (log) console.log(e.stdout)
             })
 
             return executionResult
@@ -150,14 +153,29 @@ export class BashExecutor {
         return (Date.now() - this.startTime) / 1000
     }
 
-    getElapsedTimeStream(): Promise<Stream> {
-        const stream = new Stream()
-        setInterval(() => {
-            stream.addListener('data', () => this.getElapsedTime())
+    /**
+     * Retrieves a stream that emits the elapsed time since the start of the last executed command.
+     * @param interval Checking interval in milliseconds.
+     */
+    getElapsedTimeStream(interval: number = 100): Readable {
+        const elapsedTimeStream = new Readable({
+            read() {},
+            destroy(err, callback) {
+                clearInterval(streamIntervale)
+                callback(null)
+            },
         })
-        return Promise.resolve(process.stdin)
-    }
 
+        const streamIntervale = setInterval(() => {
+            const elapsedTime = this.getElapsedTime()
+            if (!elapsedTimeStream.push(`${elapsedTime}\n`)) {
+                clearInterval(streamIntervale)
+                elapsedTimeStream.push(null)
+            }
+        }, interval)
+
+        return elapsedTimeStream
+    }
     /**
      * Retrieves the command history.
      * @returns An array of command records.
