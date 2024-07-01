@@ -22,14 +22,14 @@ jobs:
               name: Install pnpm
               id: pnpm-install
               with:
-                  version: 8
+                  version: 9
                   run_install: true
 
             - name: Format checking
               run: pnpm prettier && pnpm eslint
 
             - name: Build testing for core
-              run: pnpm build --filter=@blogger/logger --filter=@blogger/build_system
+              run: pnpm build
 
             - name: Unit testing
               run: pnpm test
