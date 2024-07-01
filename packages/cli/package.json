@@ -24,8 +24,7 @@
         "build:fast": "tsup --no-dts",
         "dev": "pnpm build:fast --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
-        "test": "vitest",
-        "test:ci": "vitest run",
+        "test": "node dist/index.cjs",
         "lint:ts": "tsc --noEmit"
     },
     "devDependencies": {
