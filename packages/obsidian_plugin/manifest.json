@@ -1,0 +1,9 @@
+{
+    "name": "Obsidian-Blogger",
+    "description": "A plugin that allows you to publish your Obsidian notes to Blogger",
+    "id": "obsidian-blogger",
+    "minAppVersion": "0.1.0",
+    "version": "0.1.0",
+    "author": "danpacho",
+    "isDesktopOnly": true
+}
