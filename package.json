@@ -20,6 +20,7 @@
         "clean": "turbo run clean",
         "blog": "pnpm run --filter=@obsidian_blogger/astro-blog",
         "plugin": "pnpm run --filter=@obsidian_blogger/plugin",
+        "cli": "pnpm run --filter=@obsidian_blogger/cli",
         "debug:toolbar:enable": "astro preferences enable devToolbar",
         "debug:toolbar:disable": "astro preferences disable devToolbar",
         "test": "vitest",
