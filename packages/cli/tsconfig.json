@@ -10,6 +10,7 @@
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
         "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
         "noEmit": true,
         "skipLibCheck": true,
         "noImplicitOverride": true,
