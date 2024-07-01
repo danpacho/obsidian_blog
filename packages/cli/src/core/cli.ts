@@ -77,14 +77,23 @@ interface CLIConstructor {
     readonly info: CLIInfo
 }
 export class CLI {
-    private readonly $program: Command
-    private readonly $io: IO
-    private readonly $logger: Logger
+    /**
+     * The `Commander` program instance.
+     */
+    protected readonly $program: Command
+    /**
+     * The logger instance.
+     */
+    protected readonly $logger: Logger
+    /**
+     * The IO instance.
+     */
+    protected readonly $io: IO
 
     /**
      * Gets the program options.
      */
-    private get programOptions() {
+    protected get programOptions() {
         return this.$program.opts()
     }
 
