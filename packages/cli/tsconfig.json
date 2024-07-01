@@ -2,11 +2,11 @@
     "compilerOptions": {
         "strict": true,
         "target": "ESNext",
-        "module": "CommonJS",
+        "module": "Node16",
         "lib": ["dom", "dom.iterable", "esnext"],
         "baseUrl": ".",
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "NodeNext",
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
         "forceConsistentCasingInFileNames": true,

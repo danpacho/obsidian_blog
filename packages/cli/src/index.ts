@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import pkg from '../package.json'
-import { CLI, GithubRepository, PkgManager } from './core'
+import { CLI } from './core/cli.js'
+import { PkgManager } from './core/pkg_manager.js'
+import { GithubRepository } from './core/repo.js'
 
 export class BloggerCLI extends CLI {
     private readonly $repo: GithubRepository
