@@ -1,19 +1,20 @@
-// import process from 'process'
-import builtins from 'builtin-modules'
 import { defineConfig } from 'tsup'
-
-// const prod = process.argv[2] === 'production'
 
 export default defineConfig({
     entry: {
-        main: 'src/index.ts',
+        index: 'src/index.ts',
+        io: 'src/io/index.ts',
+        promisify: 'src/promisify/index.ts',
+        queue: 'src/queue/index.ts',
+        logger: 'src/logger/index.ts',
+        shell: 'src/shell/index.ts',
     },
     watch: ['src/**/*'],
     clean: true,
-    dts: false,
+    dts: true, // Generate type declarations
     outDir: 'dist',
-    external: [...builtins, 'glob'],
-    // noExternal: [],
     target: 'esnext',
     sourcemap: false,
+    format: ['esm', 'cjs'],
+    shims: true,
 })
