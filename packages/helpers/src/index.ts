@@ -1,3 +1,5 @@
 export * from './queue'
 export * from './io'
 export * from './promisify'
+export * from './logger'
+export * from './shell'
