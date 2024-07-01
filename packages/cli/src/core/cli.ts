@@ -1,44 +1,65 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { IO } from '@obsidian_blogger/helpers/io'
 import { Logger } from '@obsidian_blogger/helpers/logger'
 import { Command } from 'commander'
+
+type Prettify<T> = {
+    [K in keyof T]: T[K]
+} & {}
+
+type ExtractArgType<
+    T extends ReadonlyArray<string>,
+    Result = {},
+> = T extends readonly [infer First, ...infer Rest]
+    ? First extends `<${infer U}>`
+        ? Rest extends ReadonlyArray<string>
+            ? ExtractArgType<Rest, Result & { [key in U]: string }>
+            : never
+        : First extends `[${infer U}]`
+          ? Rest extends ReadonlyArray<string>
+              ? ExtractArgType<Rest, Result & { [key in U]?: string }>
+              : never
+          : never
+    : Result
 
 /**
  * Represents a CLI command.
  */
 interface CLICommand<
-    ArgType = unknown,
+    ArgType extends ReadonlyArray<string> | unknown = unknown,
     OptType extends Record<string, unknown> = Record<string, unknown>,
 > {
     /**
-     * Indicates if the command is a global command.
-     */
-    globalCmd?: boolean
-    /**
      * The flag for the command.
      */
-    cmdFlag: string
+    cmdFlag?: string
     /**
      * The description of the command.
      */
-    cmdDescription: string
+    cmdDescription?: string
     /**
      * The action to be performed when the command is executed.
      * @param args The arguments for the command.
      * @param options The options for the command.
      */
-    cmdAction: (args: ArgType, options: OptType) => void
+    cmdAction?: (
+        args: ArgType extends ReadonlyArray<string>
+            ? Prettify<ExtractArgType<ArgType>>
+            : never,
+        options: OptType
+    ) => void
     /**
      * The flag for the command argument.
      */
-    argFlag?: string
+    argFlag?: ArgType
     /**
-     * The flag for the command option.
+     * The flag for the command option. Option is `global` configuration.
      */
-    optFlag: string
+    optFlag?: string
     /**
      * The description of the command option.
      */
-    optDescription: string
+    optDescription?: string
     /**
      * The parser function for the command option argument.
      */
@@ -101,7 +122,7 @@ export class CLI {
      * Creates a new instance of the CLI class.
      * @param options The options for the CLI.
      */
-    public constructor(public readonly options: CLIConstructor) {
+    public constructor(options: CLIConstructor) {
         this.$program = new Command()
         this.$io = new IO()
         this.$logger = new Logger({ name: options.info.name })
@@ -131,70 +152,78 @@ export class CLI {
      * @param command The command to be added.
      * @example
      * ```ts
-     * // Global command
-     * cli.addCommand({
-     *    globalCmd: true,
-     *    cmdFlag: '--debug',
-     *    cmdDescription: 'Enable debugging',
-     *    optFlag: '-d, --debug',
-     *    optDescription: 'Enable debug mode',
-     *    optDefaultValue: false,
-     *    cmdAction: (_, options) => {
-     *      console.log('Debugging enabled')
-     *      console.log('Options:', options)
-     *    },
-     * })
-     * // Local command
+     * // command
      * cli.addCommand<string, { template: string }>({
-     *    cmdFlag: 'start <projectName>',
+     *    cmdFlag: 'start',
      *    cmdDescription: 'Start a new project',
      *    argFlag: '<projectName>',
+     *
      *    optFlag: '-t, --template <template>',
      *    optDescription: 'Specify a template',
      *    optDefaultValue: 'default',
-     *    cmdAction: (projectName, options) => {
+     *
+     *    cmdAction: (projectName: string, options: { template: string }) => {
      *       console.log(`Starting project: ${projectName} with template: ${options.template}`)
      *    },
      * })
      * ```
      */
     public addCommand<
-        ArgType = unknown,
+        const ArgType extends
+            | readonly [`<${string}>` | `[${string}]`]
+            | unknown = unknown,
         OptType extends Record<string, unknown> = Record<string, unknown>,
     >(command: CLICommand<ArgType, OptType>) {
-        const cmd = command.globalCmd
-            ? this.$program
-            : this.$program.command(command.cmdFlag)
+        const commander =
+            command.cmdFlag && command.cmdDescription
+                ? this.$program
+                      .command(command.cmdFlag)
+                      .description(command.cmdDescription)
+                : this.$program
 
         if (command.argFlag) {
-            cmd.argument(command.argFlag)
+            ;(command.argFlag as Array<string>).forEach((arg) => {
+                commander.argument(arg as string)
+            })
         }
 
-        if (command.optArgParser) {
-            cmd.option(
-                command.optFlag,
-                command.optDescription,
-                command.optArgParser,
-                command.optDefaultValue
-            )
-        } else {
-            cmd.option(
-                command.optFlag,
-                command.optDescription,
-                command.optDefaultValue
-            )
+        if (command.optFlag && command.optDescription) {
+            if (command.optArgParser) {
+                commander.option(
+                    command.optFlag,
+                    command.optDescription,
+                    command.optArgParser,
+                    command.optDefaultValue
+                )
+            } else {
+                commander.option(
+                    command.optFlag,
+                    command.optDescription,
+                    command.optDefaultValue
+                )
+            }
         }
 
-        cmd.description(command.cmdDescription)
-
-        cmd.action((...args: unknown[]) => {
-            const options = args.pop() as OptType
-            const [arg] = args as [ArgType]
-            command.cmdAction(arg, options)
-        })
-
-        if (!command.globalCmd) {
-            this.$program.addCommand(cmd)
+        if (command.cmdAction) {
+            commander.action((...args: string[]) => {
+                const options = (args.pop() ?? {}) as OptType
+                const argEntry = command.argFlag
+                    ? Object.fromEntries(
+                          (command.argFlag as Array<string>).map(
+                              (arg, index) => [
+                                  arg.replace(/[<>[\]]/g, ''),
+                                  args[index],
+                              ]
+                          )
+                      )
+                    : {}
+                command.cmdAction?.(
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    //@ts-ignore
+                    argEntry,
+                    options
+                )
+            })
         }
     }
 
