@@ -5,21 +5,16 @@
         "lib": ["dom", "dom.iterable", "esnext"],
         "baseUrl": ".",
         "esModuleInterop": true,
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "noUncheckedIndexedAccess": true,
         "exactOptionalPropertyTypes": true,
         "forceConsistentCasingInFileNames": true,
         "noEmit": true,
         "skipLibCheck": true,
         "noImplicitOverride": true,
-        "strictNullChecks": true
+        "strictNullChecks": true,
+        "resolveJsonModule": true
     },
     "include": ["packages"],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "site",
-        "benchmarks",
-        "packages/obdisian_plugin_blogger/script"
-    ]
+    "exclude": ["node_modules", "dist"]
 }
