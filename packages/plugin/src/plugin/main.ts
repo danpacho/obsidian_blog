@@ -173,7 +173,7 @@ class ObsidianBloggerModal extends Modal {
                                 [
                                     npxPath,
                                     'create-next-app@latest',
-                                    '/Users/june/Documents/project/obsidian-blogger/cli',
+                                    '/Users/june/Documents/project/obsidian_blogger/cli',
                                     `--use-npm`,
                                     '--ts',
                                     '--tailwind',
@@ -191,7 +191,7 @@ class ObsidianBloggerModal extends Modal {
                             )
 
                             const b = await this.shell.exec$(
-                                'rm -rf /Users/june/Documents/project/obsidian-blogger/cli',
+                                'rm -rf /Users/june/Documents/project/obsidian_blogger/cli',
                                 true
                             )
 
