@@ -1,5 +1,5 @@
-import { Queue } from '@blogger/helpers'
-import { type Logger } from '@blogger/logger'
+import { Queue } from '@obsidian_blogger/helpers'
+import { type Logger } from '@obsidian_blogger/helpers'
 import { ProcessOutput, cd, $ as zx$ } from 'zx'
 // import { ShellError } from './shell.error'
 
