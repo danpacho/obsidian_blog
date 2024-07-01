@@ -17,8 +17,8 @@
     "types": "./dist/index.d.ts",
     "scripts": {
         "build:script": "tsup --config=script.tsup.config.ts",
-        "build:plugin": "tsup --config=plugin.tsup.config.ts",
-        "dev": "concurrently \"pnpm build:script\" \"pnpm build:plugin\" \"node ./dist/hot_reload.mjs --parallel\""
+        "build": "tsup --config=plugin.tsup.config.ts",
+        "dev": "concurrently \"pnpm build:script\" \"pnpm build --watch\" \"node ./dist/hot_reload.mjs --parallel\""
     },
     "dependencies": {
         "@obsidian_blogger/helpers": "workspace:^",
