@@ -2,7 +2,7 @@ import {
     IO as IOManager,
     type Promisify,
     type Stateful,
-} from '@blogger/helpers'
+} from '@obsidian_blogger/helpers'
 import type { NodeType } from '../../parser/node'
 import { NodeId } from './info.generator'
 

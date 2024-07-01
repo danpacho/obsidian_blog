@@ -1,4 +1,4 @@
-import { FileReader } from '@blogger/helpers'
+import { FileReader } from '@obsidian_blogger/helpers'
 import type { BuilderPlugin } from '../..'
 import { ParamAnalyzer } from '../../../../routes'
 import {

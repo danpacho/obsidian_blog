@@ -1,4 +1,4 @@
-import { IO as IOManager } from '@blogger/helpers'
+import { IO as IOManager } from '@obsidian_blogger/helpers'
 import { describe, expect, it } from 'vitest'
 import { FileTreeParser } from './parser'
 

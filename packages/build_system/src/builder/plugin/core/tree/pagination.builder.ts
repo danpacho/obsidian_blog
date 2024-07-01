@@ -1,4 +1,4 @@
-import type { Promisify } from '@blogger/helpers'
+import type { Promisify } from '@obsidian_blogger/helpers'
 import type { BuilderPlugin } from '../..'
 import {
     type ContentMetaGeneratorOptions,

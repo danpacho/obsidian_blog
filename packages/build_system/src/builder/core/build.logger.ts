@@ -1,5 +1,5 @@
-import { IO as IOManager } from '@blogger/helpers'
-import type { Logger } from '@blogger/logger'
+import { IO as IOManager } from '@obsidian_blogger/helpers'
+import type { Logger } from '@obsidian_blogger/helpers'
 import type { FTreeNode, FolderNode } from '../../parser/node'
 import type { FileTreeParser } from '../../parser/parser'
 import { BuildInformation, BuildStoreList } from './store'

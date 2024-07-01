@@ -1,5 +1,5 @@
 import { type UUID, createHash } from 'crypto'
-import { FileReader, type IO as IOManager } from '@blogger/helpers'
+import { FileReader, type IO as IOManager } from '@obsidian_blogger/helpers'
 import { type FTreeNode } from '../../parser/node'
 import { PluginCommonConstructor } from '../plugin'
 import { type BuildInformation } from './store'

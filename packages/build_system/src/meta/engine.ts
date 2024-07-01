@@ -1,4 +1,8 @@
-import type { IO as IOManager, Promisify, Stateful } from '@blogger/helpers'
+import type {
+    IO as IOManager,
+    Promisify,
+    Stateful,
+} from '@obsidian_blogger/helpers'
 import Matter from 'gray-matter'
 
 export type PolymorphicMeta = Record<string, unknown>

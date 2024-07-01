@@ -1,4 +1,4 @@
-import { Logger } from '@blogger/logger'
+import { Logger } from '@obsidian_blogger/helpers'
 export const m = new Logger({
     name: 'builder',
     useDate: true,

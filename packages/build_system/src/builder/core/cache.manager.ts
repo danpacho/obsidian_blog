@@ -1,4 +1,4 @@
-import type { Stateful } from '@blogger/helpers'
+import type { Stateful } from '@obsidian_blogger/helpers'
 import type { FTreeNode } from '../../parser/node'
 import type { NodeId } from './info.generator'
 import { BuildInformation, type BuildStore } from './store'

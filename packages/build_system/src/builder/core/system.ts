@@ -1,4 +1,4 @@
-import { Logger } from '@blogger/logger'
+import { Logger } from '@obsidian_blogger/helpers'
 import { MarkdownProcessor } from '../../md/processor'
 import {
     MetaEngine,

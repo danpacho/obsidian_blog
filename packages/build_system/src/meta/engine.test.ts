@@ -1,5 +1,5 @@
-import { IO as IOManager } from '@blogger/helpers'
 import { t } from '@metal-box/type'
+import { IO as IOManager } from '@obsidian_blogger/helpers'
 import { describe, expect, it } from 'vitest'
 import { MetaEngine } from './engine'
 

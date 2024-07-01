@@ -1,4 +1,8 @@
-import { FilePathFinder, FileReader, IO as IOManager } from '@blogger/helpers'
+import {
+    FilePathFinder,
+    FileReader,
+    IO as IOManager,
+} from '@obsidian_blogger/helpers'
 import {
     AudioFileNode,
     FTreeNode,
