@@ -1,27 +1,53 @@
 {
-    "name": "@blogger/helpers",
+    "name": "@obsidian_blogger/helpers",
     "version": "0.1.0",
     "type": "module",
     "description": "Helper class for blogger",
     "private": true,
     "keywords": [],
-    "sideEffects": false,
+    "sideEffects": true,
     "publishConfig": {
         "access": "restricted"
     },
     "files": [
         "dist"
     ],
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
+    "exports": {
+        "./*": {
+            "import": {
+                "types": "./dist/*.d.ts",
+                "default": "./dist/*.js"
+            },
+            "require": {
+                "types": "./dist/*.d.cts",
+                "default": "./dist/*.cjs"
+            }
+        },
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        }
+    },
     "scripts": {
-        "build": "tsup src/index.ts --format=esm,cjs --shims --dts",
-        "build:fast": "tsup src/index.ts --format=esm,cjs --shims --no-dts",
-        "dev": "pnpm build --sourcemap --watch",
+        "build": "tsup",
+        "build:fast": "tsup --no-dts",
+        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "vitest",
         "test:ci": "vitest run",
         "lint:ts": "tsc --noEmit"
+    },
+    "dependencies": {
+        "chalk": "^5.3.0",
+        "boxen": "^7.1.1"
     }
 }
