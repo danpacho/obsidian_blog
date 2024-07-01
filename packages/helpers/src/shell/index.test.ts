@@ -5,7 +5,7 @@ describe('BashExecutor', () => {
     const executor = new ShellExecutor(100)
     it('should execute a shell command', async () => {
         const result = await executor.exec$('ls')
-        expect(result.stdout).toContain('__tests__')
+        expect(result.stdout).toContain('packages')
         expect(result.stderr).toBe('')
     })
 
