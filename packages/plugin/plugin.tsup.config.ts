@@ -4,14 +4,14 @@ import { defineConfig } from 'tsup'
 
 // const prod = process.argv[2] === 'production'
 
-export default defineConfig({
+export default defineConfig((options) => ({
     entry: {
         main: 'src/index.ts',
     },
     banner: {
         js: '/* Obsidian-blogger plugin */',
     },
-    watch: ['src/**/*'],
+    watch: options.watch ? ['src/**/*'] : false,
     // splitting: false,
     clean: false,
     // shims: true,
@@ -40,4 +40,4 @@ export default defineConfig({
     ],
     format: 'cjs',
     sourcemap: false,
-})
+}))

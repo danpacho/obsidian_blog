@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup'
 
-export default defineConfig({
+export default defineConfig((options) => ({
     entry: {
         index: 'src/index.ts',
         io: 'src/io/index.ts',
@@ -9,12 +9,12 @@ export default defineConfig({
         logger: 'src/logger/index.ts',
         shell: 'src/shell/index.ts',
     },
-    watch: ['src/**/*'],
-    clean: true,
+    watch: options.watch ? ['src/**/*'] : false,
+    clean: false,
     dts: true, // Generate type declarations
     outDir: 'dist',
     target: 'esnext',
     sourcemap: false,
     format: ['esm', 'cjs'],
     shims: true,
-})
+}))

@@ -17,7 +17,7 @@
     "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsup",
-        "build:fast": "tsup --shims --no-dts",
+        "build:fast": "tsup --no-dts",
         "dev": "pnpm build:fast --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "vitest",

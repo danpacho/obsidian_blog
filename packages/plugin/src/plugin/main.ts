@@ -208,7 +208,7 @@ class ObsidianBloggerModal extends Modal {
                             this.result = `Can't execute command ${JSON.stringify(err, null, 4)}`
                         }
                     } catch (e) {
-                        new Notice(e.error)
+                        new Notice("Can't execute command")
                     }
                 })
         )
