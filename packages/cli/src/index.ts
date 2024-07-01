@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import pkg from '../package.json'
-import { CLI, GithubRepository } from './core'
+import { CLI, GithubRepository, PkgManager } from './core'
 
 export class BloggerCLI extends CLI {
     private readonly $repo: GithubRepository
+    private readonly $pkgManager: PkgManager
     public constructor() {
         super({
             info: {
@@ -15,8 +16,10 @@ export class BloggerCLI extends CLI {
         })
 
         this.$repo = new GithubRepository()
+        this.$pkgManager = new PkgManager()
 
         this.addCommand({
+            globalCmd: true,
             cmdFlag: '--repo',
             cmdDescription: 'Fetch information about a GitHub repository',
             optFlag: '<repo_path>',
