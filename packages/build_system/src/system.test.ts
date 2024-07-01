@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { FTreeNode } from './parser/node'
 import { System } from './system'
 
-describe('FileTreeGenerator', async () => {
+describe('BuildSystem', async () => {
     const pathGen = (node: FTreeNode, rootPath: string) => {
         const analyzeFileName = (
             folderName?: string
@@ -116,9 +116,6 @@ describe('FileTreeGenerator', async () => {
                 },
             },
         },
-        shell: {
-            maxTraceCount: 10,
-        },
     })
 
     it('should pass', () => {
@@ -126,7 +123,7 @@ describe('FileTreeGenerator', async () => {
     })
 
     it('should use plugin', () => {
-        system.builder.use({
+        system.use({
             'build:origin:tree': [],
             'walk:generated:tree': [],
             'build:contents': [],
@@ -134,7 +131,7 @@ describe('FileTreeGenerator', async () => {
     })
 
     it('should build', async () => {
-        expect(system.builder.build).toBeDefined()
-        await system.builder.build()
+        expect(system.build).toBeDefined()
+        await system.build()
     })
 })
