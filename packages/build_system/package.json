@@ -1,5 +1,5 @@
 {
-    "name": "@blogger/build_system",
+    "name": "@obsidian_blogger/build_system",
     "version": "0.1.0",
     "description": "Post build system",
     "author": "danpacho",
@@ -17,13 +17,16 @@
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "scripts": {
-        "build": "tsup src/index.ts --format=cjs,esm --dts",
-        "build:fast": "tsup src/index.ts --format=cjs,esm",
-        "sync:schema": "npx astro sync"
+        "build": "tsup",
+        "build:fast": "tsup --shims --no-dts",
+        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "format": "prettier --write \"./{src,tests}/**/*\"",
+        "test": "vitest",
+        "test:ci": "vitest run",
+        "lint:ts": "tsc --noEmit"
     },
     "dependencies": {
-        "@blogger/logger": "workspace:^",
-        "@blogger/helpers": "workspace:^",
+        "@obsidian_blogger/helpers": "workspace:^",
         "chokidar": "^3.6.0",
         "glob": "^10.3.10",
         "gray-matter": "^4.0.3",
@@ -37,7 +40,6 @@
         "unist-util-filter": "^5.0.1",
         "unist-util-find": "^3.0.0",
         "unist-util-visit": "^5.0.0",
-        "vfile": "^6.0.1",
-        "zx": "^8.0.0"
+        "vfile": "^6.0.1"
     }
 }
