@@ -32,12 +32,20 @@ export const templateInjector = <TemplateConfig extends Record<string, string>>(
 
     const keys = Object.keys(template)
     const regex = new RegExp(`{{(${keys.join('|')})}}`, 'g')
-    const matched = source
-        .match(regex)
-        ?.map((match) => match.replace('{{', '').replace('}}', '').trim())
+    const matched = [
+        ...new Set(
+            source
+                .match(regex)
+                ?.map((match) =>
+                    match.replace('{{', '').replace('}}', '').trim()
+                )
+        ),
+    ]
 
     const exactMatched = matched?.map((match) => match.trim()) ?? []
-    const notEqual = exactMatched.join('') !== keys.join('')
+    const notEqual =
+        keys.length !== exactMatched.length ||
+        keys.some((key) => !exactMatched.includes(key))
 
     if (notEqual) {
         keys.forEach((key) => {
