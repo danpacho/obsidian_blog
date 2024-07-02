@@ -1,6 +1,6 @@
 import { BuildSystem, type Node } from '@obsidian_blogger/build_system'
 
-const pathGen = (node: Node.FTreeNode, rootPath: string) => {
+const pathGenerator = (node: Node.FTreeNode, rootPath: string) => {
     const analyzeFileName = (
         folderName?: string
     ): {
@@ -77,20 +77,21 @@ const pathGen = (node: Node.FTreeNode, rootPath: string) => {
 const system = new BuildSystem({
     builder: {
         buildPath: {
-            contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
-            assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
+            contents: '{{contents}}',
+            assets: '{{assets}}',
         },
         pathGenerator: {
             contents: async (node) => {
-                const path =
-                    `${process.cwd()}/packages/build_system/src/__tests__/__mocks__/$$blog$$` as const
-                return pathGen(node, path)
+                const rootPath = '{{root}}'
+                return pathGenerator(node, rootPath)
             },
             assets: async () => '',
         },
+        corePluginConfig: {},
+        disableCorePlugins: false,
     },
     parser: {
-        rootFolder: '$$blog$$',
+        rootFolder: '{{root}}',
         treeSyntax: {
             fileNameMatcher: ({ name, depth }) => {
                 if (depth >= 6) return false
