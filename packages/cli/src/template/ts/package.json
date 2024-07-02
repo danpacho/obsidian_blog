@@ -1,0 +1,40 @@
+{
+    "name": "@obsidian_blogger/bridge",
+    "description": "Generated blogger bridge package",
+    "author": "danpacho",
+    "license": "MIT",
+    "type": "module",
+    "sideEffects": false,
+    "bin": {
+        "build": "./dist/build.cjs",
+        "publish": "./dist/publish.cjs"
+    },
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "node dist/build.cjs",
+        "publish": "node dist/publish.cjs"
+    },
+    "devDependencies": {
+        "@types/tar": "^6.1.13",
+        "@types/async-retry": "^1.4.8",
+        "@types/validate-npm-package-name": "^4.0.2",
+        "@obsidian_blogger/build_system": "latest",
+        "@obsidian_blogger/publish_system": "latest",
+        "@obsidian_blogger/helpers": "latest",
+        "commander": "^12.1.0",
+        "async-retry": "^1.3.3",
+        "cross-spawn": "^7.0.3",
+        "fast-glob": "^3.3.2",
+        "tar": "^7.4.0",
+        "update-check": "^1.5.4",
+        "validate-npm-package-name": "^5.0.1"
+    },
+    "engines": {
+        "node": ">=18.17.0"
+    }
+}
