@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "type": "module",
     "description": "Blog publish system for blogger",
-    "private": true,
+    "private": false,
     "keywords": [],
     "sideEffects": false,
     "publishConfig": {

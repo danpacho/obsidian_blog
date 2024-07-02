@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "type": "module",
     "description": "Helper class for blogger",
-    "private": true,
+    "private": false,
     "keywords": [],
     "sideEffects": true,
     "publishConfig": {
