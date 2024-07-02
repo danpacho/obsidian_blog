@@ -16,6 +16,7 @@
     "module": "./dist/index.mjs",
     "types": "./dist/index.d.ts",
     "scripts": {
+        "build:project": "tsup",
         "build": "node dist/build.cjs",
         "publish": "node dist/publish.cjs"
     },
