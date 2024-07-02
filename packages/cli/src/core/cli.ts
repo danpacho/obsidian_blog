@@ -97,7 +97,9 @@ interface CLIConstructor {
      */
     readonly info: CLIInfo
 }
-export class CLI {
+export abstract class CLI<
+    ProgramOption extends Record<string, unknown> = Record<string, unknown>,
+> {
     /**
      * The `Commander` program instance.
      */
@@ -114,8 +116,8 @@ export class CLI {
     /**
      * Gets the program options.
      */
-    protected get programOptions() {
-        return this.$program.opts()
+    protected get programOptions(): ProgramOption {
+        return this.$program.opts<ProgramOption>()
     }
 
     /**
@@ -172,8 +174,7 @@ export class CLI {
         const ArgType extends
             | readonly [`<${string}>` | `[${string}]`]
             | unknown = unknown,
-        OptType extends Record<string, unknown> = Record<string, unknown>,
-    >(command: CLICommand<ArgType, OptType>) {
+    >(command: CLICommand<ArgType, ProgramOption>) {
         const commander =
             command.cmdFlag && command.cmdDescription
                 ? this.$program
@@ -206,7 +207,7 @@ export class CLI {
 
         if (command.cmdAction) {
             commander.action((...args: string[]) => {
-                const options = (args.pop() ?? {}) as OptType
+                const options = (args.pop() ?? {}) as ProgramOption
                 const argEntry = command.argFlag
                     ? Object.fromEntries(
                           (command.argFlag as Array<string>).map(
@@ -233,4 +234,9 @@ export class CLI {
     public parse() {
         this.$program.parse(process.argv)
     }
+
+    /**
+     * Runs the CLI.
+     */
+    public abstract run(): void
 }
