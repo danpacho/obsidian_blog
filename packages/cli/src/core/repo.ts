@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import retry, { Options as RetryOptions } from 'async-retry'
 import { x } from 'tar'
 
 export interface RepoInfo {
@@ -141,20 +142,27 @@ export class GithubRepository {
      */
     public async downloadAndExtractRepo(
         root: string,
-        { username, name, branch, filePath }: RepoInfo
+        { username, name, branch, filePath }: RepoInfo,
+        retryOptions: RetryOptions = {
+            retries: 3,
+        }
     ) {
-        await pipeline(
-            await this.downloadTarStream(
-                `https://codeload.github.com/${username}/${name}/tar.gz/${branch}`
-            ),
-            x({
-                cwd: root,
-                strip: filePath ? filePath.split('/').length + 1 : 1,
-                filter: (p) =>
-                    p.startsWith(
-                        `${name}-${branch.replace(/\//g, '-')}${filePath ? `/${filePath}/` : '/'}`
+        await retry(
+            async () =>
+                await pipeline(
+                    await this.downloadTarStream(
+                        `https://codeload.github.com/${username}/${name}/tar.gz/${branch}`
                     ),
-            })
+                    x({
+                        cwd: root,
+                        strip: filePath ? filePath.split('/').length + 1 : 1,
+                        filter: (p) =>
+                            p.startsWith(
+                                `${name}-${branch.replace(/\//g, '-')}${filePath ? `/${filePath}/` : '/'}`
+                            ),
+                    })
+                ),
+            retryOptions
         )
     }
 }
