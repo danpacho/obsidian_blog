@@ -3,18 +3,18 @@ import { templateInjector } from './template.injector.js'
 
 describe('templateInjector', () => {
     it('should replace template keys with corresponding values', () => {
-        const source = 'Hello, {{name}}! Your age is {{age}}.'
+        const source = 'Hello, "{{name}}"! Your age is "{{age}}".'
         const template = {
             name: 'John',
             age: '30',
         }
-        const expected = 'Hello, John! Your age is 30.'
+        const expected = 'Hello, "John"! Your age is "30".'
         const result = templateInjector(source, template)
         expect(result.replaced).toEqual(expected)
     })
 
     it('should throw an error if template key is not found', () => {
-        const source = 'Hello, {{name}} !'
+        const source = 'Hello, "{{name}}"!'
         const template = {
             age: '30',
         }
