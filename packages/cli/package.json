@@ -11,13 +11,13 @@
         "access": "public"
     },
     "bin": {
-        "create-obsidian-blogger": "./dist/index.js"
+        "create-obsidian-blogger": "./dist/index.cjs"
     },
     "files": [
         "dist"
     ],
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsup",
