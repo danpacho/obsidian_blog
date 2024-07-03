@@ -4,10 +4,7 @@ import validateProjectName from 'validate-npm-package-name'
 export type PkgManagerName = 'npm' | 'yarn' | 'pnpm' | 'bun'
 
 export class PkgManager {
-    private readonly $shell: ShellExecutor
-    public constructor() {
-        this.$shell = new ShellExecutor(100)
-    }
+    public constructor(private readonly $shell: ShellExecutor) {}
 
     public isValidPkg(name: string):
         | {
@@ -57,8 +54,13 @@ export class PkgManager {
     /**
      * @param pkgManager The package manager to use.
      */
-    public async install(pkgManager: PkgManagerName): Promise<void> {
-        const installCommands: string[] = ['install']
+    public async install(
+        pkgManager: PkgManagerName,
+        installOptions?: string
+    ): Promise<void> {
+        const installCommands: string[] = installOptions
+            ? ['install', installOptions]
+            : ['install']
 
         await this.$shell.spawn$(pkgManager, installCommands, {
             stdio: 'inherit',
