@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { BuildSystem, type Node } from '@obsidian_blogger/build_system'
 
 const pathGenerator = (node: Node.FTreeNode, rootPath: string) => {
