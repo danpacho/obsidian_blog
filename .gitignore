@@ -35,6 +35,7 @@ pnpm-debug.log*
 # Build output
 dist/
 .astro/
+.test_cli_gen/
 
 # Editor
 !.vscode/extensions.json
