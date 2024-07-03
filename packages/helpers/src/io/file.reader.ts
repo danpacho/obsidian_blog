@@ -26,6 +26,15 @@ export class FileReader {
         return size
     }
 
+    public async fileExists(path: string): Promise<boolean> {
+        try {
+            await stat(path)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     public async readMedia(
         path: string,
         handler?: PromiseCallbacks<Uint8Array, Error>
