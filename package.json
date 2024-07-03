@@ -14,7 +14,7 @@
     ],
     "type": "module",
     "scripts": {
-        "dev": "turbo run dev",
+        "dev": "turbo run build && turbo run dev",
         "build": "turbo run build",
         "start": "turbo run start",
         "clean": "turbo run clean",
