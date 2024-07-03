@@ -26,7 +26,7 @@
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "node dist/index.cjs",
         "lint:ts": "tsc --noEmit",
-        "install:template": "cd src/template/ts && pnpm install",
+        "install:template": "cd src/template/ts && npm install",
         "build:template": "cd src/template/ts && pnpm build",
         "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish",
         "run:template:js": "cd src/template/js && pnpm run:build && pnpm run:publish"
