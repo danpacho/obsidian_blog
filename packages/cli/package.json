@@ -25,7 +25,11 @@
         "dev": "pnpm build:fast --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "node dist/index.cjs",
-        "lint:ts": "tsc --noEmit"
+        "lint:ts": "tsc --noEmit",
+        "install:template": "cd src/template/ts && pnpm install",
+        "build:template:ts": "cd src/template/ts && pnpm build:project",
+        "build:template:js": "cd src/template/js && pnpm build:project",
+        "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish"
     },
     "devDependencies": {
         "@types/async-retry": "^1.4.8",
