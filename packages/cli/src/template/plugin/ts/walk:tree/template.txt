@@ -1,0 +1,33 @@
+import { type BuilderPlugin } from '@obsidian_blogger/build_system'
+
+// -------------------------------------------------------------- //
+// ------------------------ Tree Plugin ------------------------- //
+// -------------------------------------------------------------- //
+
+interface {{plugin_name}}TreeWalkerConfig {
+    // Add your configuration here
+    option1: string
+    option2: number
+}
+export const {{plugin_name}}TreeWaler = (
+    config: {{plugin_name}}TreeWalkerConfig
+): BuilderPlugin['walk:generated:tree'] => {
+    const { option1, option2 } = config
+
+    return async ({
+        buildPath,
+        io,
+        logger,
+        meta,
+        pathGenerator,
+        disableCorePlugins,
+    }) => {
+        return {
+            name: '{{plugin_name}}TreeWaler',
+            disableCache: false,
+            skipFolderNode: true,
+            exclude: [],
+            walker: async (node, i, children) => {},
+        }
+    }
+}
