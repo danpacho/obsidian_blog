@@ -27,9 +27,9 @@
         "test": "node dist/index.cjs",
         "lint:ts": "tsc --noEmit",
         "install:template": "cd src/template/ts && pnpm install",
-        "build:template:ts": "cd src/template/ts && pnpm build:project",
-        "build:template:js": "cd src/template/js && pnpm build:project",
-        "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish"
+        "build:template": "cd src/template/ts && pnpm build",
+        "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish",
+        "run:template:js": "cd src/template/js && pnpm run:build && pnpm run:publish"
     },
     "devDependencies": {
         "@types/async-retry": "^1.4.8",
