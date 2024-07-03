@@ -112,7 +112,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         this.registerOptions()
 
         this.addCommand({
-            cmdFlag: 'repo',
+            cmdFlag: 'create',
             argFlag: ['<install_path>'],
             cmdDescription: 'Fetch information about a GitHub repository',
             cmdAction: async ({ install_path }) => {
@@ -125,8 +125,8 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             cmdDescription: 'Install a package',
             cmdAction: async () => {
                 this.$logger.info('Installing package...')
-                // const pkgManager = this.$pkgManager.getPkgManager()
-                await this.$pkgManager.install('pnpm')
+                const pkgManager = this.$pkgManager.getPkgManager()
+                await this.$pkgManager.install(pkgManager)
                 this.$logger.success('Package installed successfully')
             },
         })
