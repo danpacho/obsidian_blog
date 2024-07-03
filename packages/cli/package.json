@@ -24,7 +24,7 @@
         "build:fast": "tsup --no-dts",
         "dev": "pnpm build:fast --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
-        "test": "node dist/index.cjs",
+        "test": "chmod +x ./scripts/test_cli_gen.sh && ./scripts/test_cli_gen.sh",
         "lint:ts": "tsc --noEmit",
         "install:template": "cd src/template/ts && npm install",
         "build:template": "cd src/template/ts && pnpm build",
