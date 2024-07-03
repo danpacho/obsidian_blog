@@ -216,6 +216,27 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
 
+  packages/cli/src/template/ts:
+    devDependencies:
+      '@obsidian_blogger/build_system':
+        specifier: latest
+        version: link:../../../../build_system
+      '@obsidian_blogger/helpers':
+        specifier: latest
+        version: link:../../../../helpers
+      '@obsidian_blogger/publish_system':
+        specifier: latest
+        version: link:../../../../publish_system
+      '@types/node':
+        specifier: ^20.11.20
+        version: 20.14.9
+      tsup:
+        specifier: ^8.1.0
+        version: 8.1.0(postcss@8.4.39)(typescript@5.5.3)
+      typescript:
+        specifier: ^5.3.3
+        version: 5.5.3
+
   packages/helpers:
     dependencies:
       boxen:
