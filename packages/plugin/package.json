@@ -18,14 +18,20 @@
     "scripts": {
         "build:script": "tsup --config=script.tsup.config.ts",
         "build": "tsup --config=plugin.tsup.config.ts",
-        "dev": "concurrently \"pnpm build:script\" \"pnpm build --watch\" \"node ./dist/hot_reload.mjs --parallel\""
+        "dev": "concurrently \"pnpm build:script\" \"pnpm build --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx tailwindcss -i ./src/css/main.css -o ./dist/styles.css --watch\""
     },
     "dependencies": {
         "@obsidian_blogger/helpers": "workspace:^",
         "builtin-modules": "^3.3.0",
-        "obsidian": "1.5.7-1"
+        "obsidian": "1.5.7-1",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "tailwindest": "^2.3.2"
     },
     "devDependencies": {
+        "@types/react": "^18.3.3",
+        "@types/react-dom": "^18.3.0",
+        "tailwindcss": "^3.4.1",
         "watcher": "^2.3.0"
     }
 }
