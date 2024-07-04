@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "ESNext",
+        "module": "Node16",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "baseUrl": ".",
+        "paths": {
+            "~/*": ["src/*"]
+        },
+        "esModuleInterop": true,
+        "moduleResolution": "NodeNext",
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "noImplicitOverride": true,
+        "strictNullChecks": true,
+        "jsx": "react-jsx"
+    }
+}
