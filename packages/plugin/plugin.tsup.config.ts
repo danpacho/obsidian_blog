@@ -2,9 +2,10 @@
 import builtins from 'builtin-modules'
 import { defineConfig } from 'tsup'
 
-// const prod = process.argv[2] === 'production'
+const prod = process.argv[2] === 'production'
 
 export default defineConfig((options) => ({
+    name: 'obsidian-blogger',
     entry: {
         main: 'src/index.ts',
     },
@@ -12,12 +13,10 @@ export default defineConfig((options) => ({
         js: '/* Obsidian-blogger plugin */',
     },
     watch: options.watch ? ['src/**/*'] : false,
-    // splitting: false,
     clean: false,
-    // shims: true,
     dts: false,
     outDir: 'dist',
-    name: 'obsidian-blogger',
+    bundle: true,
     external: [
         'obsidian',
         'electron',
@@ -37,7 +36,12 @@ export default defineConfig((options) => ({
     noExternal: [
         '@obsidian_blogger/helpers/queue',
         '@obsidian_blogger/helpers/shell',
+        'tailwindest',
+        'react',
+        'react-dom',
     ],
     format: 'cjs',
-    sourcemap: false,
+    target: 'es2018',
+    sourcemap: prod ? false : 'inline',
+    treeshake: true,
 }))
