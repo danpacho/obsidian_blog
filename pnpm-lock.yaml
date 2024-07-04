@@ -236,7 +236,25 @@ importers:
       obsidian:
         specifier: 1.5.7-1
         version: 1.5.7-1(@codemirror/state@6.4.1)(@codemirror/view@6.28.3)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      tailwindest:
+        specifier: ^2.3.2
+        version: 2.3.2
     devDependencies:
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.3
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.0
+      tailwindcss:
+        specifier: ^3.4.1
+        version: 3.4.4
       watcher:
         specifier: ^2.3.0
         version: 2.3.1
