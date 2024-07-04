@@ -21,7 +21,7 @@ const HotReload = async () => {
 
     lg.log('Hot reload started')
     lg.log(`Building plugin at ${ROOT}`)
-    const cpRes = await io.cpFile({
+    await io.cpFile({
         from: `${process.cwd()}/dist/main.js`,
         to: `${ROOT}/main.js`,
     })
@@ -29,23 +29,24 @@ const HotReload = async () => {
         from: `${process.cwd()}/manifest.json`,
         to: `${ROOT}/manifest.json`,
     })
+    await io.cpFile({
+        from: `${process.cwd()}/dist/styles.css`,
+        to: `${ROOT}/styles.css`,
+    })
 
     await io.writer.write({
         data: '',
         filePath: `${ROOT}/.hotreload`,
     })
 
-    if (!cpRes.success) {
-        lg.error(JSON.stringify(cpRes.error, null, 2))
-        return
-    }
-
     lg.log('Hot reload completed')
 }
 
-const WATCH_ROOT = `${process.cwd()}/src/plugin/main.ts`
+const WATCH_ROOT = `${process.cwd()}/src`
 lg.info(`Plugin build started at ${WATCH_ROOT}`)
-const watcher = new Watcher(WATCH_ROOT)
+const watcher = new Watcher(WATCH_ROOT, {
+    recursive: true,
+})
 
 watcher.on('change', async () => {
     lg.info('Plugin changed')
