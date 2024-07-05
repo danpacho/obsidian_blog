@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/cli",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Post build system cli",
     "author": "danpacho",
     "license": "MIT",
