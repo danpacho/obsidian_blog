@@ -16,6 +16,8 @@ const button = tw.rotary({
         display: 'flex',
         flexDirection: 'flex-row',
         gap: 'gap-2',
+        alignItems: 'items-center',
+        justifyContent: 'justify-center',
 
         borderRadius: 'rounded-lg',
         borderWidth: 'border',
@@ -26,7 +28,7 @@ const button = tw.rotary({
         },
         $active: {
             opacity: 'active:opacity-75',
-            transformScale: 'active:scale-95',
+            transformTranslateY: 'active:translate-y-0.5',
         },
     },
     warn: {
@@ -34,12 +36,12 @@ const button = tw.rotary({
         borderColor: 'border-red-600',
     },
     success: {
-        backgroundColor: 'bg-teal-700',
-        borderColor: 'border-teal-600',
+        backgroundColor: 'bg-green-700',
+        borderColor: 'border-green-600',
     },
     normal: {
         backgroundColor: 'bg-black',
-        borderColor: 'border-gray-600',
+        borderColor: 'border-stone-700',
     },
 })
 
