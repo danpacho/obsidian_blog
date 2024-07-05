@@ -8,11 +8,7 @@ import {
 import { Readable } from 'node:stream'
 import { Queue } from '../queue'
 
-interface CommandRecord {
-    /**
-     * The command that was executed.
-     */
-    command: string
+export interface CommandHistoryRecord extends CommandResult {
     /**
      * The status of the command execution.
      * Can be either 'success' or 'failed'.
@@ -30,27 +26,41 @@ interface CommandRecord {
      * The execution time of the command in milliseconds.
      */
     executionTime: number
+}
+
+export interface CommandResult {
     /**
      * The standard output of the command execution.
      */
-    stdout?: string
+    stdout: string
     /**
      * The standard error of the command execution.
      */
-    stderr?: string
-}
-
-interface CommandResult {
-    result: string
-    error: string
+    stderr: string
+    /**
+     * The command that was executed.
+     */
     command: string
+
+    /**
+     * The error code of the command execution.
+     */
+    error_code?: number
 }
 
+interface CommandHistoryConstructor {
+    /**
+     * The maximum number of commands to store in the history.
+     */
+    historyLimit?: number
+}
 class CommandHistory {
-    private readonly queue = new Queue<CommandRecord>()
+    private readonly queue = new Queue<CommandHistoryRecord>()
 
-    public constructor(limit: number = 100) {
-        this.queue.option.maxSize = limit
+    public constructor({
+        historyLimit: limit = 100,
+    }: CommandHistoryConstructor = {}) {
+        this.queue.updateQueueOption({ maxSize: limit })
     }
 
     public static execTime(from: Date, to: Date): number {
@@ -64,7 +74,7 @@ class CommandHistory {
      * @param status - The status of the command (`success` or `failed`).
      */
     public record(
-        commandRecord: Omit<CommandRecord, 'endTime' | 'executionTime'>
+        commandRecord: Omit<CommandHistoryRecord, 'endTime' | 'executionTime'>
     ): void {
         const currentDate = new Date()
         this.queue.enqueue({
@@ -81,18 +91,23 @@ class CommandHistory {
      * Retrieves the command history as an array.
      * @returns An array of command records.
      */
-    public getHistory(): CommandRecord[] {
+    public getHistory(): Array<CommandHistoryRecord> {
         return this.queue.store
     }
 }
+
+export interface ShellExecutorConstructor extends CommandHistoryConstructor {}
 
 export class ShellExecutor {
     private startTime: number | null = null
     private commandActive: boolean = false
     private history: CommandHistory
 
-    public constructor(historyLimit: number) {
-        this.history = new CommandHistory(historyLimit)
+    public constructor({ historyLimit = 100 }: ShellExecutorConstructor = {}) {
+        if (historyLimit <= 0) {
+            throw new Error('History limit must be greater than 0.')
+        }
+        this.history = new CommandHistory({ historyLimit })
     }
 
     /**
@@ -103,7 +118,7 @@ export class ShellExecutor {
     public exec$(
         command: string,
         log: boolean = false
-    ): Promise<{ stdout: string; stderr: string }> {
+    ): Promise<CommandResult> {
         this.startTime = Date.now()
         this.commandActive = true
 
@@ -111,41 +126,46 @@ export class ShellExecutor {
         if (log) console.log(command)
 
         try {
-            const executionResult = new Promise<{
-                stdout: string
-                stderr: string
-            }>((resolve, reject) => {
-                exec(
-                    command,
-                    (
-                        error: ExecException | null,
-                        stdout: string,
-                        stderr: string
-                    ) => {
-                        this.commandActive = false
-                        const status = error ? 'failed' : 'success'
-                        if (this.startTime) {
-                            this.history.record({
-                                command,
-                                status,
-                                startTime: new Date(this.startTime),
-                                stdout,
-                                stderr,
-                            })
+            const executionResult = new Promise<CommandResult>(
+                (resolve, reject) => {
+                    exec(
+                        command,
+                        (
+                            error: ExecException | null,
+                            stdout: string,
+                            stderr: string
+                        ) => {
+                            this.commandActive = false
+                            const status = error ? 'failed' : 'success'
+                            if (this.startTime) {
+                                this.history.record({
+                                    command,
+                                    status,
+                                    startTime: new Date(this.startTime),
+                                    stdout,
+                                    stderr,
+                                })
+                            }
+                            if (error) {
+                                reject(
+                                    new Error(
+                                        `Command failed: ${error.message}`
+                                    )
+                                )
+                            } else {
+                                resolve({
+                                    stdout: stdout,
+                                    stderr: stderr,
+                                    command,
+                                })
+                            }
                         }
-                        if (error) {
-                            reject(
-                                new Error(`Command failed: ${error.message}`)
-                            )
-                        } else {
-                            resolve({ stdout, stderr })
-                        }
-                    }
-                )
-            })
+                    )
+                }
+            )
             executionResult.then((e) => {
                 // eslint-disable-next-line no-console
-                if (log) console.log(e.stdout)
+                if (log) console.log(e.stderr)
             })
 
             return executionResult
@@ -208,9 +228,14 @@ export class ShellExecutor {
             onClose?: (code: number) => void
         }
     ): Promise<CommandResult> {
+        this.startTime = Date.now()
+        this.commandActive = true
+        const command: string = `${spawnOrigin} ${cmdList.join(' ')}`
+
         return new Promise((resolve, reject) => {
-            let result = ''
-            let error = ''
+            let stdout: string = ''
+            let stderr: string = ''
+            let isError: boolean = false
 
             const childProcess: ChildProcess = spawn(spawnOrigin, cmdList, {
                 ...spawnOptions,
@@ -223,39 +248,51 @@ export class ShellExecutor {
             })
 
             childProcess.stdout?.on('data', (data: Buffer) => {
-                result += data.toString()
+                stdout += data.toString()
                 if (handler?.onData) handler.onData(data)
             })
 
             childProcess.stderr?.on('data', (err: Buffer) => {
-                error += err.toString()
+                stderr += err.toString()
                 if (handler?.onError) handler.onError(err)
             })
 
-            childProcess.on('close', (code: number) => {
-                if (code === 0) {
+            childProcess.on('close', (error_code: number) => {
+                if (error_code === 0) {
                     resolve({
-                        result,
-                        error,
-                        command: `${spawnOrigin} ${cmdList.join(' ')}`,
+                        stdout,
+                        stderr,
+                        command,
                     })
                 } else {
                     reject({
-                        code,
-                        error,
-                        command: `${spawnOrigin} ${cmdList.join(' ')}`,
+                        error_code,
+                        stderr,
+                        command,
                     })
                 }
-                if (handler?.onClose) handler.onClose(code)
+                if (handler?.onClose) handler.onClose(error_code)
             })
 
             childProcess.on('error', (err: Error) => {
+                isError = true
                 reject({
-                    code: -1,
-                    error: err.message,
-                    command: `${spawnOrigin} ${cmdList.join(' ')}`,
+                    error_code: -1,
+                    stderr: err.message,
+                    command,
                 })
             })
+
+            this.commandActive = false
+            if (this.startTime) {
+                this.history.record({
+                    command,
+                    status: isError ? 'failed' : 'success',
+                    startTime: new Date(this.startTime),
+                    stdout,
+                    stderr,
+                })
+            }
         })
     }
 
@@ -300,11 +337,12 @@ export class ShellExecutor {
 
         return elapsedTimeStream
     }
+
     /**
      * Retrieves the command history.
      * @returns An array of command records.
      */
-    public getCommandHistory(): CommandRecord[] {
+    public getCommandHistory(): CommandHistoryRecord[] {
         return this.history.getHistory()
     }
 }
