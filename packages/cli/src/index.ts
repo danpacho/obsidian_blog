@@ -259,9 +259,15 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             optArgParser: (value) => this.parseBooleanArgOptions(value),
         })
         this.addCommand({
-            optFlag: '-t --ts [option]',
+            optFlag: '-t, --ts [option]',
             optDescription: 'Use TypeScript',
             optDefaultValue: true,
+            optArgParser: (value) => this.parseBooleanArgOptions(value),
+        })
+        this.addCommand({
+            optFlag: '-j, --js [option]',
+            optDescription: 'Use JavaScript',
+            optDefaultValue: false,
             optArgParser: (value) => this.parseBooleanArgOptions(value),
         })
     }
@@ -276,7 +282,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         })
 
         this.$repo = new GithubRepository()
-        this.$shell = new ShellExecutor(100)
+        this.$shell = new ShellExecutor({
+            historyLimit: 100,
+        })
         this.$pkgManager = new PkgManager(this.$shell)
 
         // Add global options
