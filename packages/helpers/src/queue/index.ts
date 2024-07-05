@@ -9,6 +9,10 @@ export class Queue<Data> {
         }
     ) {}
 
+    public updateQueueOption(option: { maxSize: number }): void {
+        this.option.maxSize = option.maxSize
+    }
+
     private _front: Node<Data> | null = null
     private _rear: Node<Data> | null = null
 
