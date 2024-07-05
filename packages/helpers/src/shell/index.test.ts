@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ShellExecutor } from './index'
 
-describe('BashExecutor', () => {
+describe('ShellExecutor', () => {
     const executor = new ShellExecutor({
         historyLimit: 100,
     })
@@ -18,7 +18,7 @@ describe('BashExecutor', () => {
         expect(history.length).toBe(2)
         expect(history[1]?.command).toBe(command)
         expect(history[1]?.status).toBe('success')
-        expect(history[1]?.stdout).toBe('Hello, World!\n')
+        expect(history[1]?.stdout).toBe('Hello, World!')
         expect(history[1]?.stderr).toBe('')
     })
 
