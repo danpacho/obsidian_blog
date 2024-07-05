@@ -26,6 +26,7 @@
     },
     "dependencies": {
         "@obsidian_blogger/helpers": "workspace:^",
+        "fast-glob": "^3.3.2",
         "zx": "^8.1.3"
     }
 }
