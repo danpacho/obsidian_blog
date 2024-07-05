@@ -18,7 +18,8 @@
     "scripts": {
         "build:script": "tsup --config=script.tsup.config.ts",
         "build": "tsup --config=plugin.tsup.config.ts",
-        "dev": "concurrently \"pnpm build:script\" \"pnpm build --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx tailwindcss -i ./src/css/main.css -o ./dist/styles.css --watch\""
+        "build:fast": "tsup --config=plugin.tsup.config.ts --no-dts",
+        "dev": "concurrently \"pnpm build:script\" \"pnpm build:fast --sourcemap --clean=false --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx tailwindcss -i ./src/css/main.css -o ./dist/styles.css --watch\""
     },
     "dependencies": {
         "@obsidian_blogger/helpers": "workspace:^",
