@@ -5,6 +5,7 @@ export default defineConfig({
         hot_reload: 'script/index.ts',
     },
     watch: ['script/**/*'],
+    tsconfig: './script/tsconfig.json',
     splitting: false,
     sourcemap: false,
     clean: false,
