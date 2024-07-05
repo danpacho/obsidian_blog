@@ -264,6 +264,9 @@ importers:
       '@obsidian_blogger/helpers':
         specifier: workspace:^
         version: link:../helpers
+      detect-package-manager:
+        specifier: ^3.0.2
+        version: 3.0.2
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
@@ -1647,6 +1650,10 @@ packages:
   detect-libc@2.0.3:
     resolution: {integrity: sha512-bwy0MGW55bG41VqxxypOsdSdGqLwXPI/focwgTYCFMbdUiBAxLg9CFzG08sz2aqzknwiX7Hkl0bQENjg8iLByw==}
     engines: {node: '>=8'}
+
+  detect-package-manager@3.0.2:
+    resolution: {integrity: sha512-8JFjJHutStYrfWwzfretQoyNGoZVW1Fsrp4JO9spa7h/fBfwgTMEIy4/LBzRDGsxwVPHU0q+T9YvwLDJoOApLQ==}
+    engines: {node: '>=12'}
 
   deterministic-object-hash@2.0.2:
     resolution: {integrity: sha512-KxektNH63SrbfUyDiwXqRb1rLwKt33AmMv+5Nhsw1kqZ13SJBRTgZHtGbE+hH3a1mVW1cz+4pqSWVPAtLVXTzQ==}
@@ -5938,6 +5945,10 @@ snapshots:
 
   detect-libc@2.0.3:
     optional: true
+
+  detect-package-manager@3.0.2:
+    dependencies:
+      execa: 5.1.1
 
   deterministic-object-hash@2.0.2:
     dependencies:
