@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { ShellExecutor } from './index'
 
 describe('BashExecutor', () => {
-    const executor = new ShellExecutor(100)
+    const executor = new ShellExecutor({
+        historyLimit: 100,
+    })
     it('should execute a shell command', async () => {
         const result = await executor.exec$('ls')
         expect(result.stdout).toContain('packages')
