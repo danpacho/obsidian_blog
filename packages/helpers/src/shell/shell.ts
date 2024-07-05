@@ -135,8 +135,13 @@ export class ShellExecutor {
                             stdout: string,
                             stderr: string
                         ) => {
+                            stdout = stdout.trim()
+                            if (stdout.endsWith('\n'))
+                                stdout = stdout.slice(0, -1)
+
                             this.commandActive = false
                             const status = error ? 'failed' : 'success'
+
                             if (this.startTime) {
                                 this.history.record({
                                     command,
@@ -240,7 +245,6 @@ export class ShellExecutor {
             const childProcess: ChildProcess = spawn(spawnOrigin, cmdList, {
                 ...spawnOptions,
                 shell: true,
-                cwd: process.cwd(),
                 env: {
                     ...process.env,
                     ...(spawnOptions.env ?? {}),
@@ -259,6 +263,9 @@ export class ShellExecutor {
 
             childProcess.on('close', (error_code: number) => {
                 if (error_code === 0) {
+                    stdout = stdout.trim()
+                    if (stdout.endsWith('\n')) stdout = stdout.slice(0, -1)
+
                     resolve({
                         stdout,
                         stderr,
