@@ -1,5 +1,13 @@
-import { Logger } from '@obsidian_blogger/helpers/logger'
-import { JobProcessor } from '../core/job.manager'
+import { IO } from '@obsidian_blogger/helpers/io'
+import {
+    Logger,
+    type LoggerConstructor,
+} from '@obsidian_blogger/helpers/logger'
+import {
+    ShellExecutor,
+    type ShellExecutorConstructor,
+} from '@obsidian_blogger/helpers/shell'
+import { JobManager, type JobManagerConstructor } from '../core/job.manager'
 
 export interface PublishPluginConstructor {
     /**
@@ -10,6 +18,18 @@ export interface PublishPluginConstructor {
      * The current working directory of the plugin
      */
     cwd: string
+    /**
+     * Shell executor options
+     */
+    shell?: ShellExecutorConstructor
+    /**
+     * Job manager options
+     */
+    jobManager?: JobManagerConstructor
+    /**
+     * Logger options
+     */
+    logger?: LoggerConstructor
 }
 
 /**
@@ -17,13 +37,13 @@ export interface PublishPluginConstructor {
  */
 export abstract class PublishPlugin {
     protected readonly $logger: Logger
-    public readonly $jobManager: JobProcessor
-
+    protected readonly $jobManager: JobManager
+    protected readonly $shell: ShellExecutor
+    protected readonly $io: IO
     /**
      * The name of the plugin.
      */
     public readonly name: string
-
     /**
      * The current working directory of the plugin.
      */
@@ -37,8 +57,10 @@ export abstract class PublishPlugin {
         this.name = options.name
         this.cwd = options.cwd
 
-        this.$logger = new Logger()
-        this.$jobManager = new JobProcessor()
+        this.$io = new IO()
+        this.$logger = new Logger(options.logger)
+        this.$jobManager = new JobManager(options.jobManager)
+        this.$shell = new ShellExecutor(options.shell)
     }
 
     /**
