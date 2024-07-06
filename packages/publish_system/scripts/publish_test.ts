@@ -1,10 +1,5 @@
 import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
-import {
-    BlogBuilder,
-    GithubRepository,
-    PublishConfig,
-    PublishSystem,
-} from '../src/publish.system'
+import { CorePlugins, PublishSystem } from '../src'
 
 const publish = async () => {
     const io = new IO()
@@ -13,22 +8,28 @@ const publish = async () => {
     const BLOG_ROOT =
         '/Users/june/Documents/project/blogger_astro_blog' as const
 
+    const builder = new CorePlugins.BlogBuilder({
+        name: 'blog_builder',
+        cwd: BLOG_ROOT,
+    })
+
+    const github = new CorePlugins.GithubRepository({
+        name: 'github_repository',
+        cwd: BLOG_ROOT,
+        gitPath: (await shell.exec$('which git')).stdout,
+    })
+
+    const vercel = new CorePlugins.VercelDeploy({
+        name: 'vercel_deploy',
+        cwd: BLOG_ROOT,
+    })
+
     const publisher = new PublishSystem({
         name: 'pub_system',
         cwd: BLOG_ROOT,
-        builder: [
-            new BlogBuilder({
-                name: 'blog_builder',
-                cwd: BLOG_ROOT,
-            }),
-        ],
-        repository: [
-            new GithubRepository({
-                name: 'github_repository',
-                cwd: BLOG_ROOT,
-                gitPath: (await shell.exec$('which git')).stdout,
-            }),
-        ],
+        builder: [builder],
+        repository: [github],
+        deployer: [vercel],
     })
 
     const uniqueID = new Date().toISOString().replace(/:/g, '_')
@@ -42,20 +43,22 @@ const publish = async () => {
     })
 
     // Publish
-    const publishResult = await publisher.publish<PublishConfig>({
-        build: {
-            buildScript: ['build'],
-        },
-        save: {
-            branch: 'main',
-            commitPrefix: 'feat',
-            commitMessage: `published by publisher, automatically generated @${new Date()
-                .toISOString()
-                .replace(/:/g, '_')}`,
-        },
-        deploy: {
-            deployScript: ['echo "deploy"'],
-        },
+    const publishResult = await publisher.publish({
+        builder: [
+            {
+                buildScript: ['build'],
+            },
+        ],
+        repository: [
+            {
+                branch: 'main',
+                commitPrefix: 'feat',
+                commitMessage: `published by publisher, automatically generated @${new Date()
+                    .toISOString()
+                    .replace(/:/g, '_')}`,
+            },
+        ],
+        deployer: [{ someConfig: 'someValue' }],
     })
 
     // eslint-disable-next-line no-console
