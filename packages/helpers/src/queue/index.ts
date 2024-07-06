@@ -1,10 +1,11 @@
 import { Node } from './node'
 
+export interface QueueConstructor {
+    maxSize: number
+}
 export class Queue<Data> {
     constructor(
-        public readonly option: {
-            maxSize: number
-        } = {
+        public readonly option: QueueConstructor = {
             maxSize: Infinity,
         }
     ) {}
