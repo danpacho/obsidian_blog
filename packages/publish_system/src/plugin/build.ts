@@ -1,4 +1,3 @@
-import { Logger } from '@obsidian_blogger/helpers/logger'
 import { Promisify } from '@obsidian_blogger/helpers/promisify'
 import {
     CommandResult,
@@ -6,18 +5,25 @@ import {
     ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
 import { PM, detect } from 'detect-package-manager'
+import { PublishPlugin, PublishPluginConstructor } from './publish.plugin'
 
-export interface SiteBuilderPluginConstructor extends ShellExecutorConstructor {
-    cwd: string
-}
-export abstract class SiteBuilderPlugin {
-    protected $logger: Logger
+export interface SiteBuilderPluginConstructor
+    extends PublishPluginConstructor,
+        ShellExecutorConstructor {}
+/**
+ * Abstract class representing a site builder plugin.
+ * Extends the `PublishPlugin` class.
+ */
+export abstract class SiteBuilderPlugin extends PublishPlugin {
     protected $shell: ShellExecutor
-    public readonly cwd: string
-
     public packageManager: PM | null = null
 
+    /**
+     * Creates an instance of the `SiteBuilderPlugin` class.
+     * @param options - The options for the plugin.
+     */
     public constructor(options: SiteBuilderPluginConstructor) {
+        super(options)
         this.$shell = new ShellExecutor(
             options.historyLimit
                 ? {
@@ -25,20 +31,22 @@ export abstract class SiteBuilderPlugin {
                   }
                 : {}
         )
-        this.cwd = options.cwd
-        this.$logger = new Logger()
     }
 
-    public updateLoggerName(name: string): void {
-        this.$logger.updateName(name)
-    }
-
+    /**
+     * Detects the package manager used in the project.
+     * Sets the `packageManager` property accordingly.
+     */
     public async detectPackageManager(): Promise<void> {
         this.packageManager = await detect({
             cwd: this.cwd,
         })
     }
 
+    /**
+     * Detects the package manager runner.
+     * @returns A promise that resolves to the command result of the runner source.
+     */
     private async detectPackageManagerRunner(): Promise<CommandResult> {
         if (!this.packageManager) {
             await this.detectPackageManager()
@@ -50,6 +58,12 @@ export abstract class SiteBuilderPlugin {
         return runnerSource
     }
 
+    /**
+     * Executes package manager commands.
+     * @param commands - An array of commands to execute.
+     * @param options - Additional options for the command execution.
+     * @returns A promise that resolves to the command result.
+     */
     protected async pkg(
         commands: Array<string>,
         options: Parameters<ShellExecutor['spawn$']>[2] = {}
@@ -83,7 +97,12 @@ export abstract class SiteBuilderPlugin {
         }
     }
 
+    /**
+     * Building the site.
+     * @param buildParameters - The parameters for the build.
+     * @returns A promise that resolves to the result of the build.
+     */
     public abstract build(
         buildParameters: Record<string, unknown>
-    ): Promise<void>
+    ): Promise<unknown>
 }
