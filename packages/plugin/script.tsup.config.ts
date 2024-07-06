@@ -2,10 +2,10 @@ import { defineConfig } from 'tsup'
 
 export default defineConfig({
     entry: {
-        hot_reload: 'script/index.ts',
+        hot_reload: 'scripts/index.ts',
     },
     watch: ['script/**/*'],
-    tsconfig: './script/tsconfig.json',
+    tsconfig: './scripts/tsconfig.json',
     splitting: false,
     sourcemap: false,
     clean: false,
