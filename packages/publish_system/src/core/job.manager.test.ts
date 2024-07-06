@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { Job, JobProcessor } from './job.manager'
+import { Job, JobManager } from './job.manager'
 
 describe('JobManager', () => {
-    let jobManager: JobProcessor
+    let jobManager: JobManager
 
     beforeEach(() => {
-        jobManager = new JobProcessor()
+        jobManager = new JobManager()
     })
 
     it('should append jobs and update history', async () => {
