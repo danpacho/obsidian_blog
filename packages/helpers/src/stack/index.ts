@@ -1,8 +1,9 @@
+export interface StackConstructor {
+    maxSize: number
+}
 export class Stack<Data> {
     constructor(
-        public readonly option: {
-            maxSize: number
-        } = {
+        public readonly option: StackConstructor = {
             maxSize: Infinity,
         }
     ) {}
