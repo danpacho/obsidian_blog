@@ -41,7 +41,7 @@ const publish = async () => {
         save: {
             branch: 'main',
             commitPrefix: 'feat',
-            commitMessage: `published by automatically @${new Date()
+            commitMessage: `published by publisher, automatically generated @${new Date()
                 .toISOString()
                 .replace(/:/g, '_')}`,
         },
