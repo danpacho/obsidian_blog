@@ -1,18 +1,26 @@
-import { Logger } from '@obsidian_blogger/helpers/logger'
+import { PublishPlugin, PublishPluginConstructor } from './publish.plugin'
 
-export interface DeployPluginConstructor {}
+export interface DeployPluginConstructor extends PublishPluginConstructor {}
 
-export abstract class DeployPlugin {
-    protected readonly $logger: Logger
-    public constructor(protected readonly options: DeployPluginConstructor) {
-        this.$logger = new Logger()
+/**
+ * Abstract class representing a deploy plugin.
+ * Extends the PublishPlugin class.
+ */
+export abstract class DeployPlugin extends PublishPlugin {
+    /**
+     * Creates a new instance of the DeployPlugin class.
+     * @param options - The options for the deploy plugin.
+     */
+    public constructor(options: DeployPluginConstructor) {
+        super(options)
     }
 
-    public updateLoggerName(name: string): void {
-        this.$logger.updateName(name)
-    }
-
+    /**
+     * Abstract method for deploying the plugin.
+     * @param deployParameters - The parameters for the deployment.
+     * @returns A promise that resolves when the deployment is complete.
+     */
     public abstract deploy(
         deployParameters: Record<string, unknown>
-    ): Promise<void>
+    ): Promise<unknown>
 }
