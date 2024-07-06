@@ -1,4 +1,5 @@
 export * from './queue'
+export * from './stack'
 export * from './io'
 export * from './promisify'
 export * from './logger'
