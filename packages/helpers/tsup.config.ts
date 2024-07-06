@@ -6,6 +6,7 @@ export default defineConfig((options) => ({
         io: 'src/io/index.ts',
         promisify: 'src/promisify/index.ts',
         queue: 'src/queue/index.ts',
+        stack: 'src/stack/index.ts',
         logger: 'src/logger/index.ts',
         shell: 'src/shell/index.ts',
     },
