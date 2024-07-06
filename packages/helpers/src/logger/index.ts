@@ -1,7 +1,7 @@
 import boxen, { Options } from 'boxen'
 import c from 'chalk'
 
-interface LoggerOptions {
+export interface LoggerConstructor {
     name: string
     spaceSize?: number
     tabSize?: number
@@ -15,7 +15,7 @@ interface LogOption {
 
 /* eslint-disable no-console */
 export class Logger {
-    public constructor(options: LoggerOptions | undefined = undefined) {
+    public constructor(options: LoggerConstructor | undefined = undefined) {
         if (options) {
             const { spaceSize, tabSize, name } = options
             this._tabSize = tabSize ?? 4
