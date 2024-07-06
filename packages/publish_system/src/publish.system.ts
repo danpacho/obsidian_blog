@@ -2,143 +2,29 @@ import {
     DeployPlugin,
     PublishPlugin,
     PublishPluginConstructor,
-    type RepositoryConstructor,
     RepositoryPlugin,
     SiteBuilderPlugin,
-    type SiteBuilderPluginConstructor,
 } from './plugin'
 
-export type PublishConfig = {
-    build: {
-        buildScript: Array<string>
-        verbose?: boolean
-    }
-    save: {
-        addPattern?: string
-        commitPrefix: string
-        commitMessage: string
-        branch: string
-    }
-    deploy: {
-        deployScript: Array<string>
-    }
-}
-
-interface GithubRepositoryConstructor extends RepositoryConstructor {}
-export class GithubRepository extends RepositoryPlugin {
-    public constructor(options: GithubRepositoryConstructor) {
-        super(options)
-    }
-
-    public async save({
-        branch,
-        commitMessage,
-        commitPrefix,
-        addPattern,
-    }: PublishConfig['save']) {
-        this.$logger.info(`Saving to ${this.name}`)
-
-        this.$jobManager.registerJobs([
-            {
-                id: 'git-check-remote-origin',
-                execute: async ({ stop }) => {
-                    const remoteOriginExists: boolean =
-                        (await this.$git.remote()).stdout === ''
-
-                    if (remoteOriginExists) {
-                        this.$logger.error('No remote origin found')
-                        stop()
-                    }
-
-                    return remoteOriginExists
-                },
-            },
-            {
-                id: 'git-add',
-                execute: async () => {
-                    if (addPattern) {
-                        return await this.$git.addByPattern(addPattern)
-                    } else {
-                        return await this.$git.addAll()
-                    }
-                },
-            },
-            {
-                id: 'git-commit',
-                execute: async () => {
-                    const commit = `${commitPrefix}: ${commitMessage}`
-                    return await this.$git.commit(commit)
-                },
-                after: async (job) => {
-                    this.$logger.info(`Commit\n${job.jobResponse.stdout}`)
-                },
-            },
-            {
-                id: 'git-push',
-                execute: async () => {
-                    return await this.$git.push(branch)
-                },
-                after: async () => {
-                    this.$logger.success('Pushed to remote successfully')
-                },
-            },
-        ])
-
-        await this.$jobManager.processJobs()
-
-        const history = this.$jobManager.history
-
-        this.$jobManager.clearHistory()
-
-        return history
-    }
-}
-
-export class BlogBuilder extends SiteBuilderPlugin {
-    public constructor(options: SiteBuilderPluginConstructor) {
-        super(options)
-    }
-
-    public async build({
-        buildScript,
-        verbose = false,
-    }: PublishConfig['build']) {
-        this.$jobManager.registerJobs([
-            {
-                id: 'site-detect-package-manager',
-                execute: async () => await this.detectPackageManager(),
-            },
-            {
-                id: 'site-build',
-                execute: async () => {
-                    const buildResult = await this.pkg(buildScript)
-                    if (!buildResult.success) {
-                        this.$logger.error('Build failed')
-                        verbose &&
-                            this.$logger.log(
-                                JSON.stringify(buildResult, null, 2)
-                            )
-                        return buildResult
-                    }
-
-                    this.$logger.success('Build succeeded')
-                    verbose &&
-                        this.$logger.log(
-                            JSON.stringify(buildResult.data.stdout, null, 2)
-                        )
-                    return buildResult
-                },
-            },
-        ])
-
-        await this.$jobManager.processJobs()
-
-        const history = this.$jobManager.history
-
-        this.$jobManager.clearHistory()
-
-        return history
-    }
+/**
+ * Publish command arguments
+ * @property builder - Builder command arguments
+ * @property repository - Repository command arguments
+ * @property deployer - Deployer command arguments
+ */
+export interface PublishCommand {
+    /**
+     * Builder command arguments, should exact match with builder plugins
+     */
+    builder: ReadonlyArray<Record<string, unknown>>
+    /**
+     * Repository command arguments, should exact match with repository plugins
+     */
+    repository: ReadonlyArray<Record<string, unknown>>
+    /**
+     * Deployer command arguments, should exact match with deployer plugins
+     */
+    deployer: ReadonlyArray<Record<string, unknown>>
 }
 
 export interface PublishSystemConstructor extends PublishPluginConstructor {
@@ -173,13 +59,74 @@ export class PublishSystem extends PublishPlugin {
         )
     }
 
-    public async publish<
-        PublishOption extends {
-            build: Record<string, unknown>
-            save: Record<string, unknown>
-            deploy: Record<string, unknown>
-        },
-    >(commands: PublishOption) {
+    /**
+     * Gets the plugin pipeline info.
+     */
+    public getPluginPipelineInfo() {
+        return {
+            builder: this._builder.map((b, i) => ({
+                name: b.name,
+                order: i + 1,
+            })),
+            repository: this._repository.map((r, i) => ({
+                name: r.name,
+                order: i + 1,
+            })),
+            deployer: this._deployer?.map((d, i) => ({
+                name: d.name,
+                order: i + 1,
+            })),
+        }
+    }
+
+    /**
+     * Logs the plugin pipeline info.
+     */
+    public logPluginPipelineInfo(pluginCommands?: PublishCommand) {
+        const pipelineInfo = this.getPluginPipelineInfo()
+
+        this.$logger.info('Plugin pipeline info:')
+
+        const pipelineEntries = Object.entries(pipelineInfo)
+        pipelineEntries.forEach(([key, value]) => {
+            this.$logger.info(`${key.toLocaleUpperCase()}:`)
+            value?.forEach((v, i) => {
+                this.$logger.log(`#${v.order}, ${v.name}`)
+                if (key) {
+                    const pluginCommand =
+                        pluginCommands?.[key as keyof PublishCommand]
+                    this.$logger.log(
+                        `command, ${JSON.stringify(
+                            pluginCommand?.[i],
+                            null,
+                            4
+                        )}`
+                    )
+                }
+            })
+        })
+
+        this.$logger.log('\n')
+    }
+
+    /**
+     * Publish site
+     * @param publishCommand Publish commands arguments
+     */
+    public async publish<Command extends PublishCommand = PublishCommand>(
+        publishCommand: Command
+    ) {
+        const localDate = new Date().toLocaleString()
+        this.$logger.box(
+            `${this.$logger.c.blueBright(`Publish system started - ${localDate}`)}`,
+            {
+                prefix: false,
+                borderStyle: 'round',
+                padding: 0.75,
+            }
+        )
+        this.logPluginPipelineInfo(publishCommand)
+
         this.$jobManager.registerJobs([
             {
                 id: 'build',
@@ -190,11 +137,16 @@ export class PublishSystem extends PublishPlugin {
                     const buildResponse = this._builder.reduce<
                         Promise<Array<unknown>>
                     >(
-                        async (acc, builder) => {
+                        async (acc, builder, i) => {
+                            const command = publishCommand.builder[i]
+                            if (!command) {
+                                this.$logger.error(
+                                    `No build command found for builder ${builder.name}`
+                                )
+                                return acc
+                            }
                             const awaitedAcc = await acc
-                            const buildResponse = await builder.build(
-                                commands.build
-                            )
+                            const buildResponse = await builder.build(command)
                             awaitedAcc.push(buildResponse)
                             return awaitedAcc
                         },
@@ -215,11 +167,16 @@ export class PublishSystem extends PublishPlugin {
                     const saveResponse = this._repository.reduce<
                         Promise<Array<unknown>>
                     >(
-                        async (acc, repository) => {
+                        async (acc, repository, i) => {
+                            const command = publishCommand.repository[i]
+                            if (!command) {
+                                this.$logger.error(
+                                    `No save command found for repository ${repository.name}`
+                                )
+                                return acc
+                            }
                             const awaitedAcc = await acc
-                            const saveResponse = await repository.save(
-                                commands.save
-                            )
+                            const saveResponse = await repository.save(command)
                             awaitedAcc.push(saveResponse)
                             return awaitedAcc
                         },
@@ -245,11 +202,17 @@ export class PublishSystem extends PublishPlugin {
                     const deployResponse = this._deployer.reduce<
                         Promise<Array<unknown>>
                     >(
-                        async (acc, deployer) => {
+                        async (acc, deployer, i) => {
+                            const command = publishCommand.deployer[i]
+                            if (!command) {
+                                this.$logger.error(
+                                    `No deploy command found for deployer ${deployer.name}`
+                                )
+                                return acc
+                            }
                             const awaitedAcc = await acc
-                            const deployResponse = await deployer.deploy(
-                                commands.deploy
-                            )
+                            const deployResponse =
+                                await deployer.deploy(command)
                             awaitedAcc.push(deployResponse)
                             return awaitedAcc
                         },
@@ -266,16 +229,19 @@ export class PublishSystem extends PublishPlugin {
         const success = await this.$jobManager.processJobs()
 
         if (success) {
-            this.$logger.success(' -- Publish succeeded 🚀 --')
+            this.$logger.success('Publish succeeded 🚀')
         } else {
-            this.$logger.error(' -- Publish failed 🚨 -- ')
+            this.$logger.error('Publish failed 🚨')
         }
 
         const history = this.$jobManager.history
 
         this.$jobManager.clearHistory()
 
-        return history
+        return {
+            history,
+            commands: publishCommand,
+        }
     }
 
     public addPlugin(plugin: {
