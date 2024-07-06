@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Queue } from '@obsidian_blogger/helpers/queue'
-import { Stack } from '@obsidian_blogger/helpers/stack'
+import { Queue, QueueConstructor } from '@obsidian_blogger/helpers/queue'
+import { Stack, StackConstructor } from '@obsidian_blogger/helpers/stack'
 
 /**
  * Represents a job in the job manager.
@@ -102,12 +102,33 @@ type TypedJob<JobTuple> = JobTuple extends readonly [
 
 type JobRegistrationShape = JobRegistration<any, any>
 
+export interface JobManagerConstructor {
+    history?: StackConstructor
+    jobQueue?: QueueConstructor
+}
 /**
- * Represents a job processor that manages the execution of jobs.
+ * Represents a job manager that manages the execution of jobs.
  */
-export class JobProcessor {
-    private readonly _history: Stack<Job> = new Stack()
-    private readonly _jobQueue: Queue<JobRegistrationShape> = new Queue()
+export class JobManager {
+    private readonly _history: Stack<Job>
+    private readonly _jobQueue: Queue<JobRegistrationShape>
+
+    private _jobCount: number = 0
+    private _jobRemaining: number = 0
+
+    public constructor(
+        public readonly options: JobManagerConstructor = {
+            history: {
+                maxSize: 1000,
+            },
+            jobQueue: {
+                maxSize: 1000,
+            },
+        }
+    ) {
+        this._history = new Stack(options.history)
+        this._jobQueue = new Queue(options.jobQueue)
+    }
 
     /**
      * Gets the current status of the job processor.
@@ -116,9 +137,6 @@ export class JobProcessor {
     public get status(): 'idle' | 'processing' {
         return this._jobCount === this._jobRemaining ? 'idle' : 'processing'
     }
-
-    private _jobCount: number = 0
-    private _jobRemaining: number = 0
 
     /**
      * Gets information about the current job processing.
