@@ -16,25 +16,33 @@ const publish = async () => {
     const publisher = new PublishSystem({
         name: 'pub_system',
         cwd: BLOG_ROOT,
-        builder: new BlogBuilder({
-            cwd: BLOG_ROOT,
-        }),
-        repository: new GithubRepository({
-            cwd: BLOG_ROOT,
-            gitPath: (await shell.exec$('which git')).stdout,
-        }),
+        builder: [
+            new BlogBuilder({
+                name: 'blog_builder',
+                cwd: BLOG_ROOT,
+            }),
+        ],
+        repository: [
+            new GithubRepository({
+                name: 'github_repository',
+                cwd: BLOG_ROOT,
+                gitPath: (await shell.exec$('which git')).stdout,
+            }),
+        ],
     })
+
+    const uniqueID = new Date().toISOString().replace(/:/g, '_')
 
     // Assume that file is updated
     await io.writer.write({
         filePath: `${BLOG_ROOT}/ci_test/${new Date()
             .toISOString()
             .replace(/:/g, '_')}.txt`,
-        data: `test generated @${new Date().toLocaleDateString()}`,
+        data: `test generated @${uniqueID}`,
     })
 
     // Publish
-    await publisher.publish<PublishConfig>({
+    const publishResult = await publisher.publish<PublishConfig>({
         build: {
             buildScript: ['build'],
         },
@@ -48,6 +56,14 @@ const publish = async () => {
         deploy: {
             deployScript: ['echo "deploy"'],
         },
+    })
+
+    // eslint-disable-next-line no-console
+    console.log(publishResult)
+
+    await io.writer.write({
+        data: JSON.stringify(publishResult, null, 2),
+        filePath: `${BLOG_ROOT}/ci_test/${uniqueID}_pub_result.json`,
     })
 }
 
