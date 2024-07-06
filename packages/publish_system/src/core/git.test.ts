@@ -1,11 +1,19 @@
+import { platform } from 'node:os'
+import { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 import { describe, expect, it } from 'vitest'
 import { GitShell } from './git'
 
-describe('GitShell', () => {
+describe('GitShell', async () => {
+    const shell = new ShellExecutor({ historyLimit: 10 })
+    const gitPath = (
+        await shell.exec$(
+            ['win32'].includes(platform()) ? 'where git' : 'which git'
+        )
+    ).stdout
     it('should return the status', async () => {
         const git = new GitShell({
             historyLimit: 100,
-            gitPath: '/usr/bin/git',
+            gitPath: gitPath,
             cwd: process.cwd(),
         })
 
@@ -16,7 +24,7 @@ describe('GitShell', () => {
     it('should add all files', async () => {
         const git = new GitShell({
             historyLimit: 100,
-            gitPath: '/usr/bin/git',
+            gitPath: gitPath,
             cwd: process.cwd(),
         })
 
