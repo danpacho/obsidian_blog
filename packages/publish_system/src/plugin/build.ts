@@ -15,7 +15,6 @@ export interface SiteBuilderPluginConstructor
  * Extends the `PublishPlugin` class.
  */
 export abstract class SiteBuilderPlugin extends PublishPlugin {
-    protected $shell: ShellExecutor
     public packageManager: PM | null = null
 
     /**
@@ -24,13 +23,6 @@ export abstract class SiteBuilderPlugin extends PublishPlugin {
      */
     public constructor(options: SiteBuilderPluginConstructor) {
         super(options)
-        this.$shell = new ShellExecutor(
-            options.historyLimit
-                ? {
-                      historyLimit: options.historyLimit,
-                  }
-                : {}
-        )
     }
 
     /**
