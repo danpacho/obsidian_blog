@@ -63,11 +63,11 @@ export class BuildSystem {
     private readonly $mdProcessor: MarkdownProcessor
 
     private readonly treeBuildPluginManager: PluginManager<
-        BuilderPlugin['build:origin:tree'],
+        BuilderPlugin['build:tree'],
         FileTreePluginConfig
     > = new PluginManager()
     private readonly generatedTreeWalkerPluginManager: PluginManager<
-        BuilderPlugin['walk:generated:tree'],
+        BuilderPlugin['walk:tree'],
         FileTreePluginConfig
     > = new PluginManager()
     private readonly contentsModifierPluginManger: PluginManager<
@@ -86,8 +86,8 @@ export class BuildSystem {
     }
 
     public use({
-        'build:origin:tree': treeBuildPluginSet,
-        'walk:generated:tree': generatedTreeWalkerPluginSet,
+        'build:tree': treeBuildPluginSet,
+        'walk:tree': generatedTreeWalkerPluginSet,
         'build:contents': contentsBuildPluginSet,
     }: PluginAdapter): BuildSystem {
         treeBuildPluginSet &&

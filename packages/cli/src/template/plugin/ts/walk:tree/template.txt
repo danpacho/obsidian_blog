@@ -11,7 +11,7 @@ interface {{plugin_name}}TreeWalkerConfig {
 }
 export const {{plugin_name}}TreeWaler = (
     config: {{plugin_name}}TreeWalkerConfig
-): BuilderPlugin['walk:generated:tree'] => {
+): BuilderPlugin['walk:tree'] => {
     const { option1, option2 } = config
 
     return async ({

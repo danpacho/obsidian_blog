@@ -29,7 +29,7 @@ export interface CorePluginsConfig {
 }
 export const CorePlugins = (coreConfig?: CorePluginsConfig) => {
     return {
-        'walk:generated:tree': [
+        'walk:tree': [
             MetaValidator(coreConfig?.metaValidator),
             MetaBuilder(coreConfig?.metaBuilder),
             StaticParamBuilder(coreConfig?.staticParamBuilder),

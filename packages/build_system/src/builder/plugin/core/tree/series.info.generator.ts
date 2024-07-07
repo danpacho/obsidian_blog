@@ -13,7 +13,7 @@ export const SeriesInfoGenerator =
         config: SeriesInfoGeneratorConfig = {
             ...defaultContentMetaBuilderOptions,
         }
-    ): BuilderPlugin['walk:generated:tree'] =>
+    ): BuilderPlugin['walk:tree'] =>
     async ({ meta, logger }) => {
         const engine = meta(config.contentMeta)
         const getPostCollectionStore = async ({

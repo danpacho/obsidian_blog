@@ -76,12 +76,12 @@ export type BuilderPlugin = {
      * @description `Phase1`: Build the origin tree
      * @description This phase is responsible for building the origin tree
      */
-    'build:origin:tree': TreeWalkingPlugin
+    'build:tree': TreeWalkingPlugin
     /**
      * @description `Phase2`: Walk the generated tree
      * @description This phase is responsible for walking the generated tree
      */
-    'walk:generated:tree': TreeWalkingPlugin
+    'walk:tree': TreeWalkingPlugin
     /**
      * @description `Phase3`: Build the contents
      * @description This phase is responsible for building and modifying the contents

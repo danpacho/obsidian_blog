@@ -10,7 +10,7 @@ import type {
 } from './shared/meta/interface'
 
 type FTreeNode = Parameters<
-    Awaited<ReturnType<BuilderPlugin['walk:generated:tree']>>['walker']
+    Awaited<ReturnType<BuilderPlugin['walk:tree']>>['walker']
 >[0]
 
 export interface PaginationBuilderConfig extends ContentMetaGeneratorOptions {}
@@ -18,7 +18,7 @@ export const PaginationBuilder = (
     option: PaginationBuilderConfig = {
         ...defaultContentMetaBuilderOptions,
     }
-): BuilderPlugin['walk:generated:tree'] => {
+): BuilderPlugin['walk:tree'] => {
     return async ({ meta, logger }) => {
         const metaExtractor = meta(option.contentMeta)
 

@@ -18,7 +18,7 @@ export const CategoryDescriptionGenerator =
         config: CategoryDescriptionGeneratorConfig = {
             ...defaultCategoryDescriptionBuilderOptions,
         }
-    ): BuilderPlugin['walk:generated:tree'] =>
+    ): BuilderPlugin['walk:tree'] =>
     async ({ meta, io, logger, buildPath }) => {
         const engine = meta(config.categoryMeta)
 

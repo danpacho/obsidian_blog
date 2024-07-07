@@ -7,7 +7,7 @@ import {
 export type MetaValidatorConfig = ContentMetaGeneratorOptions
 export const MetaValidator = (
     option: MetaValidatorConfig = { ...defaultContentMetaBuilderOptions }
-): BuilderPlugin['build:origin:tree'] => {
+): BuilderPlugin['build:tree'] => {
     return async ({ meta, logger }) => {
         const { contentMeta } = option
 

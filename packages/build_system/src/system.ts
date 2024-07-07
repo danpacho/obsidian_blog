@@ -51,7 +51,7 @@ export class System {
      * const system = new BuildSystem(...)
      * system.use({
      *      "walk:generate:tree": [plugin0],
-     *      "build:origin:tree": [plugin1, plugin2],
+     *      "build:tree": [plugin1, plugin2],
      *      "build:contents": [plugin3, plugin4],
      * })
      * ```

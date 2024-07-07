@@ -8,7 +8,7 @@ import {
 export type MetaBuilderConfig = ContentMetaGeneratorOptions
 export const MetaBuilder = (
     option: MetaBuilderConfig = defaultContentMetaBuilderOptions
-): BuilderPlugin['build:origin:tree'] => {
+): BuilderPlugin['build:tree'] => {
     return async ({ meta, logger }) => {
         const { contentMeta } = option
         const paramAnalyzer = new ParamAnalyzer(option.paramAnalyzer)

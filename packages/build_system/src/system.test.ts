@@ -124,8 +124,8 @@ describe('BuildSystem', async () => {
 
     it('should use plugin', () => {
         system.use({
-            'build:origin:tree': [],
-            'walk:generated:tree': [],
+            'build:tree': [],
+            'walk:tree': [],
             'build:contents': [],
         })
     })
