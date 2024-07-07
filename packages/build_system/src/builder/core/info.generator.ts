@@ -1,15 +1,15 @@
 import { type UUID, createHash } from 'crypto'
-import { FileReader, type IO as IOManager } from '@obsidian_blogger/helpers'
-import { type FTreeNode } from '../../parser/node'
-import { PluginCommonConstructor } from '../plugin'
-import { type BuildInformation } from './store'
+import { FileReader, type IO } from '@obsidian_blogger/helpers'
+import type { FTreeNode } from '../../parser/node'
+import type { BuildPluginCoreDependencies } from '../plugin/build.plugin'
+import type { BuildInformation } from './store'
 /**
  * @description A unique identifier for a node
  */
 export type NodeId = UUID
 
 export interface BuildInfoGeneratorConstructor {
-    readonly io: IOManager
+    readonly io: IO
     readonly buildPath: {
         contents: string
         assets: string
@@ -17,11 +17,11 @@ export interface BuildInfoGeneratorConstructor {
     readonly pathGenerator: {
         assets: (
             node: FTreeNode,
-            config: PluginCommonConstructor
+            buildTools: BuildPluginCoreDependencies
         ) => Promise<string>
         contents: (
             node: FTreeNode,
-            config: PluginCommonConstructor
+            buildTools: BuildPluginCoreDependencies
         ) => Promise<string>
     }
 }
@@ -35,6 +35,7 @@ export class BuildInfoGenerator {
     }
 
     private buildPathStore = new Map<string, number>()
+
     private getBuildPath(path: string): string {
         const name = FileReader.getPureFileName(path)
         const extension = FileReader.getExtension(path)
@@ -49,6 +50,7 @@ export class BuildInfoGenerator {
         this.buildPathStore.set(path, updatedCount)
         return `${name}_${updatedCount}.${extension}`
     }
+
     private getSafeRoutePath(path: string): string {
         const safePath = this.getBuildPath(
             `/${path.split('/').filter(Boolean).join('/')}`
@@ -81,7 +83,7 @@ export class BuildInfoGenerator {
      */
     public async generateContentBuildInfo(
         contentNode: FTreeNode,
-        config: PluginCommonConstructor
+        buildTools: BuildPluginCoreDependencies
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const originPath = contentNode.absolutePath
 
@@ -93,7 +95,7 @@ export class BuildInfoGenerator {
 
         const generatedRoute = await this.options.pathGenerator.contents(
             contentNode,
-            config
+            buildTools
         )
 
         const buildPath = this.getSafeRoutePath(
@@ -117,7 +119,7 @@ export class BuildInfoGenerator {
      */
     public async generateAssetBuildInfo(
         assetNode: FTreeNode,
-        config: PluginCommonConstructor,
+        buildTools: BuildPluginCoreDependencies,
         strict: boolean = false
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const ASSET_PREFIX = {
@@ -147,7 +149,7 @@ export class BuildInfoGenerator {
 
             const generatedRoute = await this.options.pathGenerator.assets(
                 assetNode,
-                config
+                buildTools
             )
 
             const buildPath = this.getSafeRoutePath(
@@ -172,7 +174,7 @@ export class BuildInfoGenerator {
 
         const generatedRoute = await this.options.pathGenerator.assets(
             assetNode,
-            config
+            buildTools
         )
 
         const buildPath = this.getSafeRoutePath(
