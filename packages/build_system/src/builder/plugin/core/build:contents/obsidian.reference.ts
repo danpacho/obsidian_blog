@@ -4,19 +4,22 @@ import remarkHtml from 'remark-html'
 import type { Plugin } from 'unified'
 import type { Literal, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
-import type { BuilderPlugin } from '../..'
 import { AudioFileNode, ImageFileNode } from '../../../../parser/node'
+import { BuildStoreList } from '../../../core'
+import {
+    BuildContentsDependencies,
+    BuildContentsPlugin,
+    BuildContentsPluginConfig,
+} from '../../build.contents.plugin'
 
 const RemarkObsidianReferencePlugin: Plugin<
-    [
-        {
-            imageReference: Array<{
-                origin: string
-                build: string
-            }>
-            io: Parameters<BuilderPlugin['build:contents']>[0]['io']
-        },
-    ]
+    Array<{
+        imageReference: Array<{
+            origin: string
+            build: string
+        }>
+        io: BuildContentsDependencies['io']
+    }>
 > = (options) => {
     const { io, imageReference } = options
 
@@ -92,58 +95,69 @@ const RemarkObsidianReferencePlugin: Plugin<
     }
 }
 
-export const ObsidianReference =
-    (): BuilderPlugin['build:contents'] =>
-    async ({ io, processor }) => {
+export class ObsidianReferencePlugin extends BuildContentsPlugin {
+    public getConfig(): BuildContentsPluginConfig {
         return {
             name: 'ObsidianReference',
-            modifier: async ({ buildStore }) => {
-                const assetReferencesUUIDList = buildStore
-                    .filter(
-                        ({ file_type }) =>
-                            file_type === 'IMAGE_FILE' ||
-                            file_type === 'AUDIO_FILE'
-                    )
-                    .map((report) => ({
-                        build: report.build_path.build,
-                        origin: report.build_path.origin,
-                    }))
-
-                const referenceUpdateTextFileList = buildStore.filter(
-                    ({ file_type }) => file_type === 'TEXT_FILE'
-                )
-
-                const referenceUpdatedList =
-                    await referenceUpdateTextFileList.reduce<
-                        Promise<
-                            {
-                                content: string
-                                writePath: string
-                            }[]
-                        >
-                    >(async (acc, textFile) => {
-                        const awaitedAcc = await acc
-                        const textFileContent = await io.reader.readFile(
-                            textFile.build_path.build
-                        )
-                        if (textFileContent.success) {
-                            const updatedVFile = await processor
-                                .remark()
-                                .use(RemarkObsidianReferencePlugin, {
-                                    imageReference: assetReferencesUUIDList,
-                                    io,
-                                })
-                                .process(textFileContent.data)
-
-                            awaitedAcc.push({
-                                content: updatedVFile.toString(),
-                                writePath: textFile.build_path.build,
-                            })
-                        }
-                        return acc
-                    }, Promise.resolve([]))
-
-                return referenceUpdatedList
-            },
         }
     }
+
+    public async buildContents(modifierConstructor: {
+        buildStore: BuildStoreList
+    }): Promise<
+        Array<{
+            newContent: string
+            writePath: string
+        }>
+    > {
+        const assetReferencesUUIDList = modifierConstructor.buildStore
+            .filter(
+                ({ file_type }) =>
+                    file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
+            )
+            .map((report) => ({
+                build: report.build_path.build,
+                origin: report.build_path.origin,
+            }))
+
+        const referenceUpdateTextFileList =
+            modifierConstructor.buildStore.filter(
+                ({ file_type }) => file_type === 'TEXT_FILE'
+            )
+
+        const referenceUpdatedList = await referenceUpdateTextFileList.reduce<
+            Promise<
+                {
+                    newContent: string
+                    writePath: string
+                }[]
+            >
+        >(
+            async (acc, textFile) => {
+                const awaitedAcc = await acc
+                const textFileContent = await this.$io.reader.readFile(
+                    textFile.build_path.build
+                )
+                if (textFileContent.success) {
+                    const updatedVFile = await this.$processor.remark
+                        .use(RemarkObsidianReferencePlugin, {
+                            imageReference: assetReferencesUUIDList,
+                            io: this.$io,
+                        })
+                        .process(textFileContent.data)
+
+                    awaitedAcc.push({
+                        newContent: updatedVFile.toString(),
+                        writePath: textFile.build_path.build,
+                    })
+                }
+                return awaitedAcc
+            },
+            Promise.resolve([]) as Promise<
+                { newContent: string; writePath: string }[]
+            >
+        )
+
+        return referenceUpdatedList
+    }
+}

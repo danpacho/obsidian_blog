@@ -1,4 +1,4 @@
 export * from './interface'
-export * from './adapter'
-export * from './pluggable'
-export * from './plugin.manager'
+export * from './build.tree.plugin'
+export * from './build.contents.plugin'
+export * from './walk.tree.plugin'

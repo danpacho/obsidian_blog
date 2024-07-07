@@ -1,7 +1,7 @@
 import type { Stateful } from '@obsidian_blogger/helpers'
 import type { FTreeNode } from '../../parser/node'
 import type { NodeId } from './info.generator'
-import { BuildInformation, type BuildStore } from './store'
+import type { BuildInformation, BuildStore } from './store'
 
 export interface BuildCacheManagerConstructor {
     store: BuildStore

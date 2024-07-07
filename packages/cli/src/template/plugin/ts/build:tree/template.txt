@@ -11,7 +11,7 @@ interface {{plugin_name}}TreeBuilderPluginConfig {
 }
 export const {{plugin_name}}TreeBuilder = (
     config: {{plugin_name}}TreeBuilderPluginConfig
-): BuilderPlugin['build:origin:tree'] => {
+): BuilderPlugin['build:tree'] => {
     const { option1, option2 } = config
 
     return async ({

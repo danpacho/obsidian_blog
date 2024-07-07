@@ -1,10 +1,8 @@
-import type { BuilderPlugin } from '../../../..'
+import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
 import { prettyPrint } from '../../../../../../utils/logger'
 import type { DefaultCategoryMeta, DefaultContentMeta } from './interface'
 
-export type MetaParser = Parameters<
-    Parameters<BuilderPlugin['build:contents']>[0]['meta']
->[0]['parser']
+export type MetaParser = (meta: unknown) => PolymorphicMeta
 
 const Is = {
     Object: (input: unknown): input is Record<string, unknown> =>

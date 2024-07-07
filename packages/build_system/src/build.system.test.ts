@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { BuildSystem } from './build.system'
 import { FTreeNode } from './parser/node'
-import { System } from './system'
 
 describe('BuildSystem', async () => {
     const pathGen = (node: FTreeNode, rootPath: string) => {
@@ -77,7 +77,7 @@ describe('BuildSystem', async () => {
         })
     }
 
-    const system = new System({
+    const system = new BuildSystem({
         builder: {
             buildPath: {
                 contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
@@ -124,8 +124,8 @@ describe('BuildSystem', async () => {
 
     it('should use plugin', () => {
         system.use({
-            'build:origin:tree': [],
-            'walk:generated:tree': [],
+            'build:tree': [],
+            'walk:tree': [],
             'build:contents': [],
         })
     })

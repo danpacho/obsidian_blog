@@ -1,12 +1,12 @@
-import { IO as IOManager } from '@obsidian_blogger/helpers'
+import type { IO } from '@obsidian_blogger/helpers'
 import type { Logger } from '@obsidian_blogger/helpers'
 import type { FTreeNode, FolderNode } from '../../parser/node'
 import type { FileTreeParser } from '../../parser/parser'
-import { BuildInformation, BuildStoreList } from './store'
+import type { BuildInformation, BuildStoreList } from './store'
 
 interface BuildResultLoggerConstructor {
     readonly parser: FileTreeParser
-    readonly io: IOManager
+    readonly io: IO
     readonly logger: Logger
     readonly buildPath: {
         contents: string
@@ -20,7 +20,7 @@ export class BuildResultLogger {
     private get $io() {
         return this.option.io
     }
-    private get $m() {
+    private get $logger() {
         return this.option.logger
     }
 
@@ -46,12 +46,12 @@ export class BuildResultLogger {
         switch (category) {
             case 'FOLDER': {
                 const folderLeaf = isLastElement ? ` └─›` : ` ├─›`
-                const folderLog = `${LEAF.repeat(logDepth)}${folderLeaf} ${this.$m.c.dim(`${fileName}`)}`
+                const folderLog = `${LEAF.repeat(logDepth)}${folderLeaf} ${this.$logger.c.dim(`${fileName}`)}`
                 return folderLog
             }
             default: {
                 const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
-                const fileLog = `${LEAF.repeat(logDepth)}${fileLeaf} ${this.$m.c.white(fileName)}`
+                const fileLog = `${LEAF.repeat(logDepth)}${fileLeaf} ${this.$logger.c.white(fileName)}`
                 return fileLog
             }
         }
@@ -59,11 +59,14 @@ export class BuildResultLogger {
 
     private writeBuildReportHeader(): void {
         const localDate = new Date().toLocaleString()
-        this.$m.box(`${this.$m.c.green('Build Report')} - ${localDate}`, {
-            prefix: false,
-            borderStyle: 'round',
-            padding: 0.75,
-        })
+        this.$logger.box(
+            `${this.$logger.c.green('Build Report')} - ${localDate}`,
+            {
+                prefix: false,
+                borderStyle: 'round',
+                padding: 0.75,
+            }
+        )
     }
 
     private async writeASTLog(
@@ -75,12 +78,12 @@ export class BuildResultLogger {
 
         const ast = await this.getAST()
         if (ast === undefined) {
-            this.$m.log(`Failed to write AST log for ${targetRootDirPath}`)
+            this.$logger.log(`Failed to write AST log for ${targetRootDirPath}`)
             return
         }
 
-        this.$m.log(
-            this.$m.c.green(` ● ${ast.fileName} » ${targetRootDirPath}`),
+        this.$logger.log(
+            this.$logger.c.green(` ● ${ast.fileName} » ${targetRootDirPath}`),
             {
                 prefix: false,
             }
@@ -108,7 +111,7 @@ export class BuildResultLogger {
             const removed: Array<string> = buildReportList
                 .filter((report) => report.build_state === 'REMOVED')
                 .map((report) => {
-                    return `${this.$m.c.bgRed.ansi256(0).underline(' - removed ')} » ${this.$m.c.red(report.build_path.origin)}`
+                    return `${this.$logger.c.bgRed.ansi256(0).underline(' - removed ')} » ${this.$logger.c.red(report.build_path.origin)}`
                 })
             buildLog.push(...removed)
         }
@@ -122,26 +125,25 @@ export class BuildResultLogger {
                 state?: BuildInformation['build_state']
             ): string => {
                 if (!state) return ''
-                const lowerCaseState = this.$m.c
+                const lowerCaseState = this.$logger.c
                     .ansi256(0)
                     .underline(` ${state.toLowerCase()} `)
                 let buildState = ''
-                // const referenceText = ` » ${this.$m.c.dim(node.absolutePath)}`
                 switch (state) {
                     case 'ADDED': {
-                        buildState = `${this.$m.c.bgGreen(lowerCaseState)}`
+                        buildState = `${this.$logger.c.bgGreen(lowerCaseState)}`
                         break
                     }
                     case 'CACHED': {
-                        buildState = `${this.$m.c.bgYellowBright(lowerCaseState)}`
+                        buildState = `${this.$logger.c.bgYellowBright(lowerCaseState)}`
                         break
                     }
                     case 'UPDATED': {
-                        buildState = `${this.$m.c.bgBlueBright(lowerCaseState)}`
+                        buildState = `${this.$logger.c.bgBlueBright(lowerCaseState)}`
                         break
                     }
                     case 'REMOVED': {
-                        buildState = this.$m.c.bgRed(lowerCaseState)
+                        buildState = this.$logger.c.bgRed(lowerCaseState)
                         break
                     }
                 }
@@ -157,7 +159,7 @@ export class BuildResultLogger {
             buildLog.push(log)
         })
 
-        this.$m.log(buildLog.join('\n'), {
+        this.$logger.log(buildLog.join('\n'), {
             prefix: false,
         })
     }

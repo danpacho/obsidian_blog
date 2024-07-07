@@ -1,44 +1,69 @@
 import type { PluginAdapter } from '..'
-import { ObsidianReference } from './contents/obsidian.reference'
+import { ObsidianReferencePlugin } from './build:contents/obsidian.reference'
 import {
-    CategoryDescriptionGenerator,
     type CategoryDescriptionGeneratorConfig,
-} from './tree/category.description.generator'
-import { MetaBuilder, type MetaBuilderConfig } from './tree/meta.builder'
-import { MetaValidator, MetaValidatorConfig } from './tree/meta.validator'
+    CategoryDescriptionGeneratorPlugin,
+} from './walk:tree/category.description.generator'
 import {
-    PaginationBuilder,
+    type MetaBuilderConfig,
+    MetaBuilderPlugin,
+} from './walk:tree/meta.builder'
+import {
+    MetaValidatorConfig,
+    MetaValidatorPlugin,
+} from './walk:tree/meta.validator'
+import {
     type PaginationBuilderConfig,
-} from './tree/pagination.builder'
+    PaginationBuilderPlugin,
+} from './walk:tree/pagination.builder'
 import {
-    SeriesInfoGenerator,
     type SeriesInfoGeneratorConfig,
-} from './tree/series.info.generator'
+    SeriesInfoGeneratorPlugin,
+} from './walk:tree/series.info.generator'
 import {
-    StaticParamBuilder,
     type StaticParamBuilderConfig,
-} from './tree/static.param.builder'
+    StaticParamBuilderPlugin,
+} from './walk:tree/static.param.builder'
 
 export interface CorePluginsConfig {
+    /**
+     * @description Meta validator configuration
+     */
     metaValidator?: MetaValidatorConfig
+    /**
+     * @description Pagination builder configuration
+     */
     paginationBuilder?: PaginationBuilderConfig
+    /**
+     * @description Meta builder configuration
+     */
     metaBuilder?: MetaBuilderConfig
+    /**
+     * @description Static param builder configuration
+     */
     staticParamBuilder?: StaticParamBuilderConfig
+    /**
+     * @description Series info generator configuration
+     */
     seriesInfoGenerator?: SeriesInfoGeneratorConfig
+    /**
+     * @description Category description generator configuration
+     */
     categoryDescriptionGenerator?: CategoryDescriptionGeneratorConfig
 }
+
 export const CorePlugins = (coreConfig?: CorePluginsConfig) => {
     return {
-        'walk:generated:tree': [
-            MetaValidator(coreConfig?.metaValidator),
-            MetaBuilder(coreConfig?.metaBuilder),
-            StaticParamBuilder(coreConfig?.staticParamBuilder),
-            PaginationBuilder(coreConfig?.paginationBuilder),
-            SeriesInfoGenerator(coreConfig?.seriesInfoGenerator),
-            CategoryDescriptionGenerator(
+        'walk:tree': [
+            new MetaValidatorPlugin(coreConfig?.metaValidator),
+            new MetaBuilderPlugin(coreConfig?.metaBuilder),
+            new StaticParamBuilderPlugin(coreConfig?.staticParamBuilder),
+            new PaginationBuilderPlugin(coreConfig?.paginationBuilder),
+            new SeriesInfoGeneratorPlugin(coreConfig?.seriesInfoGenerator),
+            new CategoryDescriptionGeneratorPlugin(
                 coreConfig?.categoryDescriptionGenerator
             ),
         ],
-        'build:contents': [ObsidianReference()],
+        'build:contents': [new ObsidianReferencePlugin()],
     } as const satisfies PluginAdapter
 }

@@ -1,19 +1,56 @@
 import {
-    IO as IOManager,
+    type IO,
     type Promisify,
     type Stateful,
 } from '@obsidian_blogger/helpers'
 import type { NodeType } from '../../parser/node'
-import { NodeId } from './info.generator'
+import type { NodeId } from './info.generator'
 
-export type BuildInformation = {
+/**
+ * Represents the build information for a specific file.
+ */
+export interface BuildInformation {
+    /**
+     * The unique identifier of the node.
+     */
     id: NodeId
+
+    /**
+     * The timestamp when the build information was created.
+     */
     created_at: string
+
+    /**
+     * The name of the file.
+     */
     file_name: string
+
+    /**
+     * The type of the node.
+     */
     file_type: NodeType
+
+    /**
+     * The state of the build.
+     * - `CACHED`: target file is cached
+     * - `ADDED`: target file is added
+     * - `UPDATED`: target file is updated
+     * - `REMOVED`: target file is removed
+     */
     build_state: 'CACHED' | 'ADDED' | 'UPDATED' | 'REMOVED'
+
+    /**
+     * The paths for the original and built files.
+     */
     build_path: {
+        /**
+         * The path of the original file.
+         */
         origin: string
+
+        /**
+         * The path of the built file.
+         */
         build: string
     }
 }
@@ -25,7 +62,7 @@ export interface BuildStoreConstructor {
         assets: string
         contents: string
     }
-    readonly io: IOManager
+    readonly io: IO
 }
 export class BuildStore {
     public constructor(public readonly option: BuildStoreConstructor) {}

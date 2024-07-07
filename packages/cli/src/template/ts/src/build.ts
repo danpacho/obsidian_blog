@@ -117,8 +117,8 @@ const system = new BuildSystem({
 const build = async () => {
     system.use({
         'build:contents': [],
-        'walk:generated:tree': [],
-        'build:origin:tree': [],
+        'walk:tree': [],
+        'build:tree': [],
     })
     await system.build()
 }
