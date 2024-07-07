@@ -87,8 +87,6 @@ describe('BuildSystem', async () => {
                 contents: async (node) => {
                     const path =
                         `${process.cwd()}/packages/build_system/src/__tests__/__mocks__/$$blog$$` as const
-                    // '/Users/june/Documents/obsidian_june'
-                    // '/Users/june/Documents/obsidian_june'
                     return pathGen(node, path)
                 },
                 assets: async () => '',

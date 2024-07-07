@@ -126,6 +126,7 @@ export class Builder {
     }
 
     private injectPluginDependencies() {
+        this.$buildFileTreePlugin.injectDependencies(this.option)
         this.treeBuildPluginManager.$plug.pluginList.forEach((plugin) => {
             plugin.injectDependencies(this.option)
         })
