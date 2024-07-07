@@ -1,0 +1,146 @@
+import type { FTreeNode } from 'packages/build_system/src/parser/node'
+import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    type CategoryDescriptionGeneratorOptions,
+    defaultCategoryDescriptionBuilderOptions,
+} from './shared/meta'
+import type {
+    DefaultCategoryMeta,
+    DefaultContentMeta,
+} from './shared/meta/interface'
+
+export interface CategoryDescriptionGeneratorConfig
+    extends CategoryDescriptionGeneratorOptions {
+    path?: string
+    descriptionFileName?: string
+}
+export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
+    public constructor(
+        public readonly config: CategoryDescriptionGeneratorConfig = {
+            ...defaultCategoryDescriptionBuilderOptions,
+            descriptionFileName: 'description.md',
+        }
+    ) {
+        super()
+    }
+
+    private get meta() {
+        return this.$createMetaEngine(this.config.categoryMeta)
+    }
+    public getConfig(): WalkTreePluginConfig {
+        return {
+            name: 'CategoryDescriptionGenerator',
+            skipFolderNode: true,
+        }
+    }
+
+    private async getPostCollection(
+        children: Array<FTreeNode>
+    ): Promise<Array<DefaultContentMeta>> {
+        const postCollection = children.reduce<
+            Promise<Array<DefaultContentMeta>>
+        >(
+            async (acc, curr) => {
+                const awaited = await acc
+                if (!awaited) return acc
+
+                if (curr.fileName === this.config.descriptionFileName)
+                    return acc
+
+                if (curr.category === 'FOLDER') {
+                    if (!curr.children) return acc
+                    const postCollection = await this.getPostCollection(
+                        curr.children
+                    )
+                    awaited.push(...postCollection)
+                    return awaited
+                }
+                if (curr.category !== 'TEXT_FILE') return acc
+
+                const postMeta = await this.meta.extractFromFile(
+                    curr.absolutePath
+                )
+                if (!postMeta.success) return acc
+
+                const meta = postMeta.data.meta as unknown as DefaultContentMeta
+                awaited.push(meta)
+                return awaited
+            },
+            Promise.resolve([]) as Promise<Array<DefaultContentMeta>>
+        )
+
+        return postCollection
+    }
+
+    private async getPostCollectionContainer(
+        children: Array<FTreeNode>
+    ): Promise<DefaultCategoryMeta> {
+        const postCollectionContainer = children.reduce<
+            Promise<DefaultCategoryMeta>
+        >(
+            async (acc, curr, _, tot) => {
+                const awaited = await acc
+                if (!awaited) return acc
+
+                if (curr.category !== 'TEXT_FILE') return acc
+                if (curr.fileName !== this.config.descriptionFileName)
+                    return acc
+
+                const descriptionMeta = await this.meta.extractFromFile(
+                    curr.absolutePath
+                )
+                if (!descriptionMeta.success) return acc
+
+                const categoryMeta = descriptionMeta.data
+                    .meta as unknown as DefaultCategoryMeta
+
+                const postCollection = await this.getPostCollection(tot)
+
+                awaited.title = categoryMeta.title
+                awaited.description = categoryMeta.description
+                awaited.postCollection = postCollection
+
+                return acc
+            },
+            Promise.resolve({
+                title: '',
+                description: '',
+                postCollection: [],
+            }) as Promise<DefaultCategoryMeta>
+        )
+
+        return postCollectionContainer
+    }
+
+    public async walk(
+        node: FTreeNode,
+        i: number,
+        children: Array<FTreeNode>
+    ): Promise<void> {
+        if (node.fileName !== this.config.descriptionFileName) return
+        if (!node.parentInfo) return
+
+        const postCollectionContainer =
+            await this.getPostCollectionContainer(children)
+
+        const writePath: string = this.config?.path
+            ? `${this.config.path}/${node.parentInfo.fileName}.json`
+            : `${this.$buildPath.contents}/${node.parentInfo.fileName}.json`
+
+        const collectionRecord = await this.$io.writer.write({
+            data: JSON.stringify(postCollectionContainer, null, 4),
+            filePath: writePath,
+        })
+
+        const descriptionDelete = await this.$io.writer.deleteFile(
+            node.absolutePath
+        )
+
+        if (collectionRecord.success && descriptionDelete.success) {
+            this.$logger.success(
+                `Post collection for ${node.parentInfo.fileName} is generated`
+            )
+            return
+        }
+    }
+}
