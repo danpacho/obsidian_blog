@@ -1,12 +1,33 @@
+/**
+ * Represents the result of analyzing a single parameter in a route.
+ */
 type SingleParamAnalyzeResult =
     | {
+          /**
+           * Indicates whether the parameter is dynamic.
+           */
           isDynamicParam: true
+          /**
+           * Indicates whether the parameter is multiple.
+           */
           isMultiple: boolean
+          /**
+           * The name of the parameter.
+           */
           paramName: string
       }
     | {
+          /**
+           * Indicates whether the parameter is dynamic.
+           */
           isDynamicParam: false
+          /**
+           * Indicates whether the parameter is multiple.
+           */
           isMultiple: false
+          /**
+           * The name of divider.
+           */
           dividerName: string
       }
 
