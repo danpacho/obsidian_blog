@@ -1,12 +1,11 @@
-import { SiteBuilderPlugin, SiteBuilderPluginConstructor } from '../../build'
-
+import { type BuildScriptConstructor, BuildScriptPlugin } from '../../build'
 export type BlogBuildConfig = {
     buildScript: Array<string>
     verbose?: boolean
 }
 
-export class BlogBuilder extends SiteBuilderPlugin {
-    public constructor(options: SiteBuilderPluginConstructor) {
+export class BlogBuilder extends BuildScriptPlugin {
+    public constructor(options: BuildScriptConstructor) {
         super(options)
     }
 
