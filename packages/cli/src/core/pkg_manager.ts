@@ -56,15 +56,20 @@ export class PkgManager {
      */
     public async install(
         pkgManager: PkgManagerName,
-        installOptions?: string
+        options?: {
+            install?: string
+            spawn?: Parameters<ShellExecutor['spawn$']>[2]
+        }
     ): Promise<void> {
-        const installCommands: string[] = installOptions
-            ? ['install', installOptions]
+        const installCommands: string[] = options?.install
+            ? ['install', options.install]
             : ['install']
 
         await this.$shell.spawn$(pkgManager, installCommands, {
             stdio: 'inherit',
+            ...options?.spawn,
             env: {
+                ...options?.spawn?.env,
                 ...process.env,
                 ADBLOCK: '1',
                 // we set NODE_ENV to development as pnpm skips dev
