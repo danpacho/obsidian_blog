@@ -9,6 +9,7 @@ export default defineConfig((options) => ({
         stack: 'src/stack/index.ts',
         logger: 'src/logger/index.ts',
         shell: 'src/shell/index.ts',
+        plugin: 'src/plugin/index.ts',
     },
     watch: options.watch ? ['src/**/*'] : false,
     clean: false,
