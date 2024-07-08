@@ -15,5 +15,6 @@
         "skipLibCheck": true,
         "noImplicitOverride": true,
         "strictNullChecks": true
-    }
+    },
+    "exclude": ["node_modules", "dist", ".test_cli_gen"]
 }
