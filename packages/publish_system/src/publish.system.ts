@@ -1,8 +1,9 @@
-import type {
-    BuildScriptPlugin,
-    DeployPlugin,
-    RepositoryPlugin,
-} from './plugin'
+import { PluginManager } from '@obsidian_blogger/helpers/plugin'
+import type { BuildScriptConstructor } from './plugin'
+import {
+    PublishSystemPlugin,
+    type PublishSystemPluginAdapter,
+} from './plugin/interface'
 import {
     PublishPlugin,
     type PublishPluginConstructor,
@@ -29,35 +30,37 @@ export interface PublishCommand {
     deployer: ReadonlyArray<Record<string, unknown>>
 }
 
-export interface PublishSystemConstructor extends PublishPluginConstructor {
-    builder: Array<BuildScriptPlugin>
-    repository: Array<RepositoryPlugin>
-    deployer?: Array<DeployPlugin>
-}
+export interface PublishSystemConstructor extends PublishPluginConstructor {}
 export class PublishSystem extends PublishPlugin {
-    private readonly _builder: Array<BuildScriptPlugin>
-    private readonly _repository: Array<RepositoryPlugin>
-    private readonly _deployer?: Array<DeployPlugin>
+    private readonly buildScriptPluginManager: PluginManager<
+        PublishSystemPlugin['buildScript'],
+        BuildScriptConstructor
+    >
+    private readonly repositoryPluginManager: PluginManager<
+        PublishSystemPlugin['repository'],
+        BuildScriptConstructor
+    >
+    private readonly deployPluginManager: PluginManager<
+        PublishSystemPlugin['deploy'],
+        BuildScriptConstructor
+    >
 
     public constructor(public readonly options: PublishSystemConstructor) {
         super(options)
 
-        this._builder = options.builder
-        this._repository = options.repository
-        if (options.deployer) {
-            this._deployer = options.deployer
-        }
+        this.buildScriptPluginManager = new PluginManager()
+        this.repositoryPluginManager = new PluginManager()
+        this.deployPluginManager = new PluginManager()
 
         this.updateLoggerName(options.name)
-
-        this._builder.forEach((b, i) =>
+        this.buildScriptPluginManager.$loader.plugins.forEach((b, i) =>
             b.updateLoggerName(`${options.name}::builder_${i + 1}`)
         )
-        this._repository.forEach((r, i) =>
+        this.repositoryPluginManager.$loader.plugins.forEach((r, i) =>
             r.updateLoggerName(`${options.name}::repository_${i + 1}`)
         )
-        this._deployer?.forEach((d, i) =>
-            d.updateLoggerName(`${options.name}::deployer_${i + 1}`)
+        this.deployPluginManager.$loader.plugins.forEach((d, i) =>
+            d?.updateLoggerName(`${options.name}::deployer_${i + 1}`)
         )
     }
 
@@ -66,16 +69,20 @@ export class PublishSystem extends PublishPlugin {
      */
     public getPluginPipelineInfo() {
         return {
-            builder: this._builder.map((b, i) => ({
-                name: b.name,
-                order: i + 1,
-            })),
-            repository: this._repository.map((r, i) => ({
-                name: r.name,
-                order: i + 1,
-            })),
-            deployer: this._deployer?.map((d, i) => ({
-                name: d.name,
+            builder: this.buildScriptPluginManager.$loader.plugins.map(
+                (b, i) => ({
+                    name: b.name,
+                    order: i + 1,
+                })
+            ),
+            repository: this.repositoryPluginManager.$loader.plugins.map(
+                (r, i) => ({
+                    name: r.name,
+                    order: i + 1,
+                })
+            ),
+            deployer: this.deployPluginManager.$loader.plugins.map((d, i) => ({
+                name: d?.name,
                 order: i + 1,
             })),
         }
@@ -136,24 +143,26 @@ export class PublishSystem extends PublishPlugin {
                     this.$logger.info('1. Build initiated')
                 },
                 execute: async () => {
-                    const buildResponse = this._builder.reduce<
-                        Promise<Array<unknown>>
-                    >(
-                        async (acc, builder, i) => {
-                            const command = publishCommand.builder[i]
-                            if (!command) {
-                                this.$logger.error(
-                                    `No build command found for builder ${builder.name}`
-                                )
-                                return acc
-                            }
-                            const awaitedAcc = await acc
-                            const buildResponse = await builder.build(command)
-                            awaitedAcc.push(buildResponse)
-                            return awaitedAcc
-                        },
-                        Promise.resolve([]) as Promise<Array<unknown>>
-                    )
+                    const buildResponse =
+                        this.buildScriptPluginManager.$loader.plugins.reduce<
+                            Promise<Array<unknown>>
+                        >(
+                            async (acc, builder, i) => {
+                                const command = publishCommand.builder[i]
+                                if (!command) {
+                                    this.$logger.error(
+                                        `No build command found for builder ${builder.name}`
+                                    )
+                                    return acc
+                                }
+                                const awaitedAcc = await acc
+                                const buildResponse =
+                                    await builder.build(command)
+                                awaitedAcc.push(buildResponse)
+                                return awaitedAcc
+                            },
+                            Promise.resolve([]) as Promise<Array<unknown>>
+                        )
                     return buildResponse
                 },
                 after: async () => {
@@ -166,24 +175,26 @@ export class PublishSystem extends PublishPlugin {
                     this.$logger.info('2. Save initiated')
                 },
                 execute: async () => {
-                    const saveResponse = this._repository.reduce<
-                        Promise<Array<unknown>>
-                    >(
-                        async (acc, repository, i) => {
-                            const command = publishCommand.repository[i]
-                            if (!command) {
-                                this.$logger.error(
-                                    `No save command found for repository ${repository.name}`
-                                )
-                                return acc
-                            }
-                            const awaitedAcc = await acc
-                            const saveResponse = await repository.save(command)
-                            awaitedAcc.push(saveResponse)
-                            return awaitedAcc
-                        },
-                        Promise.resolve([]) as Promise<Array<unknown>>
-                    )
+                    const saveResponse =
+                        this.repositoryPluginManager.$loader.plugins.reduce<
+                            Promise<Array<unknown>>
+                        >(
+                            async (acc, repository, i) => {
+                                const command = publishCommand.repository[i]
+                                if (!command) {
+                                    this.$logger.error(
+                                        `No save command found for repository ${repository.name}`
+                                    )
+                                    return acc
+                                }
+                                const awaitedAcc = await acc
+                                const saveResponse =
+                                    await repository.save(command)
+                                awaitedAcc.push(saveResponse)
+                                return awaitedAcc
+                            },
+                            Promise.resolve([]) as Promise<Array<unknown>>
+                        )
                     return saveResponse
                 },
                 after: async () => {
@@ -196,30 +207,31 @@ export class PublishSystem extends PublishPlugin {
                     this.$logger.info('3. Deploy initiated')
                 },
                 execute: async () => {
-                    if (!this._deployer) {
+                    if (this.deployPluginManager.$loader.plugins.length === 0) {
                         this.$logger.info('No deployer found')
                         return
                     }
 
-                    const deployResponse = this._deployer.reduce<
-                        Promise<Array<unknown>>
-                    >(
-                        async (acc, deployer, i) => {
-                            const command = publishCommand.deployer[i]
-                            if (!command) {
-                                this.$logger.error(
-                                    `No deploy command found for deployer ${deployer.name}`
-                                )
-                                return acc
-                            }
-                            const awaitedAcc = await acc
-                            const deployResponse =
-                                await deployer.deploy(command)
-                            awaitedAcc.push(deployResponse)
-                            return awaitedAcc
-                        },
-                        Promise.resolve([]) as Promise<Array<unknown>>
-                    )
+                    const deployResponse =
+                        this.deployPluginManager.$loader.plugins.reduce<
+                            Promise<Array<unknown>>
+                        >(
+                            async (acc, deployer, i) => {
+                                const command = publishCommand.deployer[i]
+                                if (!command) {
+                                    this.$logger.error(
+                                        `No deploy command found for deployer ${deployer?.name}`
+                                    )
+                                    return acc
+                                }
+                                const awaitedAcc = await acc
+                                const deployResponse =
+                                    await deployer?.deploy(command)
+                                awaitedAcc.push(deployResponse)
+                                return awaitedAcc
+                            },
+                            Promise.resolve([]) as Promise<Array<unknown>>
+                        )
                     return deployResponse
                 },
                 after: async () => {
@@ -246,21 +258,22 @@ export class PublishSystem extends PublishPlugin {
         }
     }
 
-    public addPlugin(plugin: {
-        builder?: BuildScriptPlugin
-        repository?: RepositoryPlugin
-        deployer?: DeployPlugin
-    }) {
-        if (plugin.builder) {
-            this._builder.push(plugin.builder)
-        }
-
-        if (plugin.repository) {
-            this._repository.push(plugin.repository)
-        }
-
-        if (plugin.deployer) {
-            this._deployer?.push(plugin.deployer)
-        }
+    /**
+     * Register build system plugins
+     * @param plugins {@link PublishSystemPluginAdapter}
+     * @example
+     * ```ts
+     * const publisher = new PublishSystem(...)
+     * publisher.use({
+     *      buildScript: [plugin0, plugin1],
+     *      repository: plugin2,
+     *      deploy: [plugin3, plugin4],
+     * })
+     * ```
+     */
+    public use(plugin: PublishSystemPluginAdapter) {
+        this.buildScriptPluginManager.$loader.use(plugin.buildScript)
+        this.repositoryPluginManager.$loader.use(plugin.repository)
+        this.deployPluginManager.$loader.use(plugin.deploy)
     }
 }
