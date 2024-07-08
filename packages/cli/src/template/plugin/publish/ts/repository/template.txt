@@ -1,0 +1,21 @@
+// -------------------------------------------------------------- //
+// Repository plugin template
+// -------------------------------------------------------------- //
+
+import { Plugin } from '@obsidian_blogger/publish_system'
+
+export interface {{plugin_name}}PluginOptions extends Plugin.RepositoryConstructor {
+    option1: string
+    option2: string
+}
+export class {{plugin_name}}Plugin extends Plugin.RepositoryPlugin {
+    public constructor(private readonly options: {{plugin_name}}PluginOptions) {
+        super(options)
+    }
+
+    public async save(
+        saveParameters: Record<string, unknown>
+    ): Promise<unknown> {
+        return
+    }
+}
