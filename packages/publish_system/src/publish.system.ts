@@ -1,10 +1,12 @@
-import {
+import type {
+    BuildScriptPlugin,
     DeployPlugin,
-    PublishPlugin,
-    PublishPluginConstructor,
     RepositoryPlugin,
-    SiteBuilderPlugin,
 } from './plugin'
+import {
+    PublishPlugin,
+    type PublishPluginConstructor,
+} from './plugin/publish.plugin'
 
 /**
  * Publish command arguments
@@ -28,12 +30,12 @@ export interface PublishCommand {
 }
 
 export interface PublishSystemConstructor extends PublishPluginConstructor {
-    builder: Array<SiteBuilderPlugin>
+    builder: Array<BuildScriptPlugin>
     repository: Array<RepositoryPlugin>
     deployer?: Array<DeployPlugin>
 }
 export class PublishSystem extends PublishPlugin {
-    private readonly _builder: Array<SiteBuilderPlugin>
+    private readonly _builder: Array<BuildScriptPlugin>
     private readonly _repository: Array<RepositoryPlugin>
     private readonly _deployer?: Array<DeployPlugin>
 
@@ -245,7 +247,7 @@ export class PublishSystem extends PublishPlugin {
     }
 
     public addPlugin(plugin: {
-        builder?: SiteBuilderPlugin
+        builder?: BuildScriptPlugin
         repository?: RepositoryPlugin
         deployer?: DeployPlugin
     }) {

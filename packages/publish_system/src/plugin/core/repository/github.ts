@@ -53,7 +53,7 @@ export class GithubRepository extends RepositoryPlugin {
                     return await this.$git.commit(commit)
                 },
                 after: async (job) => {
-                    this.$logger.info(`Commit\n${job.jobResponse.stdout}`)
+                    this.$logger.info(`Commit\n${job.response.stdout}`)
                 },
             },
             {
