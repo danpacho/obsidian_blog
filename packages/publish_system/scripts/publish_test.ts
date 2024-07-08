@@ -27,9 +27,12 @@ const publish = async () => {
     const publisher = new PublishSystem({
         name: 'pub_system',
         cwd: BLOG_ROOT,
-        builder: [builder],
+    })
+
+    publisher.use({
+        buildScript: [builder],
         repository: [github],
-        deployer: [vercel],
+        deploy: [vercel],
     })
 
     const uniqueID = new Date().toISOString().replace(/:/g, '_')
