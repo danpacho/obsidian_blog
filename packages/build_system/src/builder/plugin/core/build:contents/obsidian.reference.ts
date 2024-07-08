@@ -102,7 +102,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         }
     }
 
-    public async buildContents(modifierConstructor: {
+    public async buildContents(context: {
         buildStore: BuildStoreList
     }): Promise<
         Array<{
@@ -110,7 +110,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             writePath: string
         }>
     > {
-        const assetReferencesUUIDList = modifierConstructor.buildStore
+        const assetReferencesUUIDList = context.buildStore
             .filter(
                 ({ file_type }) =>
                     file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
@@ -120,10 +120,9 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                 origin: report.build_path.origin,
             }))
 
-        const referenceUpdateTextFileList =
-            modifierConstructor.buildStore.filter(
-                ({ file_type }) => file_type === 'TEXT_FILE'
-            )
+        const referenceUpdateTextFileList = context.buildStore.filter(
+            ({ file_type }) => file_type === 'TEXT_FILE'
+        )
 
         const referenceUpdatedList = await referenceUpdateTextFileList.reduce<
             Promise<
