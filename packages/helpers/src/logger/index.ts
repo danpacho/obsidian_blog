@@ -52,11 +52,8 @@ export class Logger {
         const { enter, depth } = options
         const depthStr =
             depth && depth > 0 ? `${this.tabStr.repeat(depth)}` : ''
-        const messageWithPrefix = `${this.name}: ${message}`
-        const logMessage = options.prefix
-            ? [depthStr, this.c.gray('›'), messageWithPrefix]
-            : [message]
-        this.$log(logMessage, enter)
+        const logMessage = options.prefix ? `${this.name}: ${message}` : message
+        this.$log([depthStr, this.c.gray('›'), logMessage], enter)
     }
     public updateName(name: string) {
         this.name = name
