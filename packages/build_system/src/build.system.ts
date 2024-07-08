@@ -1,5 +1,9 @@
 import { IO, Logger } from '@obsidian_blogger/helpers'
-import { Builder, type BuilderConstructor, PluginAdapter } from './builder'
+import {
+    type BuildSystemAdapter,
+    Builder,
+    type BuilderConstructor,
+} from './builder'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 
 //TODO: refactor, divide constructor <-> config options
@@ -47,7 +51,7 @@ export class BuildSystem {
 
     /**
      * Register build system plugins
-     * @param plugins {@link PluginAdapter}
+     * @param plugins {@link BuildSystemAdapter}
      * @example
      * ```ts
      * const system = new BuildSystem(...)
@@ -58,7 +62,7 @@ export class BuildSystem {
      * })
      * ```
      */
-    public use(plugins: PluginAdapter) {
+    public use(plugins: BuildSystemAdapter) {
         this.$builder.use(plugins)
     }
 }

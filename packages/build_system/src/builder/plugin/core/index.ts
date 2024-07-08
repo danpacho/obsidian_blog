@@ -1,4 +1,4 @@
-import type { PluginAdapter } from '..'
+import type { BuildSystemAdapter } from '..'
 import { ObsidianReferencePlugin } from './build:contents/obsidian.reference'
 import {
     type CategoryDescriptionGeneratorConfig,
@@ -65,5 +65,5 @@ export const CorePlugins = (coreConfig?: CorePluginsConfig) => {
             ),
         ],
         'build:contents': [new ObsidianReferencePlugin()],
-    } as const satisfies PluginAdapter
+    } as const satisfies BuildSystemAdapter
 }

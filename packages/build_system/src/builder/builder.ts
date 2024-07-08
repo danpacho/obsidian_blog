@@ -1,4 +1,5 @@
 import { Logger } from '@obsidian_blogger/helpers/logger'
+import { PluginManager } from '@obsidian_blogger/helpers/plugin'
 import { MarkdownProcessor } from '../md/processor'
 import type { FTreeNode, FolderNode } from '../parser/node'
 import type { FileTreeParser } from '../parser/parser'
@@ -12,11 +13,10 @@ import {
     type BuildInfoGeneratorConstructor,
 } from './core/info.generator'
 import { BuildStore, type BuildStoreConstructor } from './core/store'
-import { type BuilderPlugin, type PluginAdapter } from './plugin'
+import { type BuildSystemAdapter, type BuildSystemPlugin } from './plugin'
 import { BuildContentsPlugin } from './plugin/build.contents.plugin'
 import { BuildTreePlugin } from './plugin/build.tree.plugin'
 import { CorePlugins, type CorePluginsConfig } from './plugin/core'
-import { PluginManager } from './plugin/plugin.manager'
 import { WalkTreePlugin } from './plugin/walk.tree.plugin'
 
 class BuildFileTreeCorePlugin extends BuildTreePlugin {
@@ -86,15 +86,15 @@ export class Builder {
     private readonly $mdProcessor: MarkdownProcessor
 
     private readonly treeBuildPluginManager: PluginManager<
-        BuilderPlugin['build:tree'],
+        BuildSystemPlugin['build:tree'],
         BuildTreePlugin['getConfig']
     > = new PluginManager()
     private readonly generatedTreeWalkerPluginManager: PluginManager<
-        BuilderPlugin['walk:tree'],
+        BuildSystemPlugin['walk:tree'],
         WalkTreePlugin['getConfig']
     > = new PluginManager()
     private readonly contentsModifierPluginManger: PluginManager<
-        BuilderPlugin['build:contents'],
+        BuildSystemPlugin['build:contents'],
         BuildContentsPlugin['getConfig']
     > = new PluginManager()
 
@@ -112,12 +112,12 @@ export class Builder {
         'build:tree': treeBuildPluginSet,
         'walk:tree': generatedTreeWalkerPluginSet,
         'build:contents': contentsBuildPluginSet,
-    }: PluginAdapter): Builder {
-        this.treeBuildPluginManager.$plug.use(treeBuildPluginSet)
-        this.generatedTreeWalkerPluginManager.$plug.use(
+    }: BuildSystemAdapter): Builder {
+        this.treeBuildPluginManager.$loader.use(treeBuildPluginSet)
+        this.generatedTreeWalkerPluginManager.$loader.use(
             generatedTreeWalkerPluginSet
         )
-        this.contentsModifierPluginManger.$plug.use(contentsBuildPluginSet)
+        this.contentsModifierPluginManger.$loader.use(contentsBuildPluginSet)
 
         // Inject dependencies
         this.injectPluginDependencies()
@@ -127,15 +127,15 @@ export class Builder {
 
     private injectPluginDependencies() {
         this.$buildFileTreePlugin.injectDependencies(this.option)
-        this.treeBuildPluginManager.$plug.pluginList.forEach((plugin) => {
+        this.treeBuildPluginManager.$loader.plugins.forEach((plugin) => {
             plugin.injectDependencies(this.option)
         })
-        this.generatedTreeWalkerPluginManager.$plug.pluginList.forEach(
+        this.generatedTreeWalkerPluginManager.$loader.plugins.forEach(
             (plugin) => {
                 plugin.injectDependencies(this.option)
             }
         )
-        this.contentsModifierPluginManger.$plug.pluginList.forEach((plugin) => {
+        this.contentsModifierPluginManger.$loader.plugins.forEach((plugin) => {
             plugin.injectDependencies({
                 ...this.option,
                 processor: this.$mdProcessor,
@@ -208,7 +208,7 @@ export class Builder {
         if (!originAST) return
         if (!originAST.children) return
 
-        for (const plugin of this.treeBuildPluginManager.$plug.pluginList) {
+        for (const plugin of this.treeBuildPluginManager.$loader.plugins) {
             plugin.injectDependencies(this.option)
             const config = plugin.getConfig()
             this.option.logger.updateName(config.name)
@@ -370,8 +370,8 @@ export class Builder {
         })
         if (!generatedAST || !generatedAST) return
 
-        for (const plugin of this.generatedTreeWalkerPluginManager.$plug
-            .pluginList) {
+        for (const plugin of this.generatedTreeWalkerPluginManager.$loader
+            .plugins) {
             plugin.injectDependencies(this.option)
             const config = plugin.getConfig()
             this.option.logger.updateName(config.name)
@@ -422,8 +422,8 @@ export class Builder {
             return updateTargetReport
         }
 
-        for (const plugin of this.contentsModifierPluginManger.$plug
-            .pluginList) {
+        for (const plugin of this.contentsModifierPluginManger.$loader
+            .plugins) {
             plugin.injectDependencies({
                 processor: this.$mdProcessor,
                 ...this.option,
