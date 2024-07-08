@@ -15,6 +15,9 @@ export class Stack<Data> {
     public get top(): Data | undefined {
         return this._stack[this.size - 1]
     }
+    public get bottom(): Data | undefined {
+        return this._stack[0]
+    }
     public get full(): boolean {
         return this.size === this.option.maxSize
     }
