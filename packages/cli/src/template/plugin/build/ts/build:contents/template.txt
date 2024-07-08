@@ -1,0 +1,37 @@
+// -------------------------------------------------------------- //
+// Build contents plugin template
+// -------------------------------------------------------------- //
+
+import { Builder, Plugin } from '@obsidian_blogger/build_system'
+
+export interface {{plugin_name}}Options {
+    option1: string
+    option2: string
+}
+export class {{plugin_name}}Plugin extends Plugin.BuildContentsPlugin {
+    public constructor(private readonly options: BuildContentsOptions) {
+        super()
+    }
+
+    /**
+     * Gets the plugin configuration.
+     * @returns The plugin configuration.
+     */
+    public getConfig(): Plugin.BuildContentsPluginConfig {
+        return {
+            name: '{{plugin_name}}',
+            disableCache: false,
+        }
+    }
+
+    /**
+     * Builds the contents of the file.
+     * @param context - The context of the build, including the build store list.
+     * @returns The `new content` and the `write path`.
+     */
+    public async buildContents(context: {
+        buildStore: Builder.BuildStoreList
+    }): Promise<Array<{ newContent: string; writePath: string }>> {
+        return []
+    }
+}

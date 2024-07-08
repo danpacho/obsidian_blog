@@ -1,0 +1,32 @@
+// -------------------------------------------------------------- //
+// Walk tree plugin template
+// -------------------------------------------------------------- //
+
+import { Node, Plugin } from '@obsidian_blogger/build_system'
+
+export interface {{plugin_name}}Options {
+    option1: string
+    option2: string
+}
+export class {{plugin_name}}Plugin extends Plugin.BuildTreePlugin {
+    public constructor(private readonly options: {{plugin_name}}Options) {
+        super()
+    }
+
+    public getConfig(): Plugin.BuildTreePluginConfig {
+        return {
+            name: '{{plugin_name}}',
+            disableCache: false,
+            exclude: [],
+            skipFolderNode: true,
+        }
+    }
+
+    public async walk(
+        node: Node.FTreeNode,
+        i: number,
+        peerNodes: Array<Node.FTreeNode>
+    ): Promise<void> {
+        return
+    }
+}
