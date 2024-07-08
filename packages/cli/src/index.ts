@@ -149,29 +149,42 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
     private async runPackageInstallation(install_path: string) {
         this.$logger.info(`Installing package... at ${install_path}`)
         const pkgManager = this.$pkgManager.getPkgManager()
-        await this.$pkgManager.install(pkgManager, `--prefix ${install_path}`)
+        await this.$pkgManager.install(pkgManager, {
+            spawn: { cwd: install_path },
+        })
+        // `--prefix ${install_path}` can be used to install package in a specific directory
         this.$logger.success('Package installed successfully')
     }
 
     private async generatePluginTemplate({
+        type,
         bridge_root_path,
         plugin_name,
         plugin_type,
     }: {
+        type: 'build' | 'publish'
         bridge_root_path: string
-        plugin_name: string
-        plugin_type: 'build:contents' | 'build:tree' | 'walk:tree'
+        plugin_name: string | undefined
+        plugin_type:
+            | ('build:contents' | 'build:tree' | 'walk:tree') // build plugin
+            | ('build' | 'repository' | 'deploy') // publish plugin
     }) {
+        const plugin_name_default = plugin_type
+            .split(':')
+            .join(' ')
+            .toUpperCase()
+        plugin_name = plugin_name ?? plugin_name_default
+
         const { ts: isTs } = this.programOptions
 
         const repository_path =
-            `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/plugin/${isTs ? 'ts' : 'js'}/${plugin_type}` as const
+            `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/plugin/${type}/${isTs ? 'ts' : 'js'}/${plugin_type}` as const
 
         const repoInfo = await this.getRepoInfo(repository_path)
         if (!repoInfo) return
 
         try {
-            const pluginWorkspace = `${bridge_root_path}/plugin/${plugin_type}`
+            const pluginWorkspace = `${bridge_root_path}/plugin/${type}/${plugin_type}`
 
             await this.$io.writer.createFolder(pluginWorkspace)
             await this.$repo.downloadAndExtractRepo(pluginWorkspace, repoInfo, {
@@ -272,24 +285,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         })
     }
 
-    public constructor() {
-        super({
-            info: {
-                name: pkg.name,
-                version: pkg.version,
-                description: pkg.description,
-            },
-        })
-
-        this.$repo = new GithubRepository()
-        this.$shell = new ShellExecutor({
-            historyLimit: 100,
-        })
-        this.$pkgManager = new PkgManager(this.$shell)
-
-        // Add global options
-        this.registerOptions()
-
+    private registerCommands(): void {
         // CREATE COMMAND
         this.addCommand({
             cmdFlag: 'create',
@@ -322,9 +318,10 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
         // PLUGIN COMMAND
         this.addCommand({
-            cmdFlag: 'plugin',
-            cmdDescription: 'Generate plugin template',
-            argFlag: ['<bridge_root_path>', '<plugin_name>', '<plugin_type>'],
+            cmdFlag: 'plugin:build',
+            cmdDescription:
+                'Generate build plugin template, ex) npx @obsidian_blogger/cli plugin:build <plugin_root> <plugin_type> [plugin_name]',
+            argFlag: ['<bridge_root_path>', '<plugin_type>', '[plugin_name]'],
             cmdAction: async (config) => {
                 const assertPluginType = (
                     plugin_type: string
@@ -345,19 +342,74 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 }
 
                 await this.generatePluginTemplate({
+                    type: 'build',
                     bridge_root_path: config.bridge_root_path,
-                    plugin_name: config.plugin_name,
                     plugin_type: config.plugin_type,
+                    plugin_name: config.plugin_name,
+                })
+            },
+        })
+
+        this.addCommand({
+            cmdFlag: 'plugin:publish',
+            cmdDescription:
+                'Generate publish plugin template, ex) npx @obsidian_blogger/cli plugin:publish <plugin_root> <plugin_type> [plugin_name]',
+            argFlag: ['<bridge_root_path>', '<plugin_type>', '[plugin_name]'],
+            cmdAction: async (config) => {
+                const assertPluginType = (
+                    plugin_type: string
+                ): plugin_type is 'build' | 'repository' | 'deploy' => {
+                    return ['build', 'repository', 'deploy'].includes(
+                        plugin_type
+                    )
+                }
+
+                if (!assertPluginType(config.plugin_type)) {
+                    this.$logger.error('Invalid plugin type')
+                    return
+                }
+
+                await this.generatePluginTemplate({
+                    type: 'publish',
+                    bridge_root_path: config.bridge_root_path,
+                    plugin_type: config.plugin_type,
+                    plugin_name: config.plugin_name,
                 })
             },
         })
     }
 
+    private constructor() {
+        super({
+            info: {
+                name: pkg.name,
+                version: pkg.version,
+                description: pkg.description,
+            },
+        })
+
+        this.$repo = new GithubRepository()
+        this.$shell = new ShellExecutor({
+            historyLimit: 100,
+        })
+        this.$pkgManager = new PkgManager(this.$shell)
+
+        // Add global options
+        this.registerOptions()
+
+        // Add commands
+        this.registerCommands()
+    }
+
     public run() {
         this.$program.parse(process.argv)
     }
+
+    public static instance() {
+        return new BloggerCLI()
+    }
 }
 
-const cli = new BloggerCLI()
+const cli = BloggerCLI.instance()
 
 cli.run()
