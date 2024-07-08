@@ -1,41 +1,77 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Queue, QueueConstructor } from '@obsidian_blogger/helpers/queue'
-import { Stack, StackConstructor } from '@obsidian_blogger/helpers/stack'
+import { Queue, type QueueConstructor } from '@obsidian_blogger/helpers/queue'
+import { Stack, type StackConstructor } from '@obsidian_blogger/helpers/stack'
+
+/**
+ * Represents an error that occurred during job execution.
+ * @template OriginJob The type of the job that caused the error.
+ */
+export class JobError<OriginJob extends Job> extends Error {
+    /**
+     * Creates a new instance of JobError.
+     * @param message The error message.
+     * @param job The job that caused the error.
+     * @param error The cause of the error.
+     */
+    constructor(
+        message: string,
+        public readonly job: OriginJob,
+        public readonly error: unknown
+    ) {
+        super(message)
+        this.name = 'JobError'
+        this.job = job
+    }
+
+    /**
+     * Returns a string representation of the JobError.
+     * @returns The string representation of the JobError.
+     */
+    public override toString(): string {
+        return `${this.name}: ${this.message}`
+    }
+
+    /**
+     * Is the value an instance of JobError.
+     */
+    public static IsJobError(value: unknown): value is JobError<Job> {
+        return value instanceof JobError
+    }
+}
 
 /**
  * Represents a job in the job manager.
  * @template JobResponse The type of the job response.
  */
-export interface Job<JobResponse = any> {
+export interface Job<JobResponse = unknown> {
     /**
      * The ID of the job.
      */
     jobId: string
     /**
      * The status of the job.
-     * Possible values: `success`, `failed`, `pending`.
+     * Possible values: `success`, `failed`, `started`, `pending`.
      */
-    status: 'success' | 'failed' | 'pending'
+    status: 'success' | 'failed' | 'started' | 'pending'
     /**
      * The start time of the job.
      */
-    startedAt: Date
+    startedAt?: Date
     /**
      * The end time of the job.
      */
-    endedAt: Date
+    endedAt?: Date
     /**
      * The execution time of the job in milliseconds.
      */
-    execTime: number
+    execTime?: number
     /**
      * The response of the job.
      */
-    jobResponse: JobResponse
+    response?: JobResponse
     /**
      * The reason for job failure (optional).
      */
-    failedReason?: unknown
+    error?: JobError<Job<JobResponse>>
 }
 
 /**
@@ -70,8 +106,14 @@ export interface JobRegistration<JobResponse, JobPrepare> {
      */
     execute: (
         controller: {
+            /**
+             * Stops the job execution, after current job
+             */
             stop: () => void
-            next: () => void
+            /**
+             * Resumes the job execution, after current job
+             */
+            resume: () => void
         },
         preparedCalculation: JobPrepare
     ) => Promise<JobResponse>
@@ -100,10 +142,23 @@ type TypedJob<JobTuple> = JobTuple extends readonly [
         : never
     : JobTuple
 
+type JobSubscriber = (
+    currentJob: Job,
+    currentJobIndex: number,
+    history: Stack<Job>['stack']
+) => unknown
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JobRegistrationShape = JobRegistration<any, any>
 
 export interface JobManagerConstructor {
+    /**
+     * Options for the job history. `Stack` options.
+     */
     history?: StackConstructor
+    /**
+     * Options for the job queue. `Queue` options.
+     */
     jobQueue?: QueueConstructor
 }
 /**
@@ -115,6 +170,7 @@ export class JobManager {
 
     private _jobCount: number = 0
     private _jobRemaining: number = 0
+    private _jobStackIndex: number = 0
 
     public constructor(
         public readonly options: JobManagerConstructor = {
@@ -132,7 +188,7 @@ export class JobManager {
 
     /**
      * Gets the current status of the job processor.
-     * @returns The status of the job processor, which can be either 'idle' or 'processing'.
+     * @returns The status of the job processor, which can be either `idle` or `processing`
      */
     public get status(): 'idle' | 'processing' {
         return this._jobCount === this._jobRemaining ? 'idle' : 'processing'
@@ -170,8 +226,7 @@ export class JobManager {
         return structuredClone(this._history.stack)
     }
 
-    private readonly jobProgressSubscribers: Set<(job: Job) => unknown> =
-        new Set()
+    private readonly jobProgressSubscribers: Set<JobSubscriber> = new Set()
 
     /**
      * Notifies subscribers about the progress of a job.
@@ -179,7 +234,7 @@ export class JobManager {
      */
     private notifyJobProgress(job: Job): void {
         this.jobProgressSubscribers.forEach((subscriber) => {
-            subscriber(job)
+            subscriber(job, this._jobStackIndex, this._history.stack)
         })
     }
 
@@ -187,7 +242,7 @@ export class JobManager {
      * Subscribes to job progress updates.
      * @param subscriber - The callback function to be called when a job progresses.
      */
-    public subscribeJobProgress(subscriber: (job: Job) => unknown): void {
+    public subscribeJobProgress(subscriber: JobSubscriber): void {
         this.jobProgressSubscribers.add(subscriber)
     }
 
@@ -208,6 +263,7 @@ export class JobManager {
         this._jobQueue.enqueue(job)
         this._jobCount += 1
         this._jobRemaining += 1
+        this.jobPending(job.id)
     }
 
     /**
@@ -231,11 +287,13 @@ export class JobManager {
         let success = false
         let stop = false
 
-        const processController = {
+        const processController: Parameters<
+            JobRegistrationShape['execute']
+        >[0] = {
             stop: () => {
                 stop = true
             },
-            next: () => {
+            resume: () => {
                 stop = false
             },
         }
@@ -244,23 +302,27 @@ export class JobManager {
             if (stop) break
 
             const job = this._jobQueue.dequeue()!
+            const targetHistoryJob = this._history.stack[this._jobStackIndex]!
             const preparedArgs = await job.before?.()
 
-            this.jobStart(job.id)
+            this.jobStart(targetHistoryJob)
+
             try {
                 const jobResponse = await job.execute(
                     processController,
                     preparedArgs
                 )
-                this.jobSucceeded(jobResponse)
+                this.jobSucceeded(targetHistoryJob, jobResponse)
             } catch (error) {
-                this.jobFailed(error)
+                this.jobFailed(targetHistoryJob, error)
             } finally {
                 await job.after?.(this._history.top!)
             }
 
+            this.notifyJobProgress(targetHistoryJob)
+
             this._jobRemaining -= 1
-            this.notifyJobProgress(this._history.top!)
+            this._jobStackIndex += 1
         }
 
         if (cleanupHistory) this.clearHistory()
@@ -283,36 +345,38 @@ export class JobManager {
         return endedAt.getTime() - startedAt.getTime()
     }
 
-    private jobStart(jobId: string): void {
+    private jobPending(jobId: string): void {
         this._history.push({
             jobId,
             status: 'pending',
-            startedAt: new Date(),
-            endedAt: new Date(),
-            jobResponse: undefined,
-            execTime: 0,
         })
     }
 
-    private jobSucceeded(jobResponse: unknown): void {
-        const job = this._history.top
+    private jobStart(job: Job): void {
+        const startDate = new Date()
+        if (job) {
+            job.status = 'started'
+            job.startedAt = startDate
+        }
+    }
+
+    private jobSucceeded(job: Job, jobResponse: unknown): void {
         const endDate = new Date()
         if (job) {
             job.status = 'success'
             job.endedAt = endDate
-            job.jobResponse = jobResponse
-            job.execTime = this.calculateExecTime(job.startedAt, endDate)
+            job.response = jobResponse
+            job.execTime = this.calculateExecTime(job.startedAt!, endDate)
         }
     }
 
-    private jobFailed(failedReason: unknown): void {
-        const job = this._history.top
+    private jobFailed(job: Job, error: unknown): void {
         const endDate = new Date()
         if (job) {
             job.status = 'failed'
             job.endedAt = endDate
-            job.execTime = this.calculateExecTime(job.startedAt, endDate)
-            job.failedReason = failedReason
+            job.execTime = this.calculateExecTime(job.startedAt!, endDate)
+            job.error = new JobError(`@${job.jobId} failed`, job, error)
         }
     }
 }
