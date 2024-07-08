@@ -1,9 +1,13 @@
-import * as buildContentsPlugins from './build:contents/index.js'
-import * as buildOriginTreePlugins from './build:tree/index.js'
-import * as walkGeneratedTreePlugins from './walk:tree/index.js'
+import buildPlugins from './build/index.js'
+import publishPlugins from './publish/index.js'
 
 export default {
-    buildContents: buildContentsPlugins,
-    buildOriginTree: buildOriginTreePlugins,
-    walkGeneratedTree: walkGeneratedTreePlugins,
+    /**
+     * Build plugins
+     */
+    build: buildPlugins,
+    /**
+     * Publish plugins
+     */
+    publish: publishPlugins,
 }
