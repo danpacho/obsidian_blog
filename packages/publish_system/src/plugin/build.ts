@@ -7,21 +7,21 @@ import {
 import { PM, detect } from 'detect-package-manager'
 import { PublishPlugin, PublishPluginConstructor } from './publish.plugin'
 
-export interface SiteBuilderPluginConstructor
+export interface BuildScriptConstructor
     extends PublishPluginConstructor,
         ShellExecutorConstructor {}
 /**
- * Abstract class representing a site builder plugin.
+ * Abstract class representing a build script plugin
  * Extends the `PublishPlugin` class.
  */
-export abstract class SiteBuilderPlugin extends PublishPlugin {
+export abstract class BuildScriptPlugin extends PublishPlugin {
     public packageManager: PM | null = null
 
     /**
      * Creates an instance of the `SiteBuilderPlugin` class.
      * @param options - The options for the plugin.
      */
-    public constructor(options: SiteBuilderPluginConstructor) {
+    public constructor(options: BuildScriptConstructor) {
         super(options)
     }
 
