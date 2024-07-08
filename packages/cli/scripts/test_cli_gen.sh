@@ -26,7 +26,7 @@ node dist/index.cjs install "${install_path}"
 
 # Run plugin generate command
 # 1. Generate build plugin
-node dist/index.cjs plugin:build "${install_path}" AwesomePluginBuildContents build:contents
+node dist/index.cjs plugin:build "${install_path}" build:contents AwesomePluginBuildContents
 node dist/index.cjs plugin:build "${install_path}" build:tree
 node dist/index.cjs plugin:build "${install_path}" walk:tree
 

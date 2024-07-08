@@ -22,16 +22,40 @@ type BloggerCLIOptions = {
      */
     verbose: boolean
     /**
-     * Use TypeScript
+     * Use typeScript
      * @default true
      */
     ts: boolean
+    /**
+     * Use javaScript
+     */
+    js: boolean
 }
 
 export class BloggerCLI extends CLI<BloggerCLIOptions> {
     private readonly $repo: GithubRepository
     private readonly $pkgManager: PkgManager
     private readonly $shell: ShellExecutor
+
+    private camelToSnakeCase(str: string): string {
+        return str
+            .trim()
+            .split('')
+            .map((char, i) =>
+                char === char.toUpperCase()
+                    ? `${i === 0 ? '' : '_'}${char.toLowerCase()}`
+                    : char
+            )
+            .join('')
+    }
+
+    private toUpperCamelCase(str: string): string {
+        return str
+            .trim()
+            .split('_')
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join('')
+    }
 
     private async getRepoInfo(repo_url: string) {
         const repo = new URL(repo_url)
@@ -138,22 +162,22 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 )
             )
 
-            this.$logger.success(
-                `Bridge package installed successfully at ${install_path}`
-            )
+            this.$logger.success(`Bridge package installed`)
+            this.$logger.log(`Gen at ${install_path}`, { prefix: false })
         } catch (e) {
             this.reportError(e)
         }
     }
 
     private async runPackageInstallation(install_path: string) {
-        this.$logger.info(`Installing package... at ${install_path}`)
+        this.$logger.info(`Installing package`)
         const pkgManager = this.$pkgManager.getPkgManager()
         await this.$pkgManager.install(pkgManager, {
             spawn: { cwd: install_path },
         })
         // `--prefix ${install_path}` can be used to install package in a specific directory
-        this.$logger.success('Package installed successfully')
+        this.$logger.success('Package installed')
+        this.$logger.log(`Gen at ${install_path}`, { prefix: false })
     }
 
     private async generatePluginTemplate({
@@ -169,13 +193,12 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             | ('build:contents' | 'build:tree' | 'walk:tree') // build plugin
             | ('build' | 'repository' | 'deploy') // publish plugin
     }) {
-        const plugin_name_default = plugin_type
-            .split(':')
-            .join(' ')
-            .toUpperCase()
-        plugin_name = plugin_name ?? plugin_name_default
+        plugin_name =
+            plugin_name ??
+            this.toUpperCamelCase(`${plugin_type.split(':').join('_')}_gen`)
 
-        const { ts: isTs } = this.programOptions
+        const { ts, js } = this.programOptions
+        const isTs: boolean = ts || !js
 
         const repository_path =
             `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/plugin/${type}/${isTs ? 'ts' : 'js'}/${plugin_type}` as const
@@ -207,14 +230,8 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 this.$logger.error('Failed to read plugin template')
                 return
             }
-            const pluginNameCamelCased = plugin_name
-                .replace(/ /g, '_')
-                .toLowerCase()
-                .trim()
-                .split(' ')
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join('')
 
+            const pluginNameCamelCased = this.toUpperCamelCase(plugin_name)
             const injection = templateInjector(template.data, {
                 plugin_name: pluginNameCamelCased,
             })
@@ -224,13 +241,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 )
             }
 
-            const pluginPrefix = plugin_name
-                .split('-')
-                .join('_')
-                .replace(/ /g, '_')
-                .trim()
-                .toLowerCase()
-            const pluginGenPath = `${pluginWorkspace}/${pluginPrefix}.${isTs ? 'ts' : 'js'}`
+            const pluginGenPath = `${pluginWorkspace}/${this.camelToSnakeCase(plugin_name)}.${isTs ? 'ts' : 'js'}`
             const write = await this.$io.writer.write({
                 filePath: pluginGenPath,
                 data: injection.replaced,
@@ -242,8 +253,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             }
 
             this.$logger.success(
-                `Plugin generated successfully at ${pluginGenPath}`
+                `${this.toUpperCamelCase(type)}Plugin @${plugin_type} generated`
             )
+            this.$logger.log(`Gen at ${pluginGenPath}`, { prefix: false })
         } catch (e) {
             this.reportError(e)
         }
@@ -273,13 +285,13 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         })
         this.addCommand({
             optFlag: '-t, --ts [option]',
-            optDescription: 'Use TypeScript',
+            optDescription: 'Use typeScript',
             optDefaultValue: true,
             optArgParser: (value) => this.parseBooleanArgOptions(value),
         })
         this.addCommand({
             optFlag: '-j, --js [option]',
-            optDescription: 'Use JavaScript',
+            optDescription: 'Use javaScript',
             optDefaultValue: false,
             optArgParser: (value) => this.parseBooleanArgOptions(value),
         })
@@ -296,7 +308,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 '<build_assets>',
                 '[install_pkg]',
             ],
-            cmdDescription: 'Fetch information about a GitHub repository',
+            cmdDescription: 'Create a @obsidian_blog bridge package',
             cmdAction: async (config: InstallConfig) => {
                 await this.installBridgePkg(config)
                 const skipInstall =
@@ -319,8 +331,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         // PLUGIN COMMAND
         this.addCommand({
             cmdFlag: 'plugin:build',
-            cmdDescription:
-                'Generate build plugin template, ex) npx @obsidian_blogger/cli plugin:build <plugin_root> <plugin_type> [plugin_name]',
+            cmdDescription: 'Generate build plugin template',
             argFlag: ['<bridge_root_path>', '<plugin_type>', '[plugin_name]'],
             cmdAction: async (config) => {
                 const assertPluginType = (
@@ -352,8 +363,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
         this.addCommand({
             cmdFlag: 'plugin:publish',
-            cmdDescription:
-                'Generate publish plugin template, ex) npx @obsidian_blogger/cli plugin:publish <plugin_root> <plugin_type> [plugin_name]',
+            cmdDescription: 'Generate publish plugin template',
             argFlag: ['<bridge_root_path>', '<plugin_type>', '[plugin_name]'],
             cmdAction: async (config) => {
                 const assertPluginType = (
