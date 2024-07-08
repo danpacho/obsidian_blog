@@ -25,6 +25,12 @@ node dist/index.cjs create "${install_path}" "${random_config1}" "${random_confi
 node dist/index.cjs install "${install_path}"
 
 # Run plugin generate command
-node dist/index.cjs plugin "${install_path}" AwesomePluginBuildContents build:contents
-node dist/index.cjs plugin "${install_path}" AwesomePluginBuildTree build:tree
-node dist/index.cjs plugin "${install_path}" AwesomePluginWalkTree walk:tree
+# 1. Generate build plugin
+node dist/index.cjs plugin:build "${install_path}" AwesomePluginBuildContents build:contents
+node dist/index.cjs plugin:build "${install_path}" build:tree
+node dist/index.cjs plugin:build "${install_path}" walk:tree
+
+# 2. Generate publish plugin
+node dist/index.cjs plugin:publish "${install_path}" build
+node dist/index.cjs plugin:publish "${install_path}" repository
+node dist/index.cjs plugin:publish "${install_path}" deploy
