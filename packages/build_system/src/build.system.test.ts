@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { BuildSystem } from './build.system'
 import { FTreeNode } from './parser/node'
+import { BuildSystem, CorePlugins } from './index'
 
 describe('BuildSystem', async () => {
     const pathGen = (node: FTreeNode, rootPath: string) => {
@@ -123,8 +123,15 @@ describe('BuildSystem', async () => {
     it('should use plugin', () => {
         system.use({
             'build:tree': [],
-            'walk:tree': [],
-            'build:contents': [],
+            'walk:tree': [
+                new CorePlugins.MetaValidatorPlugin(),
+                new CorePlugins.MetaBuilderPlugin(),
+                new CorePlugins.StaticParamBuilderPlugin(),
+                new CorePlugins.PaginationBuilderPlugin(),
+                new CorePlugins.SeriesInfoGeneratorPlugin(),
+                new CorePlugins.CategoryDescriptionGeneratorPlugin(),
+            ],
+            'build:contents': [new CorePlugins.ObsidianReferencePlugin()],
         })
     })
 
