@@ -27,7 +27,7 @@ const publish = async () => {
     const publishResult = await Publisher.publish<{
         buildScript: readonly [CorePlugins.BlogBuildConfig]
         repository: readonly [CorePlugins.GithubSaveConfig]
-        deploy?: readonly [unknown]
+        deploy?: readonly [Record<string, unknown>]
     }>({
         buildScript: [
             {
