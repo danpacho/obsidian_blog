@@ -78,12 +78,12 @@ const pathGenerator = (node: Node.FTreeNode, rootPath: string) => {
 const system = new BuildSystem({
     builder: {
         buildPath: {
-            contents: '{{contents}}',
-            assets: '{{assets}}',
+            contents: '{{blog_contents_root}}',
+            assets: '{{blog_assets_root}}',
         },
         pathGenerator: {
             contents: async (node) => {
-                const rootPath = '{{root}}'
+                const rootPath = '{{obsidian_vault_root}}'
                 return pathGenerator(node, rootPath)
             },
             assets: async () => '',
@@ -92,7 +92,7 @@ const system = new BuildSystem({
         disableCorePlugins: false,
     },
     parser: {
-        rootFolder: '{{root}}',
+        rootFolder: '{{obsidian_vault_root}}',
         treeSyntax: {
             fileNameMatcher: ({ name, depth }) => {
                 if (depth >= 6) return false
