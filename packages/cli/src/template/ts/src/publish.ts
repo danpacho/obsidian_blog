@@ -15,7 +15,7 @@ const publish = async () => {
     const GithubRepository = new CorePlugins.GithubRepository({
         name: 'github_repository',
         cwd: '{{blog_root}}',
-        gitPath: '{{git_path}}',
+        gitPath: '{{git_root}}',
     })
 
     Publisher.use({

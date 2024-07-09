@@ -93,7 +93,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
     }
 
     private async installBridgePkg({
-        bridge_install_root: bridge_install_path,
+        bridge_install_root,
         // bridge
         // 1. build
         obsidian_vault_root,
@@ -118,16 +118,16 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
         try {
             const isInstalled =
-                await this.$io.reader.fileExists(bridge_install_path)
+                await this.$io.reader.fileExists(bridge_install_root)
             if (isInstalled) {
                 this.$logger.info('Bridge package already installed')
                 return
             }
 
-            await this.$io.writer.createFolder(bridge_install_path)
+            await this.$io.writer.createFolder(bridge_install_root)
 
             await this.$repo.downloadAndExtractRepo(
-                bridge_install_path,
+                bridge_install_root,
                 repoInfo,
                 {
                     onRetry: (e, attempt) => {
@@ -139,14 +139,14 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             )
 
             const success =
-                await this.$io.reader.fileExists(bridge_install_path)
+                await this.$io.reader.fileExists(bridge_install_root)
             if (!success) {
                 this.$logger.error('Failed to install bridge package')
             }
 
             const injectionTargetFiles = {
-                build: `${bridge_install_path}/src/build.ts`,
-                publish: `${bridge_install_path}/src/publish.ts`,
+                build: `${bridge_install_root}/src/build.ts`,
+                publish: `${bridge_install_root}/src/publish.ts`,
             } as const
 
             const injectionTemplate = {
@@ -172,7 +172,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                     commit_message,
                 },
             } as const satisfies Omit<InstallConfigRecord, 'install'>
-
+            console.log(injectionTemplate)
             await Promise.all(
                 Object.entries(injectionTargetFiles).map(
                     async ([key, file]) => {
@@ -210,7 +210,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             )
 
             this.$logger.success(`Bridge package installed`)
-            this.$logger.log(`Gen at ${bridge_install_path}`)
+            this.$logger.log(`Gen at ${bridge_install_root}`)
         } catch (e) {
             this.reportError(e)
         }
@@ -351,9 +351,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             argFlag: [
                 '<bridge_install_root>',
                 '<obsidian_vault_root>',
+                '<blog_root>',
                 '<blog_assets_root>',
                 '<blog_contents_root>',
-                '<blog_root>',
                 '[build_script]',
                 '[git_path]',
                 '[commit_branch]',
