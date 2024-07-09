@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/publish_system",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "type": "module",
     "description": "Blog publish system for blogger",
     "private": false,
