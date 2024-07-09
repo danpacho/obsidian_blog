@@ -5,7 +5,7 @@ import { Stack, type StackConstructor } from '@obsidian_blogger/helpers/stack'
  * Represents an error that occurred during job execution.
  * @template OriginJob The type of the job that caused the error.
  */
-export class JobError<OriginJob extends Job> extends Error {
+export class JobError extends Error {
     /**
      * Creates a new instance of JobError.
      * @param message The error message.
@@ -14,12 +14,10 @@ export class JobError<OriginJob extends Job> extends Error {
      */
     constructor(
         message: string,
-        public readonly job: OriginJob,
         public readonly error: unknown
     ) {
         super(message)
         this.name = 'JobError'
-        this.job = job
     }
 
     /**
@@ -33,7 +31,7 @@ export class JobError<OriginJob extends Job> extends Error {
     /**
      * Is the value an instance of JobError.
      */
-    public static IsJobError(value: unknown): value is JobError<Job> {
+    public static IsJobError(value: unknown): value is JobError {
         return value instanceof JobError
     }
 }
@@ -71,7 +69,7 @@ export interface Job<JobResponse = unknown> {
     /**
      * The reason for job failure (optional).
      */
-    error?: JobError<Job<JobResponse>>
+    error?: JobError
 }
 
 /**
@@ -223,7 +221,7 @@ export class JobManager {
      * @returns The history of processed jobs.
      */
     public get history(): Stack<Job>['stack'] {
-        return structuredClone(this._history.stack)
+        return this._history.stack
     }
 
     private readonly jobProgressSubscribers: Set<JobSubscriber> = new Set()
@@ -316,7 +314,7 @@ export class JobManager {
             } catch (error) {
                 this.jobFailed(targetHistoryJob, error)
             } finally {
-                await job.after?.(this._history.top!)
+                await job.after?.(targetHistoryJob)
             }
 
             this.notifyJobProgress(targetHistoryJob)
@@ -376,7 +374,7 @@ export class JobManager {
             job.status = 'failed'
             job.endedAt = endDate
             job.execTime = this.calculateExecTime(job.startedAt!, endDate)
-            job.error = new JobError(`@${job.jobId} failed`, job, error)
+            job.error = new JobError(`@${job.jobId} failed`, error)
         }
     }
 }
