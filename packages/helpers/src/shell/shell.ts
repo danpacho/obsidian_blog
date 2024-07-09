@@ -5,6 +5,7 @@ import {
     exec,
     spawn,
 } from 'node:child_process'
+import { platform } from 'node:os'
 import { Readable } from 'node:stream'
 import { Queue } from '../queue'
 
@@ -108,6 +109,13 @@ export class ShellExecutor {
             throw new Error('History limit must be greater than 0.')
         }
         this.history = new CommandHistory({ historyLimit })
+    }
+
+    /**
+     * Gets the platform of the current shell execution system.
+     */
+    public get platform() {
+        return platform()
     }
 
     /**
