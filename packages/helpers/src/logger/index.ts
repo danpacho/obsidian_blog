@@ -10,7 +10,7 @@ export interface LoggerConstructor {
 interface LogOption {
     enter?: boolean
     depth?: number
-    prefix?: boolean
+    prefix?: 'base' | 'full' | 'none'
 }
 
 /* eslint-disable no-console */
@@ -46,15 +46,22 @@ export class Logger {
         options: LogOption = {
             enter: false,
             depth: 0,
-            prefix: true,
+            prefix: 'base',
         }
     ) {
         const { enter, depth } = options
         const depthStr =
             depth && depth > 0 ? `${this.tabStr.repeat(depth)}` : ''
-        const logMessage = options.prefix ? `${this.name}: ${message}` : message
-        this.$log([depthStr, this.c.gray('›'), logMessage], enter)
+        const logMessage =
+            options.prefix === 'full' ? `${this.name}: ${message}` : message
+        this.$log(
+            options.prefix === 'none'
+                ? [logMessage]
+                : [depthStr, this.c.gray('›'), logMessage],
+            enter
+        )
     }
+
     public updateName(name: string) {
         this.name = name
     }

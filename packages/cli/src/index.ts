@@ -163,7 +163,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             )
 
             this.$logger.success(`Bridge package installed`)
-            this.$logger.log(`Gen at ${install_path}`, { prefix: false })
+            this.$logger.log(`Gen at ${install_path}`)
         } catch (e) {
             this.reportError(e)
         }
@@ -177,7 +177,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         })
         // `--prefix ${install_path}` can be used to install package in a specific directory
         this.$logger.success('Package installed')
-        this.$logger.log(`Gen at ${install_path}`, { prefix: false })
+        this.$logger.log(`Gen at ${install_path}`)
     }
 
     private async generatePluginTemplate({
@@ -255,7 +255,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             this.$logger.success(
                 `${this.toUpperCamelCase(type)}Plugin @${plugin_type} generated`
             )
-            this.$logger.log(`Gen at ${pluginGenPath}`, { prefix: false })
+            this.$logger.log(`Gen at ${pluginGenPath}`)
         } catch (e) {
             this.reportError(e)
         }

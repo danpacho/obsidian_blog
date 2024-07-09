@@ -85,7 +85,7 @@ export class BuildResultLogger {
         this.$logger.log(
             this.$logger.c.green(` ● ${ast.fileName} » ${targetRootDirPath}`),
             {
-                prefix: false,
+                prefix: 'none',
             }
         )
         await this.walkASTForBuildLog(ast, buildReportSet, logRemoved)
@@ -160,7 +160,7 @@ export class BuildResultLogger {
         })
 
         this.$logger.log(buildLog.join('\n'), {
-            prefix: false,
+            prefix: 'none',
         })
     }
 }
