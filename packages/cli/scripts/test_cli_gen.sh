@@ -7,30 +7,28 @@ export LC_ALL=C
 current_dir=$(pwd)
 
 # Generate a random string of length 16
-random_string=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
-
-random_config1=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
-random_config2=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
-random_config3=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
+random_root=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
 
 # Construct the full path
-install_path="$current_dir/.test_cli_gen/${random_string}"
+bridge_i_root="$current_dir/.test_cli_gen/${random_root}"
+obsidian_valut_root="$current_dir/.test_cli_gen/${random_root}/obsidian-vault"
+blog_root="$current_dir/.test_cli_gen/${random_root}/blog"
 
 node dist/index.cjs -h
 
 # Run create command
-node dist/index.cjs create "${install_path}" "${random_config1}" "${random_config2}" "${random_config3}" false
+node dist/index.cjs create "${bridge_i_root}" "${obsidian_valut_root}" "${blog_root}" "${blog_root}/static/assets" "${blog_root}/static/md"
 
 # Run install command
-node dist/index.cjs install "${install_path}"
+# node dist/index.cjs install "${bridge_i_root}"
 
 # Run plugin generate command
 # 1. Generate build plugin
-node dist/index.cjs plugin:build "${install_path}" build:contents AwesomePluginBuildContents
-node dist/index.cjs plugin:build "${install_path}" build:tree
-node dist/index.cjs plugin:build "${install_path}" walk:tree
+node dist/index.cjs plugin:build "${bridge_i_root}" build:contents AwesomePluginBuildContents
+node dist/index.cjs plugin:build "${bridge_i_root}" build:tree
+node dist/index.cjs plugin:build "${bridge_i_root}" walk:tree
 
 # 2. Generate publish plugin
-node dist/index.cjs plugin:publish "${install_path}" build
-node dist/index.cjs plugin:publish "${install_path}" repository
-node dist/index.cjs plugin:publish "${install_path}" deploy
+node dist/index.cjs plugin:publish "${bridge_i_root}" build
+node dist/index.cjs plugin:publish "${bridge_i_root}" repository
+node dist/index.cjs plugin:publish "${bridge_i_root}" deploy
