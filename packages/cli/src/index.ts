@@ -104,7 +104,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         git_root,
         build_script = 'build',
         commit_branch = 'main',
-        commit_message = '`automatically published by obsidian_blogger`',
+        commit_message = 'automatically published by obsidian_blogger',
         commit_prefix = 'publish',
     }: InstallConfig): Promise<void> {
         const { ts, js } = this.programOptions
