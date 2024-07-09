@@ -12,7 +12,11 @@ import {
     BuildInfoGenerator,
     type BuildInfoGeneratorConstructor,
 } from './core/info.generator'
-import { BuildStore, type BuildStoreConstructor } from './core/store'
+import {
+    BuildStore,
+    type BuildStoreConstructor,
+    type BuildStoreList,
+} from './core/store'
 import { type BuildSystemAdapter, type BuildSystemPlugin } from './plugin'
 import { BuildContentsPlugin } from './plugin/build.contents.plugin'
 import { BuildTreePlugin } from './plugin/build.tree.plugin'
@@ -440,11 +444,9 @@ export class Builder {
         }
     }
 
-    private async logBuildResult(): Promise<void> {
+    private async logBuildResult(buildResult: BuildStoreList): Promise<void> {
         this.option.logger.updateName('BuildResultLogger')
-        await this.$buildLogger.writeBuilderLog(
-            this.$store.getStoreList('current')
-        )
+        await this.$buildLogger.writeBuilderLog(buildResult)
     }
 
     private async cleanUp(): Promise<void> {
@@ -460,7 +462,7 @@ export class Builder {
 
     // It's better to divide build steps as individual methods, do not add argument for it
     // External argument deps will increase coupling and decrease testability
-    public async build(): Promise<void> {
+    public async build(): Promise<BuildStoreList> {
         // [ Phase1 ]:: Synchronize build store
         await this.syncBuildStore()
 
@@ -477,9 +479,12 @@ export class Builder {
         await this.buildContents()
 
         // [ Phase6 ]:: Log build result
-        await this.logBuildResult()
+        const buildResult = this.$store.getStoreList('current')
+        await this.logBuildResult(buildResult)
 
         // [ Phase7 ]:: Clean up and save cache manager
         await this.cleanUp()
+
+        return buildResult
     }
 }

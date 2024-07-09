@@ -137,6 +137,7 @@ describe('BuildSystem', async () => {
 
     it('should build', async () => {
         expect(system.build).toBeDefined()
-        await system.build()
+        const report = await system.build()
+        expect(report).toBeDefined()
     })
 })
