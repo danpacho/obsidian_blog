@@ -58,8 +58,8 @@ export class Logger {
     public updateName(name: string) {
         this.name = name
     }
-    public box(message: string, options?: Options & LogOption) {
-        this.log(boxen(message, options), options)
+    public box(message: string, options?: Options) {
+        this.$log([boxen(message, options)])
     }
     public info(message: string) {
         console.info(
