@@ -1,4 +1,4 @@
-import { DeployPlugin, DeployPluginConstructor } from '../../deploy'
+import { DeployConstructor, DeployPlugin } from '../../deploy'
 
 export type VercelDeployConfig = {
     someConfig: string
@@ -7,7 +7,7 @@ export type VercelDeployConfig = {
 // https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
 // Just demonstrating the concept of a deploy plugin
 
-interface VercelDeployConstructor extends DeployPluginConstructor {}
+interface VercelDeployConstructor extends DeployConstructor {}
 export class VercelDeploy extends DeployPlugin {
     public constructor(options: VercelDeployConstructor) {
         super(options)
