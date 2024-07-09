@@ -104,7 +104,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         git_root,
         build_script = 'build',
         commit_branch = 'main',
-        commit_message = `published @ ${new Date().toISOString()}`,
+        commit_message = '`automatically published @${new Date().toISOString()}`',
         commit_prefix = 'publish',
     }: InstallConfig): Promise<void> {
         const { ts, js } = this.programOptions
@@ -172,7 +172,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                     commit_message,
                 },
             } as const satisfies Omit<InstallConfigRecord, 'install'>
-            console.log(injectionTemplate)
+
             await Promise.all(
                 Object.entries(injectionTargetFiles).map(
                     async ([key, file]) => {
@@ -229,12 +229,12 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
     private async generatePluginTemplate({
         type,
-        bridge_root: bridge_root_path,
+        bridge_root_path,
         plugin_name,
         plugin_type,
     }: {
         type: 'build' | 'publish'
-        bridge_root: string
+        bridge_root_path: string
         plugin_name: string | undefined
         plugin_type:
             | ('build:contents' | 'build:tree' | 'walk:tree') // build plugin
@@ -407,7 +407,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
                 await this.generatePluginTemplate({
                     type: 'build',
-                    bridge_root: config.bridge_root,
+                    bridge_root_path: config.bridge_root,
                     plugin_type: config.plugin_type,
                     plugin_name: config.plugin_name,
                 })
@@ -434,7 +434,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
                 await this.generatePluginTemplate({
                     type: 'publish',
-                    bridge_root: config.bridge_root_path,
+                    bridge_root_path: config.bridge_root_path,
                     plugin_type: config.plugin_type,
                     plugin_name: config.plugin_name,
                 })
