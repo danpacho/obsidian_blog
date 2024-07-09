@@ -93,54 +93,56 @@ export class PublishSystem extends PublishPlugin {
      */
     public logPluginPipelineInfo(pluginCommands?: PublishCommand) {
         const pipelineInfo = this.getPluginPipelineInfo()
-
-        this.$logger.info('Plugin pipeline info:')
-
         const pipelineEntries = Object.entries(pipelineInfo)
-        pipelineEntries.forEach(([key, value]) => {
-            this.$logger.info(`${key.toLocaleUpperCase()}:`)
-            value?.forEach((v, i) => {
-                this.$logger.log(`#${v.order}, ${v.name}`)
-                if (key) {
-                    const pluginCommand =
-                        pluginCommands?.[key as keyof PublishCommand]
-                    this.$logger.log(
-                        `command, ${JSON.stringify(
-                            pluginCommand?.[i],
-                            null,
-                            4
-                        )}`
-                    )
-                }
-            })
-        })
 
-        this.$logger.log('\n')
+        this.$logger.info('Plugin pipeline info::')
+
+        pipelineEntries.forEach(([key, value]) => {
+            this.$logger.info(`${key}:`)
+
+            this.$logger.box(
+                value
+                    ?.map((v, i) => {
+                        const command =
+                            pluginCommands?.[key as keyof PublishCommand]?.[i]
+
+                        return `${this.$logger.c.bgBlue.black.bold(` PIPE_${v.order}:: ${v.name} `)}\n› command\n${this.$logger.c.cyanBright(
+                            JSON.stringify(command, null, 4)
+                        )}`
+                    })
+                    .join('\n'),
+                {
+                    borderStyle: 'round',
+                    padding: 0.75,
+                    borderColor: 'grey',
+                }
+            )
+        })
     }
 
     /**
-     * Publish site
-     * @param publishCommand Publish commands arguments
+     * Run publish CI/CD pipeline
+     * @param commands Publish command arguments
      */
     public async publish<Command extends PublishCommand = PublishCommand>(
-        publishCommand: Command
+        commands: Command
     ) {
         const localDate = new Date().toLocaleString()
         this.$logger.box(
-            `${this.$logger.c.blueBright(`Publish system started - ${localDate}`)}`,
+            `${this.$logger.c.blueBright('Publish system')} - ${localDate}`,
             {
-                prefix: false,
                 borderStyle: 'round',
                 padding: 0.75,
+                borderColor: 'blueBright',
             }
         )
-        this.logPluginPipelineInfo(publishCommand)
+        this.logPluginPipelineInfo(commands)
 
         this.$jobManager.registerJobs([
             {
-                id: 'build',
+                id: 'build-script',
                 before: async () => {
-                    this.$logger.info('1. Build initiated')
+                    this.$logger.info('BuildScript initiated')
                 },
                 execute: async () => {
                     const buildResponse =
@@ -148,7 +150,7 @@ export class PublishSystem extends PublishPlugin {
                             Promise<Array<unknown>>
                         >(
                             async (acc, builder, i) => {
-                                const command = publishCommand.builder[i]
+                                const command = commands.builder[i]
                                 if (!command) {
                                     this.$logger.error(
                                         `No build command found for builder ${builder.name}`
@@ -166,13 +168,13 @@ export class PublishSystem extends PublishPlugin {
                     return buildResponse
                 },
                 after: async () => {
-                    this.$logger.info('1. Build completed')
+                    this.$logger.info('BuildScript completed')
                 },
             },
             {
-                id: 'save',
+                id: 'repository',
                 before: async () => {
-                    this.$logger.info('2. Save initiated')
+                    this.$logger.info('Repository initiated')
                 },
                 execute: async () => {
                     const saveResponse =
@@ -180,7 +182,7 @@ export class PublishSystem extends PublishPlugin {
                             Promise<Array<unknown>>
                         >(
                             async (acc, repository, i) => {
-                                const command = publishCommand.repository[i]
+                                const command = commands.repository[i]
                                 if (!command) {
                                     this.$logger.error(
                                         `No save command found for repository ${repository.name}`
@@ -198,13 +200,13 @@ export class PublishSystem extends PublishPlugin {
                     return saveResponse
                 },
                 after: async () => {
-                    this.$logger.info('2. Save completed')
+                    this.$logger.info('Repository completed')
                 },
             },
             {
                 id: 'deploy',
                 before: async () => {
-                    this.$logger.info('3. Deploy initiated')
+                    this.$logger.info('Deploy initiated')
                 },
                 execute: async () => {
                     if (this.deployPluginManager.$loader.plugins.length === 0) {
@@ -217,7 +219,7 @@ export class PublishSystem extends PublishPlugin {
                             Promise<Array<unknown>>
                         >(
                             async (acc, deployer, i) => {
-                                const command = publishCommand.deployer[i]
+                                const command = commands.deployer[i]
                                 if (!command) {
                                     this.$logger.error(
                                         `No deploy command found for deployer ${deployer?.name}`
@@ -235,7 +237,7 @@ export class PublishSystem extends PublishPlugin {
                     return deployResponse
                 },
                 after: async () => {
-                    this.$logger.info('3. Deploy completed')
+                    this.$logger.info('Deploy completed')
                 },
             },
         ])
@@ -250,11 +252,9 @@ export class PublishSystem extends PublishPlugin {
 
         const history = this.$jobManager.history
 
-        this.$jobManager.clearHistory()
-
         return {
             history,
-            commands: publishCommand,
+            commands: commands,
         }
     }
 
