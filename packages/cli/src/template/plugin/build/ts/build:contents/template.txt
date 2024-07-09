@@ -9,7 +9,7 @@ export interface {{plugin_name}}Options {
     option2: string
 }
 export class {{plugin_name}}Plugin extends Plugin.BuildContentsPlugin {
-    public constructor(private readonly options: BuildContentsOptions) {
+    public constructor(private readonly options: {{plugin_name}}Options) {
         super()
     }
 
