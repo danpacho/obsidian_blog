@@ -42,8 +42,6 @@ export class BlogBuilder extends BuildScriptPlugin {
 
         const history = this.$jobManager.history
 
-        this.$jobManager.clearHistory()
-
         return history
     }
 }

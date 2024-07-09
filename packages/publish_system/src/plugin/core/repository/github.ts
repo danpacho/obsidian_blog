@@ -25,15 +25,15 @@ export class GithubRepository extends RepositoryPlugin {
             {
                 id: 'git-check-remote-origin',
                 execute: async ({ stop }) => {
-                    const remoteOriginExists: boolean =
-                        (await this.$git.remote()).stdout === ''
+                    const remoteOriginFounded: boolean =
+                        (await this.$git.remote())?.stdout !== ''
 
-                    if (remoteOriginExists) {
+                    if (remoteOriginFounded === false) {
                         this.$logger.error('No remote origin found')
                         stop()
                     }
 
-                    return remoteOriginExists
+                    return remoteOriginFounded
                 },
             },
             {
@@ -50,10 +50,11 @@ export class GithubRepository extends RepositoryPlugin {
                 id: 'git-commit',
                 execute: async () => {
                     const commit = `${commitPrefix}: ${commitMessage}`
-                    return await this.$git.commit(commit)
+                    const committed = await this.$git.commit(commit)
+                    return committed
                 },
                 after: async (job) => {
-                    this.$logger.info(`Commit\n${job.response.stdout}`)
+                    this.$logger.info(`Commit\n${job.response?.stdout}`)
                 },
             },
             {
@@ -69,10 +70,6 @@ export class GithubRepository extends RepositoryPlugin {
 
         await this.$jobManager.processJobs()
 
-        const history = this.$jobManager.history
-
-        this.$jobManager.clearHistory()
-
-        return history
+        return this.$jobManager.history
     }
 }
