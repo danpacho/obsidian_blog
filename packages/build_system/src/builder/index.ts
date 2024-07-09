@@ -1,3 +1,3 @@
-export * from './core'
-export * from './plugin'
+export * as CorePlugins from './plugin/core'
+export * as Plugin from './plugin'
 export * from './builder'

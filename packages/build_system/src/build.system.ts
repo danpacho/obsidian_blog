@@ -1,9 +1,6 @@
 import { IO, Logger } from '@obsidian_blogger/helpers'
-import {
-    type BuildSystemAdapter,
-    Builder,
-    type BuilderConstructor,
-} from './builder'
+import { Builder, type BuilderConstructor } from './builder'
+import type { BuildSystemAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 
 //TODO: refactor, divide constructor <-> config options

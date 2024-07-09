@@ -16,7 +16,6 @@ import { BuildStore, type BuildStoreConstructor } from './core/store'
 import { type BuildSystemAdapter, type BuildSystemPlugin } from './plugin'
 import { BuildContentsPlugin } from './plugin/build.contents.plugin'
 import { BuildTreePlugin } from './plugin/build.tree.plugin'
-import { CorePlugins, type CorePluginsConfig } from './plugin/core'
 import { WalkTreePlugin } from './plugin/walk.tree.plugin'
 
 class BuildFileTreeCorePlugin extends BuildTreePlugin {
@@ -58,8 +57,6 @@ export interface BuilderConstructor
         BuildInfoGeneratorConstructor {
     readonly parser: FileTreeParser
     readonly logger: Logger
-    readonly corePluginConfig?: CorePluginsConfig
-    readonly disableCorePlugins?: boolean
 }
 
 export class Builder {
@@ -72,11 +69,6 @@ export class Builder {
         this.$buildInfoGenerator = new BuildInfoGenerator(option)
         this.$buildLogger = new BuildResultLogger(option)
         this.$mdProcessor = new MarkdownProcessor()
-
-        if (!option.disableCorePlugins) {
-            const corePlugin = CorePlugins(option.corePluginConfig)
-            this.use(corePlugin)
-        }
     }
 
     private readonly $store: BuildStore
