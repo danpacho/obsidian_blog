@@ -7,13 +7,29 @@ import { PkgManager } from './core/pkg_manager.js'
 import { GithubRepository } from './core/repo.js'
 import { templateInjector } from './core/template.injector.js'
 
-interface InstallConfig {
-    install_path: string
-    build_root: string
-    build_assets: string
-    build_contents: string
-    install_pkg?: string
+interface InstallConfigRecord {
+    install: {
+        bridge_install_root: string
+        install_pkg?: string
+    }
+    build: {
+        obsidian_vault_root: string
+        blog_assets_root: string
+        blog_contents_root: string
+    }
+    publish: {
+        blog_root: string
+        git_root?: string
+        build_script?: string
+        commit_branch?: string
+        commit_prefix?: string
+        commit_message?: string
+    }
 }
+
+type InstallConfig = InstallConfigRecord['install'] &
+    InstallConfigRecord['build'] &
+    InstallConfigRecord['publish']
 
 type BloggerCLIOptions = {
     /**
@@ -77,12 +93,22 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
     }
 
     private async installBridgePkg({
-        install_path,
-        build_root,
-        build_assets,
-        build_contents,
+        bridge_install_root: bridge_install_path,
+        // bridge
+        // 1. build
+        obsidian_vault_root,
+        blog_assets_root,
+        blog_contents_root,
+        // 2. publish
+        blog_root,
+        git_root,
+        build_script = 'build',
+        commit_branch = 'main',
+        commit_message = `published @ ${new Date().toISOString()}`,
+        commit_prefix = 'publish',
     }: InstallConfig): Promise<void> {
-        const { ts: isTs } = this.programOptions
+        const { ts, js } = this.programOptions
+        const isTs = ts || !js
 
         const repository_path =
             `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/${isTs ? 'ts' : 'js'}` as const
@@ -91,40 +117,61 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         if (!repoInfo) return
 
         try {
-            const isInstalled = await this.$io.reader.fileExists(install_path)
+            const isInstalled =
+                await this.$io.reader.fileExists(bridge_install_path)
             if (isInstalled) {
                 this.$logger.info('Bridge package already installed')
                 return
             }
 
-            await this.$io.writer.createFolder(install_path)
+            await this.$io.writer.createFolder(bridge_install_path)
 
-            await this.$repo.downloadAndExtractRepo(install_path, repoInfo, {
-                onRetry: (e, attempt) => {
-                    this.$logger.log(
-                        `Attempt ${attempt} failed: ${e.message}, retrying...`
-                    )
-                },
-            })
+            await this.$repo.downloadAndExtractRepo(
+                bridge_install_path,
+                repoInfo,
+                {
+                    onRetry: (e, attempt) => {
+                        this.$logger.log(
+                            `Attempt ${attempt} failed: ${e.message}, retrying...`
+                        )
+                    },
+                }
+            )
 
-            const success = await this.$io.reader.fileExists(install_path)
+            const success =
+                await this.$io.reader.fileExists(bridge_install_path)
             if (!success) {
                 this.$logger.error('Failed to install bridge package')
             }
 
             const injectionTargetFiles = {
-                build: `${install_path}/src/build.ts`,
-                publish: `${install_path}/src/publish.ts`,
+                build: `${bridge_install_path}/src/build.ts`,
+                publish: `${bridge_install_path}/src/publish.ts`,
             } as const
 
             const injectionTemplate = {
                 build: {
-                    root: build_root,
-                    assets: build_assets,
-                    contents: build_contents,
+                    obsidian_vault_root,
+                    blog_assets_root,
+                    blog_contents_root,
                 },
-                publish: {},
-            } as const
+                publish: {
+                    blog_root,
+                    git_root:
+                        git_root ??
+                        (
+                            await this.$shell.exec$(
+                                ['win32'].includes(this.$shell.platform)
+                                    ? 'where git'
+                                    : 'which git'
+                            )
+                        ).stdout,
+                    build_script,
+                    commit_branch,
+                    commit_prefix,
+                    commit_message,
+                },
+            } as const satisfies Omit<InstallConfigRecord, 'install'>
 
             await Promise.all(
                 Object.entries(injectionTargetFiles).map(
@@ -163,7 +210,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             )
 
             this.$logger.success(`Bridge package installed`)
-            this.$logger.log(`Gen at ${install_path}`)
+            this.$logger.log(`Gen at ${bridge_install_path}`)
         } catch (e) {
             this.reportError(e)
         }
@@ -182,12 +229,12 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
     private async generatePluginTemplate({
         type,
-        bridge_root_path,
+        bridge_root: bridge_root_path,
         plugin_name,
         plugin_type,
     }: {
         type: 'build' | 'publish'
-        bridge_root_path: string
+        bridge_root: string
         plugin_name: string | undefined
         plugin_type:
             | ('build:contents' | 'build:tree' | 'walk:tree') // build plugin
@@ -302,19 +349,25 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         this.addCommand({
             cmdFlag: 'create',
             argFlag: [
-                '<install_path>',
-                '<build_root>',
-                '<build_contents>',
-                '<build_assets>',
+                '<bridge_install_root>',
+                '<obsidian_vault_root>',
+                '<blog_assets_root>',
+                '<blog_contents_root>',
+                '<blog_root>',
+                '[build_script]',
+                '[git_path]',
+                '[commit_branch]',
+                '[commit_prefix]',
+                '[commit_message]',
                 '[install_pkg]',
             ],
-            cmdDescription: 'Create a @obsidian_blog bridge package',
+            cmdDescription: 'Create a obsidian-blog bridge package',
             cmdAction: async (config: InstallConfig) => {
                 await this.installBridgePkg(config)
                 const skipInstall =
                     config.install_pkg === 'false' || config.install_pkg === 'f'
                 if (skipInstall) return
-                await this.runPackageInstallation(config.install_path)
+                await this.runPackageInstallation(config.bridge_install_root)
             },
         })
 
@@ -322,9 +375,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         this.addCommand({
             cmdFlag: 'install',
             cmdDescription: 'Install a package',
-            argFlag: ['<install_path>'],
-            cmdAction: async ({ install_path }) => {
-                await this.runPackageInstallation(install_path)
+            argFlag: ['<bridge_install_root>'],
+            cmdAction: async ({ bridge_install_root }) => {
+                await this.runPackageInstallation(bridge_install_root)
             },
         })
 
@@ -332,7 +385,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         this.addCommand({
             cmdFlag: 'plugin:build',
             cmdDescription: 'Generate build plugin template',
-            argFlag: ['<bridge_root_path>', '<plugin_type>', '[plugin_name]'],
+            argFlag: ['<bridge_root>', '<plugin_type>', '[plugin_name]'],
             cmdAction: async (config) => {
                 const assertPluginType = (
                     plugin_type: string
@@ -354,7 +407,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
                 await this.generatePluginTemplate({
                     type: 'build',
-                    bridge_root_path: config.bridge_root_path,
+                    bridge_root: config.bridge_root,
                     plugin_type: config.plugin_type,
                     plugin_name: config.plugin_name,
                 })
@@ -381,7 +434,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
                 await this.generatePluginTemplate({
                     type: 'publish',
-                    bridge_root_path: config.bridge_root_path,
+                    bridge_root: config.bridge_root_path,
                     plugin_type: config.plugin_type,
                     plugin_name: config.plugin_name,
                 })
