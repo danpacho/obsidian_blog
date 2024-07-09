@@ -17,9 +17,9 @@ import {
  */
 export interface PublishCommand {
     /**
-     * Builder command arguments, should exact match with builder plugins
+     * BuildScript command arguments, should exact match with builder plugins
      */
-    builder: ReadonlyArray<Record<string, unknown>>
+    buildScript: ReadonlyArray<Record<string, unknown>>
     /**
      * Repository command arguments, should exact match with repository plugins
      */
@@ -27,7 +27,7 @@ export interface PublishCommand {
     /**
      * Deployer command arguments, should exact match with deployer plugins
      */
-    deployer: ReadonlyArray<Record<string, unknown>>
+    deploy?: ReadonlyArray<Record<string, unknown>>
 }
 
 export interface PublishSystemConstructor extends PublishPluginConstructor {}
@@ -69,7 +69,7 @@ export class PublishSystem extends PublishPlugin {
      */
     public getPluginPipelineInfo() {
         return {
-            builder: this.buildScriptPluginManager.$loader.plugins.map(
+            buildScript: this.buildScriptPluginManager.$loader.plugins.map(
                 (b, i) => ({
                     name: b.name,
                     order: i + 1,
@@ -81,7 +81,7 @@ export class PublishSystem extends PublishPlugin {
                     order: i + 1,
                 })
             ),
-            deployer: this.deployPluginManager.$loader.plugins.map((d, i) => ({
+            deploy: this.deployPluginManager.$loader.plugins.map((d, i) => ({
                 name: d?.name,
                 order: i + 1,
             })),
@@ -150,7 +150,7 @@ export class PublishSystem extends PublishPlugin {
                             Promise<Array<unknown>>
                         >(
                             async (acc, builder, i) => {
-                                const command = commands.builder[i]
+                                const command = commands.buildScript[i]
                                 if (!command) {
                                     this.$logger.error(
                                         `No build command found for builder ${builder.name}`
@@ -219,7 +219,7 @@ export class PublishSystem extends PublishPlugin {
                             Promise<Array<unknown>>
                         >(
                             async (acc, deployer, i) => {
-                                const command = commands.deployer[i]
+                                const command = commands.deploy?.[i]
                                 if (!command) {
                                     this.$logger.error(
                                         `No deploy command found for deployer ${deployer?.name}`
