@@ -52,8 +52,15 @@ const publish = async () => {
     })
 
     // Publish
-    const publishResult = await publisher.publish({
-        builder: [
+    const publishResult = await publisher.publish<{
+        buildScript: readonly [
+            CorePlugins.BlogBuildConfig,
+            CorePlugins.BlogBuildConfig,
+        ]
+        repository: readonly [CorePlugins.GithubSaveConfig]
+        deploy?: readonly [CorePlugins.VercelDeployConfig]
+    }>({
+        buildScript: [
             {
                 buildScript: ['build'],
             },
@@ -70,7 +77,7 @@ const publish = async () => {
                     .replace(/:/g, '_')}`,
             },
         ],
-        deployer: [{ someConfig: 'someValue' }],
+        deploy: [{ someConfig: 'someValue' }],
     })
 
     // eslint-disable-next-line no-console
