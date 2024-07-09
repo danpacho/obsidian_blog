@@ -12,11 +12,17 @@ const publish = async () => {
         name: 'blog_builder',
         cwd: BLOG_ROOT,
     })
+    const tester = new CorePlugins.BlogBuilder({
+        name: 'blog_tester',
+        cwd: BLOG_ROOT,
+    })
+
+    const gitPath = (await shell.exec$('which git')).stdout
 
     const github = new CorePlugins.GithubRepository({
         name: 'github_repository',
         cwd: BLOG_ROOT,
-        gitPath: (await shell.exec$('which git')).stdout,
+        gitPath,
     })
 
     const vercel = new CorePlugins.VercelDeploy({
@@ -30,7 +36,7 @@ const publish = async () => {
     })
 
     publisher.use({
-        buildScript: [builder],
+        buildScript: [builder, tester],
         repository: [github],
         deploy: [vercel],
     })
@@ -51,6 +57,9 @@ const publish = async () => {
             {
                 buildScript: ['build'],
             },
+            {
+                buildScript: ['test'],
+            },
         ],
         repository: [
             {
@@ -65,7 +74,7 @@ const publish = async () => {
     })
 
     // eslint-disable-next-line no-console
-    console.log(publishResult)
+    console.log(publishResult.history)
 
     await io.writer.write({
         data: JSON.stringify(publishResult, null, 2),
