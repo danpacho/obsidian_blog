@@ -62,9 +62,9 @@ export class BuildResultLogger {
         this.$logger.box(
             `${this.$logger.c.green('Build Report')} - ${localDate}`,
             {
-                prefix: false,
                 borderStyle: 'round',
                 padding: 0.75,
+                borderColor: 'green',
             }
         )
     }
