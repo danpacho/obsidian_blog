@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 import { CorePlugins, PublishSystem } from '@obsidian_blogger/publish_system'
 
+const Publisher = new PublishSystem({
+    name: 'pub_system',
+    cwd: '{{blog_root}}',
+})
+
+const BlogBuilder = new CorePlugins.BlogBuilder({
+    name: 'blog_builder',
+    cwd: '{{blog_root}}',
+})
+
+const GithubRepository = new CorePlugins.GithubRepository({
+    name: 'github_repository',
+    cwd: '{{blog_root}}',
+    gitPath: '{{git_root}}',
+})
+
 const publish = async () => {
-    const Publisher = new PublishSystem({
-        name: 'pub_system',
-        cwd: '{{blog_root}}',
-    })
-
-    const BlogBuilder = new CorePlugins.BlogBuilder({
-        name: 'blog_builder',
-        cwd: '{{blog_root}}',
-    })
-
-    const GithubRepository = new CorePlugins.GithubRepository({
-        name: 'github_repository',
-        cwd: '{{blog_root}}',
-        gitPath: '{{git_root}}',
-    })
-
     Publisher.use({
         buildScript: [BlogBuilder],
         repository: [GithubRepository],
