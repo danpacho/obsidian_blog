@@ -1,11 +1,7 @@
-import {
-    FilePathFinder,
-    FileReader,
-    IO as IOManager,
-} from '@obsidian_blogger/helpers'
+import { IO, Queue } from '@obsidian_blogger/helpers'
 import {
     AudioFileNode,
-    FTreeNode,
+    FileTreeNode,
     FolderNode,
     ImageFileNode,
     TextFileNode,
@@ -32,9 +28,33 @@ interface FileSyntax {
 }
 interface FileTreeSyntax extends FolderSyntax, FileSyntax {}
 
+export type Walker = (
+    /**
+     * Current node
+     */
+    node: FileTreeNode,
+    /**
+     * Context object
+     */
+    context: {
+        /**
+         * Children of the current node
+         */
+        children: Array<FileTreeNode> | undefined
+        /**
+         * Siblings of the current node
+         */
+        siblings: Array<FileTreeNode> | undefined
+        /**
+         * Current node index in the siblings list
+         */
+        siblingsIndex: number | undefined
+    }
+) => Promise<void>
+
 export interface FileTreeParserConstructor {
     rootFolder: string
-    readonly io: IOManager
+    readonly io: IO
     /**
      * @description A custom tree syntax to determine which files and folders should be included in the tree
      */
@@ -46,18 +66,20 @@ export class FileTreeParser {
     }
 
     private _ast: FolderNode | undefined = undefined
-    private get $reader(): FileReader {
-        return this.options.io.reader
-    }
-    private get $finder(): FilePathFinder {
-        return this.options.io.finder
+    private _queue: Queue<{
+        node: FileTreeNode
+        siblings: Array<FileTreeNode> | undefined
+        siblingsIndex?: number
+    }> = new Queue()
+    private get $io(): IO {
+        return this.options.io
     }
     public get ast(): FolderNode | undefined {
         return this._ast
     }
 
     public updateRootFolder(rootFolder: string): void {
-        const res = this.$finder.findFileSync(rootFolder)
+        const res = this.$io.finder.findFileSync(rootFolder)
         if (!res.success) {
             throw new Error(`Root path not found:\nCheck ${rootFolder}`)
         }
@@ -84,7 +106,7 @@ export class FileTreeParser {
         root: string = this._ast?.absolutePath ?? '',
         parent?: FolderNode
     ): Promise<FolderNode | undefined> {
-        const folderList = await this.$reader.readDir(root)
+        const folderList = await this.$io.reader.readDir(root)
         const parentRoot = parent ?? this._ast
         const parentDepth = parentRoot?.nodeDepth ?? 0
         if (!folderList.success) {
@@ -143,38 +165,127 @@ export class FileTreeParser {
         return parentRoot
     }
 
+    public reset(): void {
+        this._ast = undefined
+        this.updateRootFolder(this.options.rootFolder)
+        this._queue = new Queue()
+    }
+
     public async parse(): Promise<FolderNode> {
-        const generated = await this.generateTree()
-        this._ast = generated
+        this.reset()
+        this._ast = await this.generateTree()
 
         if (!this._ast) throw new Error('AST undefined, check errors')
 
         return this._ast
     }
 
-    public async walkAST(
-        children: Array<FTreeNode>,
-        walker: (
-            node: FTreeNode,
-            i: number,
-            children: Array<FTreeNode>
-        ) => Promise<void>,
-        skipFolderNode: boolean = false
+    private async walkDFS(
+        node: FileTreeNode,
+        walker: Walker,
+        skipFolderNode: boolean = false,
+        siblings: Array<FileTreeNode> | undefined = undefined,
+        siblingsIndex: number | undefined = undefined
     ): Promise<void> {
-        if (!children || children.length === 0) return
+        if (!node) return
 
-        for (let i = 0; i < children.length; i++) {
-            const child = children[i]
-            if (child instanceof FolderNode) {
-                if (!skipFolderNode) {
-                    await walker(child, i, children)
-                }
-                await this.walkAST(child.children, walker, skipFolderNode)
-            } else {
-                await walker(child!, i, children)
-            }
+        const shouldWalk: boolean = !(
+            skipFolderNode && node instanceof FolderNode
+        )
+
+        if (shouldWalk) {
+            await walker(node, {
+                children: node.children,
+                siblings,
+                siblingsIndex,
+            })
         }
 
-        return
+        if (!node.children) return
+        for (let i = 0; i < node.children.length; i++) {
+            const child = node.children[i]
+            if (!child) continue
+
+            await this.walkDFS(child, walker, skipFolderNode, node.children, i)
+        }
+    }
+
+    private async walkBFS(
+        node: FileTreeNode,
+        walker: Walker,
+        skipFolderNode: boolean = false
+    ): Promise<void> {
+        if (!node) return
+
+        this._queue.enqueue({
+            node,
+            siblings: undefined,
+        })
+
+        while (this._queue.size !== 0) {
+            const dequeued = this._queue.dequeue()
+            if (!dequeued) continue
+            const { node, siblings, siblingsIndex } = dequeued
+
+            const shouldWalk: boolean = !(
+                skipFolderNode && node instanceof FolderNode
+            )
+
+            if (shouldWalk) {
+                await walker(node, {
+                    children: node.children,
+                    siblings,
+                    siblingsIndex,
+                })
+            }
+
+            const nodeChildren = node.children
+            if (nodeChildren) {
+                for (let i = 0; i < nodeChildren.length; i++) {
+                    const child = nodeChildren[i]
+                    if (!child) continue
+
+                    this._queue.enqueue({
+                        node: child,
+                        siblings: nodeChildren,
+                        siblingsIndex: i,
+                    })
+                }
+            }
+        }
+    }
+
+    /**
+     * Walk through the file tree
+     * @param walker Walk function to execute on each node
+     * @param options Walk options
+     */
+    public async walk(
+        walker: Walker,
+        options: {
+            /**
+             * Tree traversal type `DFS` or `BFS`
+             */
+            type: 'DFS' | 'BFS'
+            /**
+             * Skip executing walk function for folder node
+             */
+            skipFolderNode?: boolean
+            /**
+             * Root node to start walking
+             */
+            walkRoot?: FileTreeNode
+        }
+    ): Promise<void> {
+        const { skipFolderNode, type } = options
+        const targetAST = options.walkRoot ?? this._ast
+        if (!targetAST) return
+
+        const skipFolderNodeCondition = skipFolderNode ?? false
+        if (type === 'DFS') {
+            await this.walkDFS(targetAST, walker, skipFolderNodeCondition)
+        } else {
+            await this.walkBFS(targetAST, walker, skipFolderNodeCondition)
+        }
     }
 }
