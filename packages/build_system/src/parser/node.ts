@@ -1,6 +1,9 @@
 import { FileReader } from '@obsidian_blogger/helpers'
 import type { BuildInformation } from '../builder/core/store'
 
+/**
+ * Type of file tree node
+ */
 export type NodeType =
     | 'FOLDER'
     | 'TEXT_FILE'
@@ -10,10 +13,22 @@ export type NodeType =
 
 type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id'>
 
-export abstract class FTreeNode {
-    public readonly children: FTreeNode[] | undefined = undefined
+/**
+ * Represents an abstract class for a file tree node.
+ */
+export abstract class FileTreeNode {
+    /**
+     * The children of the file tree node.
+     */
+    public readonly children: Array<FileTreeNode> | undefined = undefined
+    /**
+     * The name of the file.
+     */
     public fileName: string
 
+    /**
+     * The parent information of the file tree node.
+     */
     public get parentInfo() {
         return this._parentInfo
     }
@@ -23,6 +38,10 @@ export abstract class FTreeNode {
               fileName: string
           }
         | undefined = undefined
+    /**
+     * Sets the parent information of the file tree node.
+     * @param parentInfo The parent information.
+     */
     public setParentInfo(parentInfo: {
         absolutePath: string
         fileName: string
@@ -31,22 +50,40 @@ export abstract class FTreeNode {
     }
 
     private _buildInfo: NodeBuildInfo | undefined = undefined
+    /**
+     * The build information of the file tree node.
+     */
     public get buildInfo(): NodeBuildInfo | undefined {
         return this._buildInfo
     }
+    /**
+     * Injects the build information into the file tree node.
+     * @param info The build information.
+     */
     public injectBuildInfo(info: NodeBuildInfo): void {
         this._buildInfo = info
     }
 
+    /**
+     * Creates a new instance of the FileTreeNode class.
+     * @param absolutePath The absolute path of the file.
+     * @param nodeDepth The depth of the node in the file tree.
+     * @param category The category of the node.
+     * @param label The label of the node.
+     */
     public constructor(
         public readonly absolutePath: string,
         public readonly nodeDepth: number,
         public readonly category: NodeType = 'UNKNOWN_FILE',
         public label: string | undefined = undefined
     ) {
-        this.fileName = FTreeNode.getFileName(absolutePath)
+        this.fileName = FileTreeNode.getFileName(absolutePath)
     }
 
+    /**
+     * Sets the label of the file tree node.
+     * @param label The label to set.
+     */
     public setLabel(label: string): void {
         this.label = label
     }
@@ -61,22 +98,26 @@ export abstract class FTreeNode {
         return fileNameTarget
     }
 
+    /**
+     * The file extension of the file tree node.
+     */
     public get fileExtension(): string | undefined {
         return FileReader.getExtension(this.fileName)
     }
 
     /**
-     * @description category of data node tags
+     * The list of file extensions.
      */
     public static readonly FileExtensionList: Set<string>
     /**
-     * @description get current tagName is in data node category
+     * Checks if the file extension is in the target.
+     * @param extension The file extension to check.
      */
     public static readonly is: (extension: string | undefined) => boolean
 }
 
-export class FolderNode extends FTreeNode {
-    public override children: FTreeNode[] = []
+export class FolderNode extends FileTreeNode {
+    public override children: FileTreeNode[] = []
     public constructor(
         absolutePath: string,
         nodeDepth: number,
@@ -87,7 +128,7 @@ export class FolderNode extends FTreeNode {
 }
 
 export type TextFileExtension = 'md' | 'mdx' | 'txt' | 'html'
-export class TextFileNode extends FTreeNode {
+export class TextFileNode extends FileTreeNode {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
@@ -124,7 +165,7 @@ export type ImageFileExtension =
     | 'apng'
     | 'heif'
     | 'heic'
-export class ImageFileNode extends FTreeNode {
+export class ImageFileNode extends FileTreeNode {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
@@ -173,7 +214,7 @@ export type AudioFileExtension =
     | 'wma'
     | 'alac'
     | 'aiff'
-export class AudioFileNode extends FTreeNode {
+export class AudioFileNode extends FileTreeNode {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
