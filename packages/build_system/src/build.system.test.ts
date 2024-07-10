@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { FTreeNode } from './parser/node'
+import { FileTreeNode } from './parser/node'
 import { BuildSystem, CorePlugins } from './index'
 
 describe('BuildSystem', async () => {
-    const pathGen = (node: FTreeNode, rootPath: string) => {
+    const pathGen = (node: FileTreeNode, rootPath: string) => {
         const analyzeFileName = (
             folderName?: string
         ): {
@@ -40,7 +40,7 @@ describe('BuildSystem', async () => {
             node,
             rootPath,
         }: {
-            node: FTreeNode
+            node: FileTreeNode
             rootPath: string
         }): string => {
             const absPath = node.absolutePath
