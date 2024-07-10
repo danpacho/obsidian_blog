@@ -1,7 +1,7 @@
 import { Logger } from '@obsidian_blogger/helpers/logger'
 import { PluginManager } from '@obsidian_blogger/helpers/plugin'
 import { MarkdownProcessor } from '../md/processor'
-import type { FTreeNode, FolderNode } from '../parser/node'
+import type { FileTreeNode, FolderNode } from '../parser/node'
 import type { FileTreeParser } from '../parser/parser'
 import { BuildResultLogger } from './core/build.logger'
 import {
@@ -23,7 +23,7 @@ import { BuildTreePlugin } from './plugin/build.tree.plugin'
 import { WalkTreePlugin } from './plugin/walk.tree.plugin'
 
 class BuildFileTreeCorePlugin extends BuildTreePlugin {
-    public async walk(node: FTreeNode): Promise<void> {
+    public async walk(node: FileTreeNode): Promise<void> {
         const { buildInfo, absolutePath, category } = node
         if (!buildInfo) return
 
@@ -163,8 +163,7 @@ export class Builder {
         await this.$cacheManager.setup()
 
         this.option.logger.updateName('BuildStoreSync')
-        await this.$parser.walkAST(
-            originAST.children,
+        await this.$parser.walk(
             async (node) => {
                 switch (node.category) {
                     case 'TEXT_FILE': {
@@ -193,7 +192,11 @@ export class Builder {
                     return
                 }
             },
-            true // SKIP FOLDER NODE
+            {
+                skipFolderNode: true,
+                walkRoot: originAST,
+                type: 'DFS',
+            }
         )
 
         this.$cacheManager.syncRemovedStore()
@@ -212,11 +215,11 @@ export class Builder {
                 treePlugin: plugin,
             })
 
-            await this.$parser.walkAST(
-                originAST.children,
-                cachePipe,
-                config.skipFolderNode ?? false
-            )
+            await this.$parser.walk(cachePipe, {
+                walkRoot: originAST,
+                skipFolderNode: config.skipFolderNode ?? false,
+                type: 'DFS',
+            })
         }
     }
 
@@ -225,12 +228,11 @@ export class Builder {
         whenCached,
     }: {
         treePlugin: WalkTreePlugin | BuildTreePlugin
-        whenCached?: (node: FTreeNode) => void
-    }): Promise<Parameters<FileTreeParser['walkAST']>[1]> {
+        whenCached?: (node: FileTreeNode) => void
+    }): Promise<Parameters<FileTreeParser['walk']>[0]> {
         const cacheChecker = (
-            node: FTreeNode,
-            i: number,
-            children: Array<FTreeNode>
+            node: FileTreeNode,
+            children: Array<FileTreeNode> | undefined
         ): boolean => {
             const config = treePlugin.getConfig()
             const { buildInfo } = node
@@ -266,8 +268,7 @@ export class Builder {
                 // User-defined caching logic
                 return treePlugin.cacheChecker(status.data, {
                     node,
-                    i,
-                    peerNodes: children,
+                    children,
                 })
             }
 
@@ -280,10 +281,10 @@ export class Builder {
             return true
         }
 
-        return async (node, i, children) => {
-            if (cacheChecker(node, i, children)) return
+        return async (node, context) => {
+            if (cacheChecker(node, context.children)) return
 
-            await treePlugin.walk(node, i, children)
+            await treePlugin.walk(node, context)
         }
     }
 
@@ -295,11 +296,13 @@ export class Builder {
 
         this.option.logger.updateName('FileTreeBuilder')
 
-        await this.$parser.walkAST(
-            originAST.children,
+        await this.$parser.walk(
             await this.walkerCachePipe({
                 treePlugin: this.$buildFileTreePlugin,
-            })
+            }),
+            {
+                type: 'DFS',
+            }
         )
 
         const removeTarget = this.$store.getRemoveTarget()
@@ -319,10 +322,9 @@ export class Builder {
         }
     }
 
-    private async injectBuildInfoToGeneratedTree(generatedAST: FolderNode) {
+    private async injectBuildInfoToGeneratedTree() {
         this.option.logger.updateName('InjectBuildInfo')
-        await this.$parser.walkAST(
-            generatedAST.children,
+        await this.$parser.walk(
             async (node) => {
                 const generatedBuildInfo = this.$store.findByBuildPath(
                     node.absolutePath,
@@ -338,7 +340,10 @@ export class Builder {
                 node.injectBuildInfo(generatedBuildInfo.data)
                 return
             },
-            true
+            {
+                type: 'DFS',
+                skipFolderNode: true,
+            }
         )
     }
 
@@ -354,7 +359,7 @@ export class Builder {
         if (!generatedAST.children) return
 
         if (shouldInjectBuildInfo) {
-            await this.injectBuildInfoToGeneratedTree(generatedAST)
+            await this.injectBuildInfoToGeneratedTree()
         }
 
         return generatedAST
@@ -376,11 +381,10 @@ export class Builder {
                 treePlugin: plugin,
             })
 
-            await this.$parser.walkAST(
-                generatedAST.children,
-                cachePipe,
-                config.skipFolderNode ?? false
-            )
+            await this.$parser.walk(cachePipe, {
+                type: config.walkType ?? 'DFS',
+                skipFolderNode: config.skipFolderNode ?? false,
+            })
         }
     }
 
