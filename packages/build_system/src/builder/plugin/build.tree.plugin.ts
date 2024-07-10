@@ -1,4 +1,4 @@
-import type { FTreeNode } from '../../parser'
+import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import { BuildPlugin, type BuildPluginConfig } from './build.plugin'
 
@@ -25,30 +25,54 @@ export interface BuildTreePluginConfig extends BuildPluginConfig {
 export abstract class BuildTreePlugin extends BuildPlugin<BuildTreePluginConfig> {
     /**
      * Walking a original file tree for rebuilding the file tree
-     * @param node - The current tree node.
-     * @param i - The index of the current tree node.
-     * @param peerNodes - The peer nodes of the current tree node.
      */
     public abstract walk(
-        node: FTreeNode,
-        i: number,
-        peerNodes: Array<FTreeNode>
+        /**
+         * Current node
+         */
+        node: FileTreeNode,
+        /**
+         * Current node walk context
+         */
+        context: {
+            /**
+             * Children of the current node
+             */
+            children: Array<FileTreeNode> | undefined
+            /**
+             * Siblings of the current node
+             */
+            siblings: Array<FileTreeNode> | undefined
+            /**
+             * Current node index in the siblings list
+             */
+            siblingsIndex: number | undefined
+        }
     ): Promise<void>
 
     /**
      * Optional cache checker function for determining if the build state and node information
      * should be cached.
      *
-     * @param state - The build state.
-     * @param nodeInfo - The information about the current tree node.
      * @returns A boolean indicating whether the build state and node information should be cached.
      */
     public override cacheChecker?: (
+        /**
+         * The build state of the file.
+         */
         state: BuildInformation['build_state'],
+        /**
+         * The node information.
+         */
         nodeInfo: {
-            node: FTreeNode
-            i: number
-            peerNodes: Array<FTreeNode>
+            /**
+             * The node of the file.
+             */
+            node: FileTreeNode
+            /**
+             * The children of the node.
+             */
+            children: Array<FileTreeNode> | undefined
         }
     ) => boolean
 }
