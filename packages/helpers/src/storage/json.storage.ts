@@ -2,7 +2,7 @@
 import { StorageError } from './error'
 import { StorageConstructor, StorageInterface } from './storage.interface'
 
-interface JsonStorageOptions extends StorageConstructor {}
+export interface JsonStorageConstructor extends StorageConstructor {}
 
 /**
  * Represents a JSON storage implementation that extends a base storage interface.
@@ -16,7 +16,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * @param options - The options for the JSON storage.
      */
     public constructor(
-        protected override readonly options: JsonStorageOptions
+        protected override readonly options: JsonStorageConstructor
     ) {
         if (options.name.split('.').pop() !== 'json') {
             throw new StorageError(
@@ -27,6 +27,27 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
         }
         super(options)
         this.load().catch((error) => this.$logger.error(error))
+    }
+
+    /**
+     * Gets the underlying storage `map`
+     */
+    public get storage(): Map<string, Schema> {
+        return this._data
+    }
+
+    /**
+     * Gets the underlying storage as `record`
+     */
+    public get storageRecord(): Record<string, Schema> {
+        return Object.fromEntries(this._data)
+    }
+
+    /**
+     * Gets the underlying storage `json`
+     */
+    public get storageJson(): string {
+        return JSON.stringify(this.storageRecord, null, 2)
     }
 
     /**
