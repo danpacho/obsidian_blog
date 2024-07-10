@@ -10,6 +10,7 @@ export default defineConfig((options) => ({
         logger: 'src/logger/index.ts',
         shell: 'src/shell/index.ts',
         plugin: 'src/plugin/index.ts',
+        storage: 'src/storage/index.ts',
     },
     watch: options.watch ? ['src/**/*'] : false,
     clean: false,
