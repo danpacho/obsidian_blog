@@ -5,61 +5,117 @@ import { FileTreeParser } from './parser'
 describe('FileTreeParser', () => {
     const parser = new FileTreeParser({
         io: new IOManager(),
-        rootFolder: '$$blog$$',
+        rootFolder: '$$tree$$',
     })
 
-    it('should CREATE a new instance of FileTreeAnalyzer via static method', () => {
-        expect(parser).toBeDefined()
-    })
-
-    it('should RETURN a file tree', async () => {
+    it('should generate a file tree', async () => {
         const fileTree = await parser.parse()
-        expect(fileTree).toBeDefined()
-        // TODO: file tree is dependent on the running environment
-        // expect(fileTree).toMatchSnapshot()
+        expect(fileTree.label).toStrictEqual('ROOT')
+    })
+
+    it('should walk a file tree by DFS', async () => {
+        const names: Array<string> = []
+        await parser.walk(
+            async (node) => {
+                names.push(node.fileName)
+            },
+            {
+                type: 'DFS',
+                skipFolderNode: false,
+            }
+        )
+
+        expect(names).toStrictEqual([
+            '$$tree$$',
+            'sub1',
+            'sub1_1',
+            '1_1.txt',
+            'sub1_2',
+            '1_2.txt',
+            'sub2',
+            'sub2_1',
+            'sub2_1_1',
+            '2_1_1.txt',
+            'sub3',
+            'sub3_1',
+            '3_1.txt',
+        ])
+    })
+
+    it('should walk a file tree by BFS', async () => {
+        const names: Array<string> = []
+        await parser.walk(
+            async (node) => {
+                names.push(node.fileName)
+            },
+            {
+                type: 'BFS',
+                skipFolderNode: false,
+            }
+        )
+
+        expect(names).toStrictEqual([
+            '$$tree$$',
+            'sub1',
+            'sub2',
+            'sub3',
+            'sub1_1',
+            'sub1_2',
+            'sub2_1',
+            'sub3_1',
+            '1_1.txt',
+            '1_2.txt',
+            'sub2_1_1',
+            '3_1.txt',
+            '2_1_1.txt',
+        ])
     })
 
     const parserWithSyntax = new FileTreeParser({
         io: new IOManager(),
-        rootFolder: '$$blog$$',
+        rootFolder: '$$tree$$',
         treeSyntax: {
-            fileNameMatcher: ({ name, depth }) => {
-                if (depth >= 6) return false
+            fileNameMatcher: ({ name }) => {
                 const validFileNames = /[a-zA-Z0-9-_]/
                 return validFileNames.test(name)
             },
             folderNameMatcher: ({ depth, name }) => {
-                const startsWithAt = name.startsWith('@')
-                if (startsWithAt) return true
-
-                const first = name.at(0)
-                const last = name.at(-1)
-                if (first === '[' && last === ']') return depth < 3
-                if (first === '{' && last === '}') return depth < 3
-
-                return true
+                return depth < 2 && name !== 'sub3'
             },
         },
     })
 
-    it('should RETURN a file tree based on tree_syntax', async () => {
+    it('should walk a file tree based on tree_syntax by DFS', async () => {
         const fileTree = await parserWithSyntax.parse()
         expect(fileTree).toBeDefined()
-        // TODO: file tree is dependent on the running environment
-        // expect(fileTree).toMatchSnapshot()
+
+        const names: Array<string> = []
+        await parserWithSyntax.walk(
+            async (node) => {
+                names.push(node.fileName)
+            },
+            {
+                type: 'BFS',
+                skipFolderNode: false,
+            }
+        )
+
+        expect(names).toStrictEqual(['$$tree$$', 'sub1', 'sub2'])
     })
 
-    it('should WALK through the file tree', async () => {
+    it('should walk a file tree based on tree_syntax by BFS', async () => {
         const fileTree = await parserWithSyntax.parse()
-        await parserWithSyntax.walkAST(
-            fileTree.children,
+        expect(fileTree).toBeDefined()
+        const names: Array<string> = []
+        await parserWithSyntax.walk(
             async (node) => {
-                node.fileName = ''
-
-                expect(node.fileName).toBe('')
-                expect(node.absolutePath).toBeDefined()
+                names.push(node.fileName)
             },
-            true
+            {
+                type: 'DFS',
+                skipFolderNode: false,
+            }
         )
+        expect(names).toStrictEqual(['$$tree$$', 'sub1', 'sub2'])
     })
 })
