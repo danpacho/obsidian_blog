@@ -1,5 +1,5 @@
 import { FileReader } from '@obsidian_blogger/helpers'
-import { FTreeNode } from 'packages/build_system/src/parser'
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
 import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
 import {
@@ -51,7 +51,7 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin {
         )
     }
 
-    public async walk(node: FTreeNode): Promise<void> {
+    public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
         const finalBuildPath: string | undefined =

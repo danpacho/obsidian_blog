@@ -1,4 +1,4 @@
-import type { FTreeNode } from 'packages/build_system/src/parser/node'
+import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
@@ -32,12 +32,12 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
 
     private async getPostCollectionStore({
         seriesName,
-        children,
+        siblings,
     }: {
         seriesName: string
-        children: Array<FTreeNode>
+        siblings: Array<FileTreeNode>
     }): Promise<DefaultContentMeta['seriesInfo']> {
-        const res = children.reduce<Promise<DefaultContentMeta['seriesInfo']>>(
+        const res = siblings.reduce<Promise<DefaultContentMeta['seriesInfo']>>(
             async (acc, curr) => {
                 const awaited = await acc
                 if (!awaited) return acc
@@ -67,11 +67,11 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
     }
 
     public async walk(
-        node: FTreeNode,
-        i: number,
-        children: Array<FTreeNode>
+        node: Parameters<WalkTreePlugin['walk']>[0],
+        { siblings }: Parameters<WalkTreePlugin['walk']>[1]
     ): Promise<void> {
         if (node.category === 'FOLDER') return
+        if (!siblings) return
         const metaRes = await this.meta.extractFromFile(node.absolutePath)
         if (!metaRes.success) return
 
@@ -81,7 +81,7 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
 
         const seriesInfo = await this.getPostCollectionStore({
             seriesName: meta.series,
-            children,
+            siblings,
         })
 
         await this.meta.replace({

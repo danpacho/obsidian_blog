@@ -1,4 +1,4 @@
-import type { FTreeNode } from 'packages/build_system/src/parser/node'
+import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
 import {
     type CategoryDescriptionGeneratorOptions,
@@ -35,7 +35,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
     }
 
     private async getPostCollection(
-        children: Array<FTreeNode>
+        children: Array<FileTreeNode>
     ): Promise<Array<DefaultContentMeta>> {
         const postCollection = children.reduce<
             Promise<Array<DefaultContentMeta>>
@@ -73,7 +73,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
     }
 
     private async getPostCollectionContainer(
-        children: Array<FTreeNode>
+        children: Array<FileTreeNode>
     ): Promise<DefaultCategoryMeta> {
         const postCollectionContainer = children.reduce<
             Promise<DefaultCategoryMeta>
@@ -113,15 +113,15 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
     }
 
     public async walk(
-        node: FTreeNode,
-        i: number,
-        children: Array<FTreeNode>
+        node: Parameters<WalkTreePlugin['walk']>[0],
+        { siblings }: Parameters<WalkTreePlugin['walk']>[1]
     ): Promise<void> {
         if (node.fileName !== this.config.descriptionFileName) return
         if (!node.parentInfo) return
+        if (!siblings) return
 
         const postCollectionContainer =
-            await this.getPostCollectionContainer(children)
+            await this.getPostCollectionContainer(siblings)
 
         const writePath: string = this.config?.path
             ? `${this.config.path}/${node.parentInfo.fileName}.json`

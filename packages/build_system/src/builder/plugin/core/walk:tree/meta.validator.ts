@@ -1,4 +1,4 @@
-import { FTreeNode } from 'packages/build_system/src/parser'
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
@@ -28,7 +28,7 @@ export class MetaValidatorPlugin extends WalkTreePlugin {
         }
     }
 
-    public async walk(node: FTreeNode): Promise<void> {
+    public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
         if (!node.buildInfo) return
 
