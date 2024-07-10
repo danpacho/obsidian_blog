@@ -4,15 +4,15 @@ import type { WalkTreePlugin } from './walk.tree.plugin'
 
 export interface BuildSystemPlugin {
     /**
-     * @description `Phase1`: Build the origin file tree
+     * `Phase1`: Build the file tree
      */
     'build:tree': BuildTreePlugin
     /**
-     * @description `Phase2`: Walk the generated tree
+     * `Phase2`: Walk the generated tree
      */
     'walk:tree': WalkTreePlugin
     /**
-     * @description `Phase3`: Build the contents
+     * `Phase3`: Build the contents
      */
     'build:contents': BuildContentsPlugin
 }

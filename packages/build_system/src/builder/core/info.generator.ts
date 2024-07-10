@@ -1,10 +1,10 @@
 import { type UUID, createHash } from 'crypto'
 import { FileReader, type IO } from '@obsidian_blogger/helpers'
-import type { FTreeNode } from '../../parser/node'
+import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginCoreDependencies } from '../plugin/build.plugin'
 import type { BuildInformation } from './store'
 /**
- * @description A unique identifier for a node
+ *  A unique identifier for a node
  */
 export type NodeId = UUID
 
@@ -16,11 +16,11 @@ export interface BuildInfoGeneratorConstructor {
     }
     readonly pathGenerator: {
         assets: (
-            node: FTreeNode,
+            node: FileTreeNode,
             buildTools: BuildPluginCoreDependencies
         ) => Promise<string>
         contents: (
-            node: FTreeNode,
+            node: FileTreeNode,
             buildTools: BuildPluginCoreDependencies
         ) => Promise<string>
     }
@@ -78,11 +78,11 @@ export class BuildInfoGenerator {
     }
 
     /**
-     * @description Generate a unique identifier for a content node
+     *  Generate a unique identifier for a content node
      * @param originPath source path of the content
      */
     public async generateContentBuildInfo(
-        contentNode: FTreeNode,
+        contentNode: FileTreeNode,
         buildTools: BuildPluginCoreDependencies
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const originPath = contentNode.absolutePath
@@ -114,11 +114,11 @@ export class BuildInfoGenerator {
     }
 
     /**
-     * @description Generate a unique identifier for an asset node
+     *  Generate a unique identifier for an asset node
      * @param originPath source path of the asset
      */
     public async generateAssetBuildInfo(
-        assetNode: FTreeNode,
+        assetNode: FileTreeNode,
         buildTools: BuildPluginCoreDependencies,
         strict: boolean = false
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {

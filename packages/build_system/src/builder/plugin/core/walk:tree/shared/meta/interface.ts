@@ -34,7 +34,7 @@ export interface DefaultContentMeta {
 }
 
 /**
- * @description Default content collection
+ *  Default content collection
  */
 export interface ZenContentCollection extends Required<DefaultContentMeta> {}
 
@@ -51,7 +51,7 @@ export interface DefaultCategoryMeta {
 }
 
 /**
- * @description Default category collection
+ *  Default category collection
  */
 export interface ZenCategoryCollection extends Required<DefaultCategoryMeta> {}
 

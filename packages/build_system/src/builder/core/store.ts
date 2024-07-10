@@ -64,9 +64,19 @@ export interface BuildStoreConstructor {
     }
     readonly io: IO
 }
+/**
+ * Represents a store for build information.
+ */
 export class BuildStore {
+    /**
+     * Constructs a new instance of the BuildStore class.
+     * @param option The options for the build store.
+     */
     public constructor(public readonly option: BuildStoreConstructor) {}
 
+    /**
+     * The store object that holds the previous and current build store maps.
+     */
     public readonly store: {
         prev: BuildStoreMap
         current: BuildStoreMap
@@ -75,23 +85,40 @@ export class BuildStore {
         current: new Map(),
     }
 
+    /**
+     * Gets the list of build store items for the specified target.
+     * @param target The target to get the store list for ('current' or 'prev').
+     * @returns An array of build store items.
+     */
     public getStoreList(target: 'current' | 'prev'): BuildStoreList {
         const targetStore =
             target === 'current' ? this.store.current : this.store.prev
         return Array.from(targetStore.values())
     }
 
+    /**
+     * Gets the save path for the build store.
+     * @returns The save path for the build store.
+     */
     public get savePath(): string {
         const STORE_NAME = 'build_store.json' as const
         return `${this.option.buildPath.assets}/${STORE_NAME}`
     }
 
+    /**
+     * Gets the list of build store items that have the 'REMOVED' build state.
+     * @returns An array of build store items.
+     */
     public getRemoveTarget(): BuildStoreList {
         return this.getStoreList('current').filter(
             (report) => report.build_state === 'REMOVED'
         )
     }
 
+    /**
+     * Gets the JSON representation of the store, excluding items with 'REMOVED' build state.
+     * @returns The JSON string representing the store.
+     */
     public get storeJson(): string {
         const removeStatePurifiedStore = Array.from(
             this.store.current.entries()
@@ -104,10 +131,20 @@ export class BuildStore {
         )
     }
 
+    /**
+     * Gets the set of build IDs in the store.
+     * @returns A set of build IDs.
+     */
     public get storeId(): Set<NodeId> {
         return new Set(this.store.current.keys())
     }
 
+    /**
+     * Finds a build information item by its build ID.
+     * @param buildId The build ID to search for.
+     * @param target The target to search in ('current' or 'prev').
+     * @returns The stateful result containing the build information item if found, or an error if not found.
+     */
     public findById(
         buildId: NodeId,
         {
@@ -131,6 +168,12 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Finds a build information item by its build path.
+     * @param buildPath The build path to search for.
+     * @param target The target to search in ('current' or 'prev').
+     * @returns The stateful result containing the build information item if found, or an error if not found.
+     */
     public findByBuildPath(
         buildPath: string,
         {
@@ -153,6 +196,13 @@ export class BuildStore {
             data: buildInformation,
         }
     }
+
+    /**
+     * Finds a build information item by its origin path.
+     * @param originPath The origin path to search for.
+     * @param target The target to search in ('current' or 'prev').
+     * @returns The stateful result containing the build information item if found, or an error if not found.
+     */
     public findByOriginPath(
         originPath: string,
         {
@@ -176,11 +226,18 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Resets the store by clearing the previous and current build store maps.
+     */
     public resetStore(): void {
         this.store.prev.clear()
         this.store.current.clear()
     }
 
+    /**
+     * Loads the build report from the save path.
+     * @returns The stateful result containing the loaded build report if successful, or an error if not successful.
+     */
     public async loadReport(): Promisify<BuildStoreMap> {
         const prevReportLoadState = await this.option.io.reader.readFile(
             this.savePath
@@ -209,6 +266,10 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Saves the build report to the save path.
+     * @returns The stateful result containing the saved build report if successful, or an error if not successful.
+     */
     public async saveReport(): Promisify<BuildStoreMap> {
         const reportSaveState = await this.option.io.writer.write({
             filePath: this.savePath,
@@ -228,6 +289,12 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Adds a build information item to the store.
+     * @param buildId The build ID of the item to add.
+     * @param buildInformation The build information item to add.
+     * @returns The stateful result containing the added build information item if successful, or an error if not successful.
+     */
     public add(
         buildId: NodeId,
         buildInformation: BuildInformation
@@ -245,6 +312,11 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Removes a build information item from the store.
+     * @param buildId The build ID of the item to remove.
+     * @returns The stateful result indicating whether the item was successfully removed or an error if not successful.
+     */
     public remove(buildId: NodeId): Stateful<boolean> {
         const deleted = this.store.current.delete(buildId)
         if (!deleted) {
@@ -259,6 +331,12 @@ export class BuildStore {
         }
     }
 
+    /**
+     * Updates a build information item in the store.
+     * @param buildId The build ID of the item to update.
+     * @param buildInformation The updated build information item.
+     * @returns The stateful result containing the updated build information item if successful, or an error if not successful.
+     */
     public update(
         buildId: NodeId,
         buildInformation: BuildInformation

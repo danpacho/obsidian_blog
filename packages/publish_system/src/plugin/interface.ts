@@ -4,15 +4,15 @@ import type { RepositoryPlugin } from './repository'
 
 export interface PublishSystemPlugin {
     /**
-     * @description Build script plugin
+     *  Build script plugin
      */
     buildScript: BuildScriptPlugin
     /**
-     * @description Repository plugin
+     *  Repository plugin
      */
     repository: RepositoryPlugin
     /**
-     * @description Deploy plugin
+     *  Deploy plugin
      */
     deploy?: DeployPlugin
 }

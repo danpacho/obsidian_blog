@@ -1,20 +1,34 @@
 import type { Stateful } from '@obsidian_blogger/helpers'
-import type { FTreeNode } from '../../parser/node'
+import type { FileTreeNode } from '../../parser/node'
 import type { NodeId } from './info.generator'
 import type { BuildInformation, BuildStore } from './store'
 
 export interface BuildCacheManagerConstructor {
     store: BuildStore
 }
+/**
+ * Represents a manager for the build cache.
+ */
 export class BuildCacheManager {
+    /**
+     * Creates a new instance of BuildCacheManager.
+     * @param options - The options for the BuildCacheManager.
+     */
     public constructor(
         private readonly options: BuildCacheManagerConstructor
     ) {}
 
+    /**
+     * Gets the store used by the BuildCacheManager.
+     */
     public get $store() {
         return this.options.store
     }
 
+    /**
+     * Sets up the build cache.
+     * @returns A promise that resolves when the setup is complete.
+     */
     public async setup(): Promise<void> {
         const loaded = await this.$store.loadReport()
         if (!loaded.success) {
@@ -22,16 +36,30 @@ export class BuildCacheManager {
         }
     }
 
+    /**
+     * Saves the build cache.
+     * @returns A promise that resolves to a boolean indicating whether the save was successful.
+     */
     public async save(): Promise<boolean> {
         const saved = await this.$store.saveReport()
         return saved.success
     }
 
+    /**
+     * Checks if the cache contains a build with the specified ID.
+     * @param newId - The ID of the build to check.
+     * @returns A boolean indicating whether the cache contains the build.
+     */
     private checkCache(newId: NodeId): boolean {
         return this.$store.store.prev.has(newId)
     }
 
-    public updateStore(node: FTreeNode): Stateful<BuildInformation, Error> {
+    /**
+     * Updates the store with the build information of a file.
+     * @param node - The file tree node containing the build information.
+     * @returns A stateful object containing the updated build information or an error.
+     */
+    public updateStore(node: FileTreeNode): Stateful<BuildInformation, Error> {
         const { buildInfo } = node
         if (!buildInfo)
             return {
@@ -114,6 +142,11 @@ export class BuildCacheManager {
         }
     }
 
+    /**
+     * Checks the build state of a build with the specified ID.
+     * @param buildId - The ID of the build to check.
+     * @returns A stateful object containing the build state or an error.
+     */
     public checkStatus(
         buildId: NodeId
     ): Stateful<BuildInformation['build_state']> {
@@ -132,6 +165,11 @@ export class BuildCacheManager {
         }
     }
 
+    /**
+     * Checks the build state of a build with the specified path.
+     * @param path - The path of the build to check.
+     * @returns A stateful object containing the build state or an error.
+     */
     public checkStatusByPath(
         path: string
     ): Stateful<BuildInformation['build_state']> {
@@ -150,6 +188,9 @@ export class BuildCacheManager {
         }
     }
 
+    /**
+     * Syncs the removed builds in the store.
+     */
     public syncRemovedStore(): void {
         const prev = this.$store.getStoreList('prev')
         if (prev.length === 0) return

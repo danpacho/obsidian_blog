@@ -44,7 +44,7 @@ export interface ParamAnalyzerConstructor {
 export class ParamAnalyzer {
     public constructor(public readonly options?: ParamAnalyzerConstructor) {}
     /**
-     * @description dynamic param shape
+     *  dynamic param shape
      * @example
      * ```ts
      * // input param
@@ -87,7 +87,7 @@ export class ParamAnalyzer {
         )
     }
     /**
-     * @description check if the param is a single dynamic param
+     *  check if the param is a single dynamic param
      * @example
      * ```ts
      * // input param
@@ -101,7 +101,7 @@ export class ParamAnalyzer {
     }
 
     /**
-     * @description check if the param is a multiple dynamic param
+     *  check if the param is a multiple dynamic param
      * @example
      * ```ts
      * // input param
@@ -120,7 +120,7 @@ export class ParamAnalyzer {
     }
 
     /**
-     * @description analyze param string
+     *  analyze param string
      * @example
      * ```ts
      * // Single dynamic param

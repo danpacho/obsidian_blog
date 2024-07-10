@@ -9,7 +9,7 @@ import {
 
 interface FolderSyntax {
     /**
-     * @description A function that determines if a folder should be included in the tree
+     *  A function that determines if a folder should be included in the tree
      * @param folder information(`name`, `depth`) of the folder
      * @returns `true` if the folder should be included in the tree, `false` otherwise
      */
@@ -20,7 +20,7 @@ interface FolderSyntax {
 }
 interface FileSyntax {
     /**
-     * @description A function that determines if a file should be included in the tree
+     *  A function that determines if a file should be included in the tree
      * @param file information(`name`, `depth`) of the file
      * @returns `true` if the file should be included in the tree, `false` otherwise
      */
@@ -28,6 +28,9 @@ interface FileSyntax {
 }
 interface FileTreeSyntax extends FolderSyntax, FileSyntax {}
 
+/**
+ * A function that walks through the file tree
+ */
 export type Walker = (
     /**
      * Current node
@@ -56,7 +59,7 @@ export interface FileTreeParserConstructor {
     rootFolder: string
     readonly io: IO
     /**
-     * @description A custom tree syntax to determine which files and folders should be included in the tree
+     *  A custom tree syntax to determine which files and folders should be included in the tree
      */
     readonly treeSyntax?: Partial<FileTreeSyntax>
 }
