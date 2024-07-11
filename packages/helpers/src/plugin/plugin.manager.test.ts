@@ -6,7 +6,10 @@ import { PluginManager } from './plugin.manager'
 describe('PluginManager', () => {
     let pluginManager: PluginManager<unknown, unknown>
     beforeEach(() => {
-        pluginManager = new PluginManager()
+        pluginManager = new PluginManager({
+            name: 'plugin-manager',
+            root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/storage.json`,
+        })
     })
 
     it('should create a new instance of PluginManager', () => {
