@@ -30,7 +30,32 @@ export abstract class StorageInterface<Schema> {
         this.$logger = new Logger({
             name: options.name,
         })
+        this.checkStorageExistence(options.root)
     }
+
+    private checkStorageExistence(root: string): void {
+        this.$io.reader.fileExists(root).then((exists) => {
+            if (!exists) {
+                this.$logger.warn('Storage file does not exist.')
+                this.$io.writer
+                    .write({
+                        data: '{}',
+                        filePath: root,
+                    })
+                    .then(() => {
+                        this.$logger.info('Storage file created.')
+                    })
+            } else {
+                this.load().catch((error) => this.$logger.error(error))
+            }
+        })
+    }
+
+    /**
+     * Loads the data from the storage file.
+     * @throws {StorageError} If there is an error loading the storage file.
+     */
+    public abstract load(): Promise<void>
 
     /**
      * Retrieves the value associated with the specified key from the storage.
@@ -58,7 +83,7 @@ export abstract class StorageInterface<Schema> {
      * Clears all values from the storage.
      * @returns A promise that resolves when the storage is cleared.
      */
-    public abstract clear(): Promise<void>
+    public abstract reset(): Promise<void>
 
     /**
      * Saves the current state of the storage.
