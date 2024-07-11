@@ -11,6 +11,7 @@ export default defineConfig((options) => ({
         shell: 'src/shell/index.ts',
         plugin: 'src/plugin/index.ts',
         storage: 'src/storage/index.ts',
+        job: 'src/job/index.ts',
     },
     watch: options.watch ? ['src/**/*'] : false,
     clean: false,
