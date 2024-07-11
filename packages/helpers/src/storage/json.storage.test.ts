@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { JsonStorage } from './json.storage'
 
 describe('JsonStorage', () => {
-    const root = `${process.cwd()}/packages/helpers/src/storage/__mocks__/storage.json`
+    const root = `${process.cwd()}/packages/helpers/src/storage/__fixtures__/storage.json`
     const storage: JsonStorage = new JsonStorage({
         name: 'JSONStorage',
         root,
+    })
+
+    it('should reset the storage', async () => {
+        await storage.reset()
+        expect(storage.storageRecord).toEqual({})
     })
 
     it('should create a new instance', () => {
@@ -30,7 +35,7 @@ describe('JsonStorage', () => {
     })
 
     it('should clear the storage', async () => {
-        await storage.clear()
+        await storage.reset()
     })
 
     it('should save the storage', async () => {

@@ -1,0 +1,6 @@
+{
+    "myPlugin": {
+        "option1": "newValue1",
+        "option2": "newValue2"
+    }
+}
