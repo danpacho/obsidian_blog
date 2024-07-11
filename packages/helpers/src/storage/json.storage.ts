@@ -18,11 +18,12 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
     public constructor(
         protected override readonly options: JsonStorageConstructor
     ) {
-        if (options.name.split('.').pop() !== 'json') {
+        const extension = options.root.split('.').pop()
+        if (extension !== 'json') {
             throw new StorageError(
                 'Invalid storage options provided.',
-                'The storage name must end with ".json".',
-                'The storage name should be a valid JSON file name.'
+                'The storage root extension must be "json".',
+                'The storage root should be a valid JSON file name.'
             )
         }
         super(options)
@@ -47,13 +48,9 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * Gets the underlying storage `json`
      */
     public get storageJson(): string {
-        return JSON.stringify(this.storageRecord, null, 2)
+        return JSON.stringify(this.storageRecord, null, 4)
     }
 
-    /**
-     * Loads the data from the storage file.
-     * @throws {StorageError} If there is an error loading the storage file.
-     */
     public async load(): Promise<void> {
         try {
             const fileExists = await this.$io.reader.fileExists(
@@ -62,10 +59,26 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
             if (fileExists) {
                 const result = await this.$io.reader.readFile(this.options.root)
                 if (result.success) {
-                    const parsedData = JSON.parse(result.data)
-                    this._data = new Map<string, Schema>(
-                        Object.entries(parsedData)
-                    )
+                    if (result.data.trim() === '') {
+                        // If file is empty, initialize with an empty map
+                        this._data = new Map<string, Schema>()
+                    } else {
+                        try {
+                            const parsedData = JSON.parse(result.data)
+                            this._data = new Map<string, Schema>(
+                                Object.entries(parsedData)
+                            )
+                        } catch (parseError) {
+                            throw new StorageError(
+                                'load',
+                                'Failed to parse storage file',
+                                'Storage file should contain valid JSON',
+                                parseError instanceof Error
+                                    ? parseError.message
+                                    : undefined
+                            )
+                        }
+                    }
                 } else {
                     throw new StorageError(
                         'load',
@@ -147,7 +160,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * Clears the storage by removing all keys and values.
      * @throws {StorageError} If there is an error clearing the storage.
      */
-    public async clear(): Promise<void> {
+    public async reset(): Promise<void> {
         try {
             this._data.clear()
             await this.save()
@@ -167,10 +180,9 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async save(): Promise<void> {
         try {
-            const toRecord = Object.fromEntries(this._data)
             const result = await this.$io.writer.write({
                 filePath: this.options.root,
-                data: JSON.stringify(toRecord, null, 2),
+                data: this.storageJson,
             })
             if (!result.success) {
                 throw new StorageError(
