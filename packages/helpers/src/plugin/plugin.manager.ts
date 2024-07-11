@@ -33,7 +33,7 @@ export class PluginManager<PlugShape, PluginConfig> {
      *
      * @param options - Optional options for configuring the plugin manager.
      */
-    public constructor(options?: PluginManagerConstructor) {
+    public constructor(options: PluginManagerConstructor) {
         this.$config = new PluginConfigStore(options)
         this.$loader = new PluginLoader(options)
     }
