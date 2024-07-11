@@ -20,6 +20,14 @@ export class PluginConfigStore<PluginConfig> {
     private readonly $storage: JsonStorage<PluginConfig>
 
     /**
+     * Resets the config store.
+     */
+    public async reset(): Promise<void> {
+        await this.$storage.reset()
+        return
+    }
+
+    /**
      * Gets the underlying store map.
      */
     public get store(): Record<PluginName, PluginConfig> {
@@ -40,9 +48,13 @@ export class PluginConfigStore<PluginConfig> {
      * @param pluginName - The name of the plugin.
      * @param config - The configuration to add.
      */
-    public addConfig(pluginName: string, config: PluginConfig) {
+    public async addConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
         if (this.hasConfig(pluginName)) return
-        this.$storage.storage.set(pluginName, config)
+        await this.$storage.set(pluginName, config)
+        return
     }
 
     /**
@@ -50,8 +62,12 @@ export class PluginConfigStore<PluginConfig> {
      * @param pluginName - The name of the plugin.
      * @param config - The updated configuration.
      */
-    public updateConfig(pluginName: string, config: PluginConfig) {
-        this.$storage.storage.set(pluginName, config)
+    public async updateConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
+        await this.$storage.set(pluginName, config)
+        return
     }
 
     /**
@@ -60,6 +76,6 @@ export class PluginConfigStore<PluginConfig> {
      * @returns The configuration if found, otherwise undefined.
      */
     public getConfig(name: string): PluginConfig | undefined {
-        return this.$storage.storage.get(name)
+        return this.$storage.get(name)
     }
 }
