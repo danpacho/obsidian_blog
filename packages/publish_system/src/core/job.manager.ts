@@ -3,7 +3,6 @@ import { Stack, type StackConstructor } from '@obsidian_blogger/helpers/stack'
 
 /**
  * Represents an error that occurred during job execution.
- * @template OriginJob The type of the job that caused the error.
  */
 export class JobError extends Error {
     /**
@@ -209,18 +208,10 @@ export class JobManager {
     }
 
     /**
-     * Gets the report of processed jobs.
-     * @returns An array of processed jobs.
-     */
-    public get processReport(): Array<Job> {
-        return this._history.stack
-    }
-
-    /**
      * Gets the history of processed jobs.
      * @returns The history of processed jobs.
      */
-    public get history(): Stack<Job>['stack'] {
+    public get history(): Array<Job> {
         return this._history.stack
     }
 

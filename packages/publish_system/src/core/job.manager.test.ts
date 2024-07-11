@@ -256,7 +256,7 @@ describe('JobManager', () => {
             jobRemaining: 0,
         })
 
-        expect(jobManager.processReport.map((e) => e.status)).toStrictEqual([
+        expect(jobManager.history.map((e) => e.status)).toStrictEqual([
             'success',
             'success',
         ])
