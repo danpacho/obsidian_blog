@@ -150,7 +150,7 @@ export class BuildResultLogger {
             const removed: Array<string> = buildReportList
                 .filter((report) => report.build_state === 'REMOVED')
                 .map((report) => {
-                    return `${this.$logger.c.bgRed.ansi256(0).underline(' - removed ')} \n\t» ${this.$logger.c.red(report.build_path.origin)}`
+                    return `${this.$logger.c.bgRed.ansi256(0).underline(' - removed ')} » ${this.$logger.c.red(report.build_path.origin)}`
                 })
             buildLog.push(...removed)
         }

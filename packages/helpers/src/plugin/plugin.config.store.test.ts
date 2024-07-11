@@ -2,48 +2,53 @@ import { describe, expect, it } from 'vitest'
 import { PluginConfigStore } from './plugin.config.store'
 
 describe('PluginConfigStore', () => {
-    it('should add and retrieve plugin configurations', () => {
-        const store = new PluginConfigStore()
+    const root = `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/storage.json`
+    const store = new PluginConfigStore({
+        name: 'plugin-config-store',
+        root,
+    })
+    it('should reset the store', async () => {
+        await store.reset()
+        expect(store.store).toEqual({})
+    })
 
+    it('should add and retrieve plugin configurations', async () => {
         const pluginName = 'myPlugin'
         const config = { option1: 'value1', option2: 'value2' }
 
-        store.addConfig(pluginName, config)
+        await store.addConfig(pluginName, config)
 
         expect(store.hasConfig(pluginName)).toBe(true)
         expect(store.getConfig(pluginName)).toEqual(config)
     })
 
-    it('should update plugin configurations', () => {
-        const store = new PluginConfigStore()
-
+    it('should update plugin configurations', async () => {
         const pluginName = 'myPlugin'
         const initialConfig = { option1: 'value1', option2: 'value2' }
         const updatedConfig = { option1: 'newValue1', option2: 'newValue2' }
 
-        store.addConfig(pluginName, initialConfig)
-        store.updateConfig(pluginName, updatedConfig)
+        await store.addConfig(pluginName, initialConfig)
+        await store.updateConfig(pluginName, updatedConfig)
 
         expect(store.getConfig(pluginName)).toEqual(updatedConfig)
     })
 
-    it('should not add duplicate plugin configurations', () => {
-        const store = new PluginConfigStore()
-
+    it('should not add duplicate plugin configurations', async () => {
         const pluginName = 'myPlugin'
         const config = { option1: 'value1', option2: 'value2' }
 
-        store.addConfig(pluginName, config)
-        store.addConfig(pluginName, config)
+        await store.addConfig(pluginName, config)
+        await store.addConfig(pluginName, config)
 
         expect(Object.values(store.store).length).toBe(1)
     })
 
-    it('should return undefined for non-existing plugin configurations', () => {
-        const store = new PluginConfigStore()
-
+    it('should inquire existing plugin configurations', () => {
         const pluginName = 'myPlugin'
 
-        expect(store.getConfig(pluginName)).toBeUndefined()
+        expect(store.getConfig(pluginName)).toStrictEqual({
+            option1: 'newValue1',
+            option2: 'newValue2',
+        })
     })
 })

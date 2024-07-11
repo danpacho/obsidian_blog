@@ -4,7 +4,7 @@ import { IO } from '../io.manager'
 
 describe('IOManager', () => {
     const io = new IO()
-    const basePath = `${process.cwd()}/packages/helpers/src/io/__tests__/__mocks__`
+    const basePath = `${process.cwd()}/packages/helpers/src/io/__tests__/__fixtures__`
 
     it('should WRITE file', async () => {
         const res = await io.writer.write({

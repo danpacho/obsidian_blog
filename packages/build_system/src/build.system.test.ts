@@ -86,7 +86,7 @@ describe('BuildSystem', async () => {
             pathGenerator: {
                 contents: async (node) => {
                     const path =
-                        `${process.cwd()}/packages/build_system/src/__tests__/__mocks__/$$blog$$` as const
+                        `${process.cwd()}/packages/build_system/src/__tests__/__fixtures__/$$blog$$` as const
                     return pathGen(node, path)
                 },
                 assets: async () => '',
