@@ -1,82 +1,82 @@
 import { describe, expect, it } from 'vitest'
+import { PluginInterface } from './plugin.interface'
 import { PluginLoader } from './plugin.loader'
 
 describe('PluginLoader', () => {
+    class Plugin extends PluginInterface {
+        public constructor(pluginId: number = 0) {
+            super()
+            this.config.name = `plugin-${pluginId}`
+        }
+
+        public override async prepare() {
+            return {
+                arg: 1,
+            }
+        }
+
+        public async execute() {
+            return {
+                name: 1,
+            }
+        }
+
+        protected defineConfig() {
+            return {
+                name: 'plugin',
+                description: 'Plugin description',
+                myConfig: 2,
+            }
+        }
+    }
+
     it('should register a single plugin', () => {
-        const loader = new PluginLoader<number>()
-
-        const plugin = 123
-
-        loader.use(plugin)
-
-        expect(loader.plugins).toEqual([plugin])
-    })
-
-    it('should register an array of plugins', () => {
-        const loader = new PluginLoader<string>()
-
-        const plugins = ['plugin1', 'plugin2', 'plugin3']
-
-        loader.use(plugins)
-
-        expect(loader.plugins).toEqual(plugins)
-    })
-
-    it('should not register undefined plugin', () => {
-        const loader = new PluginLoader<boolean>()
-
-        loader.use(undefined)
-
-        expect(loader.plugins).toEqual([])
-    })
-
-    it('should not register duplicate plugins', () => {
-        const loader = new PluginLoader<number>()
-
-        const plugin = 123
-
-        loader.use(plugin)
-        loader.use(plugin)
-
-        expect(loader.plugins).toEqual([plugin])
-    })
-
-    it('should return an empty array for no plugins', () => {
-        const loader = new PluginLoader<string>()
-
-        expect(loader.plugins).toEqual([])
-    })
-
-    it('should register class plugins', () => {
-        class Plugin {}
-
-        const loader = new PluginLoader<Plugin>()
+        const loader = new PluginLoader()
 
         const plugin = new Plugin()
 
         loader.use(plugin)
 
-        expect(loader.plugins).toEqual([plugin])
+        expect(loader.load()).toEqual([plugin])
     })
 
-    it('should register class plugins with multiple instances', () => {
-        class Plugin {}
+    it('should register an array of plugins', () => {
+        const loader = new PluginLoader()
 
-        const loader = new PluginLoader<Plugin>()
+        const plugins = [new Plugin(), new Plugin(), new Plugin()]
 
-        const plugin1 = new Plugin()
-        const plugin2 = new Plugin()
-        const plugin3 = new Plugin()
+        loader.use(plugins)
 
-        loader.use([plugin1, plugin2, plugin3])
+        expect(loader.load()).toEqual(plugins)
+    })
 
-        expect(loader.plugins).toEqual([plugin1, plugin2, plugin3])
+    it('should not register undefined plugin', () => {
+        const loader = new PluginLoader()
+
+        loader.use(undefined)
+
+        expect(loader.load()).toEqual([])
+    })
+
+    it('should not register duplicate plugins', () => {
+        const loader = new PluginLoader()
+
+        const plugin = new Plugin()
+
+        loader.use(plugin)
+        loader.use(plugin)
+
+        expect(loader.load()).toEqual([plugin])
+    })
+
+    it('should return an empty array for no plugins', () => {
+        const loader = new PluginLoader()
+
+        expect(loader.load()).toEqual([])
     })
 
     it('should register class plugins with duplicate instances', () => {
-        class Plugin {}
-
-        const loader = new PluginLoader<Plugin>()
+        const loader = new PluginLoader()
 
         const plugin = new Plugin()
 
@@ -87,6 +87,34 @@ describe('PluginLoader', () => {
         const newPlugin = new Plugin()
         loader.use(newPlugin)
 
-        expect(loader.plugins).toEqual([plugin, newPlugin])
+        expect(loader.load()).toEqual([plugin, newPlugin])
+    })
+
+    it('should extract plugin names', () => {
+        const loader = new PluginLoader()
+
+        const plugin1 = new Plugin(1)
+        const plugin2 = new Plugin(2)
+        const plugin3 = new Plugin(3)
+
+        loader.use([plugin1, plugin2, plugin3])
+
+        expect(loader.getPluginNames()).toEqual([
+            'plugin-1',
+            'plugin-2',
+            'plugin-3',
+        ])
+    })
+
+    it('should exclude plugins from the list', () => {
+        const loader = new PluginLoader()
+
+        const plugin1 = new Plugin(1)
+        const plugin2 = new Plugin(2)
+        const plugin3 = new Plugin(3)
+
+        loader.use([plugin1, plugin2, plugin3])
+
+        expect(loader.load(['plugin-2'])).toEqual([plugin1, plugin3])
     })
 })
