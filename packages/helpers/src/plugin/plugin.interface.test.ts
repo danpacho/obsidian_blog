@@ -10,6 +10,10 @@ describe('PluginInterface', () => {
                     description: 'A test plugin',
                 }
             }
+
+            public async execute(): Promise<void> {
+                return
+            }
         }
         const plugin = new TestPlugin()
         expect(plugin.config).toEqual({
@@ -38,6 +42,10 @@ describe('PluginInterface', () => {
             // @ts-expect-error
             protected defineConfig() {
                 return 1
+            }
+
+            public async execute(): Promise<unknown> {
+                return
             }
         }
         try {
