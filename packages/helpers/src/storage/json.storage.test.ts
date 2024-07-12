@@ -19,6 +19,7 @@ describe('JsonStorage', () => {
 
     it('should load the storage file', async () => {
         await storage.load()
+        expect(storage.storageRecord).toEqual({})
     })
 
     it('should set a value in the storage', async () => {
@@ -39,6 +40,26 @@ describe('JsonStorage', () => {
     })
 
     it('should save the storage', async () => {
-        await storage.set('key', 'value')
+        await storage.set('key', {
+            key: {
+                key: {
+                    key: 'value',
+                },
+            },
+        })
+        await storage.set('key2', {
+            key: {
+                key: {
+                    key: 'value',
+                },
+            },
+        })
+        await storage.set('key3', {
+            key: {
+                key: {
+                    key: 'value',
+                },
+            },
+        })
     })
 })
