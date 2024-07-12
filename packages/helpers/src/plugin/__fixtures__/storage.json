@@ -1,6 +1,11 @@
 {
     "myPlugin": {
-        "option1": "newValue1",
-        "option2": "newValue2"
+        "config": {
+            "name": "value1",
+            "description": "value2"
+        },
+        "args": {
+            "key": "value"
+        }
     }
 }
