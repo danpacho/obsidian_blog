@@ -1,4 +1,4 @@
-import { Job, JobRegistration } from '../job'
+import type { Job } from '../job'
 
 /**
  * Plugin base configuration interface
@@ -12,6 +12,20 @@ export interface PluginInterfaceConfig {
      * Description of the plugin.
      */
     description?: string
+    /**
+     * Dynamic arguments description for the plugin.
+     *
+     * @description Should be started with \``` and ended with \```, very useful for Obsidian plugin user
+     * @example
+     * \```
+     * ```
+     * {
+     *     script: Array<string>
+     * }
+     * ```
+     * \```
+     */
+    argsDescription?: string
 }
 
 class PluginInterfaceError extends SyntaxError {
@@ -26,8 +40,8 @@ class PluginInterfaceError extends SyntaxError {
  */
 export abstract class PluginInterface<
     InjectedPluginConfig extends PluginInterfaceConfig = PluginInterfaceConfig,
-> implements JobRegistration<unknown, unknown>
-{
+    PluginArgs = 'NO_ARGS',
+> {
     /**
      * Gets the configuration of the plugin.
      */
@@ -46,7 +60,6 @@ export abstract class PluginInterface<
 
     /**
      * Defines the configuration for the plugin.
-     * This method should be implemented by the derived classes.
      */
     protected abstract defineConfig(): InjectedPluginConfig
 
@@ -107,7 +120,43 @@ export abstract class PluginInterface<
         }
     }
 
+    /**
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed to perform** the job.
+     * @param context The plugin execution context.
+     * @param controller The job execution controller.
+     * @example
+     * ```typescript
+     * {
+     *      stop: () => void
+     *      // Stops the job execution.
+     *      next: () => void
+     *      // Resumes the job execution.
+     * }
+     * ```
+     */
     public abstract execute(
+        /**
+         * The plugin execution context.
+         */
+        context: PluginArgs extends 'NO_ARGS'
+            ? {
+                  /**
+                   * The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
+                   */
+                  prepared?: unknown
+              }
+            : {
+                  /**
+                   * The dynamic arguments passed to the job.
+                   */
+                  args: PluginArgs
+                  /**
+                   * The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
+                   */
+                  prepared?: unknown
+              },
         /**
          * The controller object for the job.
          */
@@ -120,15 +169,27 @@ export abstract class PluginInterface<
              * Resumes the job after current execution.
              */
             resume: () => void
-        },
-        /**
+        } /**
          * The prepared calculation for the job.
          *
          * Calculated by the `prepare` function and will be passed through argument.
          */
-        preparedCalculation: unknown
     ): Promise<unknown>
 
+    /**
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed before** the job starts.
+     * It returns a promise that resolves to the prepared calculation and will be passed to the `execute` function.
+     */
     public prepare?(): Promise<unknown>
+
+    /**
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed after** the job completes.
+     * @param job The completed job.
+     * @returns A promise that resolves when the after-job tasks are completed.
+     */
     public cleanup?(job: Job<unknown>): Promise<void>
 }
