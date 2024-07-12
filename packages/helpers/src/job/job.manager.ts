@@ -111,14 +111,26 @@ type TypedJob<JobTuple> = JobTuple extends readonly [
         : never
     : JobTuple
 
-type JobSubscriber = (
-    currentJob: Job,
+/**
+ * Job subscriber function.
+ */
+export type JobSubscriber<CurrJob extends Job> = (
+    /**
+     * The current job.
+     */
+    currentJob: CurrJob,
+    /**
+     * The current job index.
+     */
     currentJobIndex: number,
+    /**
+     * The job history.
+     */
     history: Stack<Job>['stack']
 ) => unknown
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type JobRegistrationShape = JobRegistration<any, any>
+export type JobRegistrationShape = JobRegistration<any, any>
 
 export interface JobManagerConstructor {
     /**
@@ -133,8 +145,8 @@ export interface JobManagerConstructor {
 /**
  * Represents a job manager that manages the execution of jobs.
  */
-export class JobManager {
-    private readonly $history: Stack<Job>
+export class JobManager<JobResponse = unknown> {
+    private readonly $history: Stack<Job<JobResponse>>
     private readonly $jobQueue: Queue<JobRegistrationShape>
 
     private _jobCount: number = 0
@@ -183,17 +195,19 @@ export class JobManager {
      * Gets the history of processed jobs.
      * @returns The history of processed jobs.
      */
-    public get history(): Array<Job> {
+    public get history(): Array<Job<JobResponse>> {
         return this.$history.stack
     }
 
-    private readonly jobProgressSubscribers: Set<JobSubscriber> = new Set()
+    private readonly jobProgressSubscribers: Set<
+        JobSubscriber<Job<JobResponse>>
+    > = new Set()
 
     /**
      * Notifies subscribers about the progress of a job.
      * @param job - The job that has progressed.
      */
-    private notifyJobProgress(job: Job): void {
+    private notifyJobProgress(job: Job<JobResponse>): void {
         this.jobProgressSubscribers.forEach((subscriber) => {
             subscriber(job, this._jobStackIndex, this.$history.stack)
         })
@@ -203,7 +217,9 @@ export class JobManager {
      * Subscribes to job progress updates.
      * @param subscriber - The callback function to be called when a job progresses.
      */
-    public subscribeJobProgress(subscriber: JobSubscriber): void {
+    public subscribeJobProgress(
+        subscriber: JobSubscriber<Job<JobResponse>>
+    ): void {
         this.jobProgressSubscribers.add(subscriber)
     }
 
