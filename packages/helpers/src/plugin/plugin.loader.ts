@@ -1,25 +1,27 @@
+import type { PluginInterface } from './plugin.interface'
+
 export interface PluginLoaderConstructor {}
 
 /**
  * Represents a PluginLoader that can register and manage plugins.
- * @template PlugShape The shape/interface of the plugins.
+ * @template Plugin The shape/interface of the plugins.
  */
-export class PluginLoader<PlugShape> {
+export class PluginLoader<Plugin extends PluginInterface = PluginInterface> {
     /**
      * Creates a new instance of PluginLoader.
      * @param config Optional configuration for the PluginLoader.
      */
-    public constructor(private readonly config?: PluginLoaderConstructor) {}
+    public constructor(public readonly config?: PluginLoaderConstructor) {}
 
-    private readonly _pluginSet: Set<PlugShape> = new Set<PlugShape>()
-    private _pluginList: Array<PlugShape> = []
+    private readonly _pluginSet: Set<Plugin> = new Set<Plugin>()
+    private _pluginList: Array<Plugin> = []
 
     /**
      * Register a plugin or an array of plugins.
      * @param plugin The plugin(s) to register.
      * @returns The current instance of PluginLoader.
      */
-    public use(plugin: PlugShape | Array<PlugShape> | undefined): this {
+    public use(plugin: Plugin | Array<Plugin> | undefined): this {
         if (!plugin) return this
 
         if (Array.isArray(plugin)) {
@@ -35,9 +37,18 @@ export class PluginLoader<PlugShape> {
 
     /**
      * Get the list of registered plugins.
+     */
+    public getPluginNames(): Array<string> {
+        return this._pluginList.map((p) => p.config.name)
+    }
+
+    /**
+     * Get the list of registered plugins.
      * @returns An array of registered plugins.
      */
-    public get plugins(): Array<PlugShape> {
-        return this._pluginList
+    public load(except?: Array<string>): Array<Plugin> {
+        if (!except) return this._pluginList
+
+        return this._pluginList.filter((p) => !except.includes(p.config.name))
     }
 }
