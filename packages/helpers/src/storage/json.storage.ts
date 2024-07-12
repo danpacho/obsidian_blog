@@ -9,7 +9,7 @@ export interface JsonStorageConstructor extends StorageConstructor {}
  * @template Schema - The type of the data schema.
  */
 export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
-    private _data: Map<string, Schema> = new Map<string, Schema>()
+    private _storage: Map<string, Schema> = new Map<string, Schema>()
 
     /**
      * Constructs a new instance of the JsonStorage class.
@@ -27,21 +27,20 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
             )
         }
         super(options)
-        this.load().catch((error) => this.$logger.error(error))
     }
 
     /**
      * Gets the underlying storage `map`
      */
     public get storage(): Map<string, Schema> {
-        return this._data
+        return this._storage
     }
 
     /**
      * Gets the underlying storage as `record`
      */
     public get storageRecord(): Record<string, Schema> {
-        return Object.fromEntries(this._data)
+        return Object.fromEntries(this.storage)
     }
 
     /**
@@ -61,11 +60,11 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
                 if (result.success) {
                     if (result.data.trim() === '') {
                         // If file is empty, initialize with an empty map
-                        this._data = new Map<string, Schema>()
+                        this._storage = new Map<string, Schema>()
                     } else {
                         try {
                             const parsedData = JSON.parse(result.data)
-                            this._data = new Map<string, Schema>(
+                            this._storage = new Map<string, Schema>(
                                 Object.entries(parsedData)
                             )
                         } catch (parseError) {
@@ -106,7 +105,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public get(key: string): Schema | undefined {
         try {
-            return this._data.get(key)
+            return this._storage.get(key)
         } catch (error) {
             throw new StorageError(
                 'get',
@@ -125,7 +124,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async set(key: string, value: Schema): Promise<void> {
         try {
-            this._data.set(key, value)
+            this._storage.set(key, value)
             await this.save()
         } catch (error) {
             throw new StorageError(
@@ -144,7 +143,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async remove(key: string): Promise<void> {
         try {
-            this._data.delete(key)
+            this._storage.delete(key)
             await this.save()
         } catch (error) {
             throw new StorageError(
@@ -162,7 +161,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async reset(): Promise<void> {
         try {
-            this._data.clear()
+            this._storage.clear()
             await this.save()
         } catch (error) {
             throw new StorageError(
