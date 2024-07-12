@@ -11,13 +11,13 @@ describe('JobManager', () => {
 
     it('should append jobs and update history', async () => {
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async () => {
                 return 'Job 1 response'
             },
         })
         jobManager.registerJob({
-            id: 'job2',
+            name: 'job2',
             executionType: 'async',
             execute: async () => {
                 return 'Job 2 response'
@@ -39,14 +39,14 @@ describe('JobManager', () => {
 
     it('should handle failed jobs', async () => {
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async () => {
                 await new Promise((resolve) => setTimeout(resolve, 100))
                 throw new Error('Job 1 failed')
             },
         })
         jobManager.registerJob({
-            id: 'job2',
+            name: 'job2',
             execute: async () => {
                 return 'Job 2 response'
             },
@@ -67,8 +67,8 @@ describe('JobManager', () => {
 
     it('should handle job [ prepare -> execution -> cleanUp ]', async () => {
         jobManager.registerJob({
-            id: 'JOB process',
-            before: async () => {
+            name: 'JOB process',
+            prepare: async () => {
                 return {
                     prepare: 'Job 1 prepare',
                 }
@@ -80,7 +80,7 @@ describe('JobManager', () => {
                     prepare,
                 }
             },
-            after: async (
+            cleanup: async (
                 job: Job<{
                     response: string
                     prepare: string
@@ -91,13 +91,14 @@ describe('JobManager', () => {
             },
         })
         const result = await jobManager.processJobs()
+
         expect(result).toBe(true)
     })
 
     it('should pass job props at [before]', async () => {
         jobManager.registerJob({
-            id: 'job1',
-            before: async () => ({
+            name: 'job1',
+            prepare: async () => ({
                 prop1: 'prop1',
             }),
             execute: async (_, { prop1 }) => {
@@ -113,11 +114,11 @@ describe('JobManager', () => {
 
     it('should get job response at [after]', async () => {
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async () => {
                 return 'Job 1 response'
             },
-            after: async (job: Job) => {
+            cleanup: async (job: Job) => {
                 expect(job.response).toBe('Job 1 response')
             },
         })
@@ -126,14 +127,14 @@ describe('JobManager', () => {
 
     it('should control job execution flow', async () => {
         jobManager.registerJob({
-            id: 'job0',
+            name: 'job0',
             execute: async () => {
                 return 'Job 0 response'
             },
         })
 
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async (controller) => {
                 await new Promise((resolve) => setTimeout(resolve, 100))
                 controller.stop()
@@ -141,7 +142,7 @@ describe('JobManager', () => {
             },
         })
         jobManager.registerJob({
-            id: 'job2',
+            name: 'job2',
             execute: async () => {
                 return 'Job 2 response'
             },
@@ -168,20 +169,20 @@ describe('JobManager', () => {
 
         const job2 = jobManager.findJob('job2')
         expect(job2).toStrictEqual({
-            jobId: 'job2',
+            jobName: 'job2',
             status: 'pending',
         })
     })
 
     it('should clear jobs', async () => {
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async () => {
                 return 'Job 1 response'
             },
         })
         jobManager.registerJob({
-            id: 'job2',
+            name: 'job2',
             execute: async () => {
                 return 'Job 2 response'
             },
@@ -197,7 +198,7 @@ describe('JobManager', () => {
 
     it('should stop job execution', async () => {
         jobManager.registerJob({
-            id: 'job1',
+            name: 'job1',
             execute: async (controller) => {
                 await new Promise((resolve) => setTimeout(resolve, 100))
                 controller.stop()
@@ -205,7 +206,7 @@ describe('JobManager', () => {
             },
         })
         jobManager.registerJob({
-            id: 'job2',
+            name: 'job2',
             execute: async () => {
                 return 'Job 2 response'
             },
@@ -221,7 +222,7 @@ describe('JobManager', () => {
 
         const job2 = jobManager.findJob('job2')
         expect(job2).toStrictEqual({
-            jobId: 'job2',
+            jobName: 'job2',
             status: 'pending',
         })
     })
@@ -229,14 +230,14 @@ describe('JobManager', () => {
     it('should report job', async () => {
         jobManager.registerJobs([
             {
-                id: 'job1',
+                name: 'job1',
                 execute: async () => {
                     return 'Job 1 response'
                 },
             },
             {
-                id: 'job2',
-                before: async () => {
+                name: 'job2',
+                prepare: async () => {
                     expect(jobManager.processInformation).toEqual({
                         status: 'processing',
                         jobCount: 2,
@@ -277,13 +278,13 @@ describe('JobManager', () => {
 
         jobManager.registerJobs([
             {
-                id: 'job1',
+                name: 'job1',
                 execute: async () => {
                     return 'Job 1 response'
                 },
             },
             {
-                id: 'job2',
+                name: 'job2',
                 execute: async () => {
                     return 'Job 2 response'
                 },
@@ -298,7 +299,7 @@ describe('JobManager', () => {
     it('should include job errors', async () => {
         jobManager.registerJobs([
             {
-                id: 'job1',
+                name: 'job1',
                 execute: async () => {
                     throw new Error('Job 1 failed', {
                         cause: ['Job 1 failed'],
@@ -306,7 +307,7 @@ describe('JobManager', () => {
                 },
             },
             {
-                id: 'job2',
+                name: 'job2',
                 execute: async () => {
                     return 'Job 2 response'
                 },
@@ -323,7 +324,7 @@ describe('JobManager', () => {
     it('should continue job execution after calling stop', async () => {
         jobManager.registerJobs([
             {
-                id: 'job1',
+                name: 'job1',
                 execute: async (controller) => {
                     await new Promise((resolve) => setTimeout(resolve, 100))
                     controller.stop()
@@ -331,7 +332,7 @@ describe('JobManager', () => {
                 },
             },
             {
-                id: 'job2',
+                name: 'job2',
                 execute: async () => {
                     return 'Job 2 response'
                 },
@@ -348,7 +349,7 @@ describe('JobManager', () => {
 
         const job2 = jobManager.findJob('job2')
         expect(job2).toStrictEqual({
-            jobId: 'job2',
+            jobName: 'job2',
             status: 'pending',
         })
 

@@ -7,9 +7,9 @@ import { JobError } from './job.error'
  */
 export interface Job<JobResponse = unknown> {
     /**
-     * The ID of the job.
+     * The name of the job.
      */
-    jobId: string
+    jobName: string
     /**
      * The status of the job.
      * Possible values: `success`, `failed`, `started`, `pending`.
@@ -44,18 +44,22 @@ export interface Job<JobResponse = unknown> {
  */
 export interface JobRegistration<JobResponse, JobPrepare> {
     /**
-     * The unique identifier for the job registration.
+     * The unique name for the job registration.
      */
-    id: string
+    name: string
 
     /**
-     * A function that is executed before the job starts.
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed before** the job starts.
      * It returns a promise that resolves to the prepared calculation and will be passed to the `execute` function.
      */
-    before?: () => Promise<JobPrepare>
+    prepare?(): Promise<JobPrepare>
 
     /**
-     * A function that is executed to perform the job.
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed to perform** the job.
      * @param controller An object with control methods for the job.
      * @example
      * ```typescript
@@ -67,7 +71,7 @@ export interface JobRegistration<JobResponse, JobPrepare> {
      * @param preparedCalculation The prepared calculation for the job. Calculated by the `before` function and will be passed through argument.
      * @returns A promise that resolves to the job response.
      */
-    execute: (
+    execute(
         controller: {
             /**
              * Stops the job execution, after current job
@@ -79,14 +83,16 @@ export interface JobRegistration<JobResponse, JobPrepare> {
             resume: () => void
         },
         preparedCalculation: JobPrepare
-    ) => Promise<JobResponse>
+    ): Promise<JobResponse>
 
     /**
-     * A function that is executed after the job completes.
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed after** the job completes.
      * @param job The completed job.
      * @returns A promise that resolves when the after-job tasks are completed.
      */
-    after?: (job: Job<JobResponse>) => Promise<void>
+    cleanup?(job: Job<JobResponse>): Promise<void>
 }
 
 type TypedJob<JobTuple> = JobTuple extends readonly [
@@ -202,12 +208,12 @@ export class JobManager {
     }
 
     /**
-     * Finds a job by its ID.
-     * @param jobId - The ID of the job to find.
+     * Finds a job by its name.
+     * @param jobId - The name of the job to find.
      * @returns The found job, or undefined if not found.
      */
-    public findJob(jobId: string): Job | undefined {
-        return this.$history.stack.find((job) => job.jobId === jobId)
+    public findJob(jobName: string): Job | undefined {
+        return this.$history.stack.find((job) => job.jobName === jobName)
     }
 
     /**
@@ -218,7 +224,7 @@ export class JobManager {
         this.$jobQueue.enqueue(job)
         this._jobCount += 1
         this._jobRemaining += 1
-        this.jobPending(job.id)
+        this.jobPending(job.name)
     }
 
     /**
@@ -257,7 +263,7 @@ export class JobManager {
 
             const job = this.$jobQueue.dequeue()!
             const targetHistoryJob = this.$history.stack[this._jobStackIndex]!
-            const preparedArgs = await job.before?.()
+            const preparedArgs = await job.prepare?.()
 
             this.jobStart(targetHistoryJob)
 
@@ -270,7 +276,7 @@ export class JobManager {
             } catch (error) {
                 this.jobFailed(targetHistoryJob, error)
             } finally {
-                await job.after?.(targetHistoryJob)
+                await job.cleanup?.(targetHistoryJob)
             }
 
             this.notifyJobProgress(targetHistoryJob)
@@ -300,9 +306,9 @@ export class JobManager {
         return endedAt.getTime() - startedAt.getTime()
     }
 
-    private jobPending(jobId: string): void {
+    private jobPending(jobName: string): void {
         this.$history.push({
-            jobId,
+            jobName,
             status: 'pending',
         })
     }
@@ -331,7 +337,7 @@ export class JobManager {
             job.status = 'failed'
             job.endedAt = endDate
             job.execTime = this.calculateExecTime(job.startedAt!, endDate)
-            job.error = new JobError(`@${job.jobId} failed`, error)
+            job.error = new JobError(`@${job.jobName} failed`, error)
         }
     }
 }
