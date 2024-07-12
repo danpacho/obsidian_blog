@@ -14,7 +14,7 @@ describe('PluginConfigStore', () => {
 
     it('should add and retrieve plugin configurations', async () => {
         const pluginName = 'myPlugin'
-        const config = { option1: 'value1', option2: 'value2' }
+        const config = { name: 'value1', description: 'value2' }
 
         await store.addConfig(pluginName, config)
 
@@ -24,8 +24,8 @@ describe('PluginConfigStore', () => {
 
     it('should update plugin configurations', async () => {
         const pluginName = 'myPlugin'
-        const initialConfig = { option1: 'value1', option2: 'value2' }
-        const updatedConfig = { option1: 'newValue1', option2: 'newValue2' }
+        const initialConfig = { name: 'value1', description: 'value2' }
+        const updatedConfig = { name: 'newValue1', description: 'newValue2' }
 
         await store.addConfig(pluginName, initialConfig)
         await store.updateConfig(pluginName, updatedConfig)
@@ -35,7 +35,7 @@ describe('PluginConfigStore', () => {
 
     it('should not add duplicate plugin configurations', async () => {
         const pluginName = 'myPlugin'
-        const config = { option1: 'value1', option2: 'value2' }
+        const config = { name: 'value1', description: 'value2' }
 
         await store.addConfig(pluginName, config)
         await store.addConfig(pluginName, config)
@@ -47,8 +47,8 @@ describe('PluginConfigStore', () => {
         const pluginName = 'myPlugin'
 
         expect(store.getConfig(pluginName)).toStrictEqual({
-            option1: 'newValue1',
-            option2: 'newValue2',
+            name: 'newValue1',
+            description: 'newValue2',
         })
     })
 })

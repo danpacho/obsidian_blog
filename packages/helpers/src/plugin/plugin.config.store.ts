@@ -6,9 +6,9 @@ type PluginName = PluginInterfaceConfig['name']
 export interface PluginConfigStoreConstructor extends JsonStorageConstructor {}
 /**
  * Represents a store for plugin configurations.
- * @template PluginConfig - The type of the plugin configuration.
+ * @template PluginConfig{@link PluginInterfaceConfig} - The type of the plugin configuration.
  */
-export class PluginConfigStore<PluginConfig> {
+export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
     /**
      * Creates an instance of PluginConfigStore.
      * @param options - Optional configuration options for the store.
