@@ -106,7 +106,7 @@ describe('PluginLoader', () => {
         ])
     })
 
-    it('should exclude plugins from the list', () => {
+    it('should include plugins from the list', () => {
         const loader = new PluginLoader()
 
         const plugin1 = new Plugin(1)
@@ -115,6 +115,6 @@ describe('PluginLoader', () => {
 
         loader.use([plugin1, plugin2, plugin3])
 
-        expect(loader.load(['plugin-2'])).toEqual([plugin1, plugin3])
+        expect(loader.load(['plugin-2'])).toEqual([plugin2])
     })
 })
