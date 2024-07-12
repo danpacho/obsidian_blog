@@ -16,10 +16,13 @@ describe('PluginConfigStore', () => {
         const pluginName = 'myPlugin'
         const config = { name: 'value1', description: 'value2' }
 
-        await store.addConfig(pluginName, config)
+        await store.addConfig(pluginName, { config })
 
         expect(store.hasConfig(pluginName)).toBe(true)
-        expect(store.getConfig(pluginName)).toEqual(config)
+        expect(store.getConfig(pluginName)).toEqual({
+            config: config,
+            args: null,
+        })
     })
 
     it('should update plugin configurations', async () => {
@@ -27,28 +30,53 @@ describe('PluginConfigStore', () => {
         const initialConfig = { name: 'value1', description: 'value2' }
         const updatedConfig = { name: 'newValue1', description: 'newValue2' }
 
-        await store.addConfig(pluginName, initialConfig)
-        await store.updateConfig(pluginName, updatedConfig)
+        await store.addConfig(pluginName, { config: initialConfig })
+        await store.updateConfig(pluginName, { config: updatedConfig })
 
-        expect(store.getConfig(pluginName)).toEqual(updatedConfig)
+        expect(store.getConfig(pluginName)).toEqual({
+            config: updatedConfig,
+            args: null,
+        })
     })
 
     it('should not add duplicate plugin configurations', async () => {
         const pluginName = 'myPlugin'
         const config = { name: 'value1', description: 'value2' }
 
-        await store.addConfig(pluginName, config)
-        await store.addConfig(pluginName, config)
+        await store.addConfig(pluginName, { config })
+        await store.addConfig(pluginName, { config })
 
         expect(Object.values(store.store).length).toBe(1)
+    })
+
+    it('should inquire existing plugin configurations with args', async () => {
+        const pluginName = 'myPlugin'
+        const args = { key: 'value' }
+
+        await store.updateConfig(pluginName, {
+            config: { name: 'value1', description: 'value2' },
+            args,
+        })
+        expect(store.getConfig(pluginName)).toStrictEqual({
+            config: {
+                name: 'value1',
+                description: 'value2',
+            },
+            args: args,
+        })
     })
 
     it('should inquire existing plugin configurations', () => {
         const pluginName = 'myPlugin'
 
         expect(store.getConfig(pluginName)).toStrictEqual({
-            name: 'newValue1',
-            description: 'newValue2',
+            config: {
+                name: 'value1',
+                description: 'value2',
+            },
+            args: {
+                key: 'value',
+            },
         })
     })
 })
