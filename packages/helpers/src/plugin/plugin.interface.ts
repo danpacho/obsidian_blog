@@ -1,3 +1,5 @@
+import { Job, JobRegistration } from '../job'
+
 /**
  * Plugin base configuration interface
  */
@@ -9,7 +11,7 @@ export interface PluginInterfaceConfig {
     /**
      * Description of the plugin.
      */
-    description: string
+    description?: string
 }
 
 class PluginInterfaceError extends SyntaxError {
@@ -24,12 +26,20 @@ class PluginInterfaceError extends SyntaxError {
  */
 export abstract class PluginInterface<
     InjectedPluginConfig extends PluginInterfaceConfig = PluginInterfaceConfig,
-> {
+> implements JobRegistration<unknown, unknown>
+{
     /**
      * Gets the configuration of the plugin.
      */
     public get config(): InjectedPluginConfig {
         return this._config
+    }
+
+    /**
+     * Gets the name of the plugin.
+     */
+    public get name(): string {
+        return this._config.name
     }
 
     protected _config!: InjectedPluginConfig
@@ -70,7 +80,7 @@ export abstract class PluginInterface<
             )
         }
 
-        const requiredKeys = ['name', 'description']
+        const requiredKeys = ['name'] as const
         requiredKeys.forEach((key) => {
             if (!Object.keys(config).includes(key)) {
                 throw new PluginInterfaceError(
@@ -96,4 +106,29 @@ export abstract class PluginInterface<
             )
         }
     }
+
+    public abstract execute(
+        /**
+         * The controller object for the job.
+         */
+        controller: {
+            /**
+             * Stops the job after current execution.
+             */
+            stop: () => void
+            /**
+             * Resumes the job after current execution.
+             */
+            resume: () => void
+        },
+        /**
+         * The prepared calculation for the job.
+         *
+         * Calculated by the `prepare` function and will be passed through argument.
+         */
+        preparedCalculation: unknown
+    ): Promise<unknown>
+
+    public prepare?(): Promise<unknown>
+    public cleanup?(job: Job<unknown>): Promise<void>
 }
