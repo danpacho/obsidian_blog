@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { JobManager } from '../job'
 import { PluginConfigStore } from './plugin.config.store'
 import { PluginInterface, PluginInterfaceConfig } from './plugin.interface'
@@ -8,12 +8,9 @@ import { PluginManager } from './plugin.manager'
 import { PluginRunner } from './plugin.runner'
 
 describe('PluginManager', () => {
-    let pluginManager: PluginManager
-    beforeEach(() => {
-        pluginManager = new PluginManager({
-            name: 'plugin-manager',
-            root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/storage.json`,
-        })
+    const pluginManager = new PluginManager({
+        name: 'plugin-manager',
+        root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/manager_storage.json`,
     })
 
     it('should create a new instance of PluginManager', () => {
@@ -79,10 +76,31 @@ describe('PluginManager', () => {
         const plugins = [new Plugin(3), new Plugin(4)]
         pluginManager.$loader.use(plugins)
 
-        const res = await pluginManager.run()
-        expect(res).toBe(true)
+        await pluginManager.$config.load()
+        const response = await pluginManager.run([
+            {
+                name: 'plugin-1',
+                args: {
+                    arr: [1, 2],
+                },
+            },
+            {
+                name: 'plugin-2',
+                args: {
+                    arr: [1, 2],
+                },
+            },
+            {
+                name: 'plugin-3',
+            },
+        ])
+
+        expect(response).toStrictEqual({
+            run: true,
+            save: true,
+        })
 
         const history = pluginManager.$jobManager.history
-        expect(history).toHaveLength(4)
+        expect(history).toHaveLength(3)
     })
 })
