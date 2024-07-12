@@ -26,7 +26,6 @@ export class PluginManager<Plugin extends PluginInterface = PluginInterface> {
      * The configuration store for the plugins.
      */
     public readonly $config: PluginConfigStore<ExtractPluginConfig<Plugin>>
-
     /**
      * The plugin loader for loading plugins.
      */
@@ -58,8 +57,36 @@ export class PluginManager<Plugin extends PluginInterface = PluginInterface> {
      * @param except - An array of plugin names to exclude from the run.
      * @returns A promise that resolves to the result of plugin execution.
      */
-    public async run(except?: Array<string>) {
-        const plugins = this.$loader.load(except)
-        return await this.$runner.run(plugins)
+    public async run(
+        runningInformation: Array<{ name: string; args?: unknown }>
+    ): Promise<{
+        run: Awaited<ReturnType<PluginRunner['run']>>
+        save: boolean
+    }> {
+        const loadTarget = runningInformation.map((e) => e.name)
+        const pipes = this.$loader.load(loadTarget).map((plugin) => ({
+            plugin,
+            args: runningInformation.find((e) => e.name === plugin.config.name),
+        }))
+
+        const runnerResult = await this.$runner.run(pipes)
+
+        let configSaveResult: boolean = true
+        for (const pipeInfo of pipes) {
+            try {
+                await this.$config.updateConfig(pipeInfo.plugin.config.name, {
+                    config: pipeInfo.plugin
+                        .config as ExtractPluginConfig<Plugin>,
+                    args: pipeInfo.args?.args ?? null,
+                })
+            } catch {
+                configSaveResult = false
+            }
+        }
+
+        return {
+            run: runnerResult,
+            save: configSaveResult,
+        }
     }
 }
