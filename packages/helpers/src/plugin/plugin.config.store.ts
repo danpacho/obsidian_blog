@@ -2,7 +2,16 @@ import { JsonStorage, type JsonStorageConstructor } from '../storage'
 import type { PluginInterfaceConfig } from './plugin.interface'
 
 type PluginName = PluginInterfaceConfig['name']
-
+type StoreSchema<PluginConfig extends PluginInterfaceConfig> = {
+    /**
+     * The configuration of the plugin.
+     */
+    config: PluginConfig
+    /**
+     * Additional args for the plugin.
+     */
+    args: unknown | null
+}
 export interface PluginConfigStoreConstructor extends JsonStorageConstructor {}
 /**
  * Represents a store for plugin configurations.
@@ -14,10 +23,10 @@ export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
      * @param options - Optional configuration options for the store.
      */
     public constructor(private readonly options: PluginConfigStoreConstructor) {
-        this.$storage = new JsonStorage<PluginConfig>(options)
+        this.$storage = new JsonStorage(options)
     }
 
-    private readonly $storage: JsonStorage<PluginConfig>
+    private readonly $storage: JsonStorage<StoreSchema<PluginConfig>>
 
     /**
      * Resets the config store.
@@ -28,9 +37,17 @@ export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
     }
 
     /**
+     * Loads the config store.
+     */
+    public async load(): Promise<void> {
+        await this.$storage.load()
+        return
+    }
+
+    /**
      * Gets the underlying store map.
      */
-    public get store(): Record<PluginName, PluginConfig> {
+    public get store(): Record<PluginName, StoreSchema<PluginConfig>> {
         return this.$storage.storageRecord
     }
 
@@ -50,10 +67,13 @@ export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
      */
     public async addConfig(
         pluginName: string,
-        config: PluginConfig
+        { config, args }: { config: PluginConfig; args?: unknown }
     ): Promise<void> {
         if (this.hasConfig(pluginName)) return
-        await this.$storage.set(pluginName, config)
+        await this.$storage.set(pluginName, {
+            config: config,
+            args: args ?? null,
+        })
         return
     }
 
@@ -64,9 +84,12 @@ export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
      */
     public async updateConfig(
         pluginName: string,
-        config: PluginConfig
+        { config, args }: { config: PluginConfig; args?: unknown }
     ): Promise<void> {
-        await this.$storage.set(pluginName, config)
+        await this.$storage.set(pluginName, {
+            config: config,
+            args: args ?? null,
+        })
         return
     }
 
@@ -75,7 +98,7 @@ export class PluginConfigStore<PluginConfig extends PluginInterfaceConfig> {
      * @param name - The name of the configuration.
      * @returns The configuration if found, otherwise undefined.
      */
-    public getConfig(name: string): PluginConfig | undefined {
+    public getConfig(name: string): StoreSchema<PluginConfig> | undefined {
         return this.$storage.get(name)
     }
 }
