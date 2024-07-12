@@ -43,12 +43,13 @@ export class PluginLoader<Plugin extends PluginInterface = PluginInterface> {
     }
 
     /**
-     * Get the list of registered plugins.
+     * Load the list of registered plugins.
+     * @param include An array of plugin names to include.
      * @returns An array of registered plugins.
      */
-    public load(except?: Array<string>): Array<Plugin> {
-        if (!except) return this._pluginList
+    public load(include?: Array<string>): Array<Plugin> {
+        if (!include) return this._pluginList
 
-        return this._pluginList.filter((p) => !except.includes(p.config.name))
+        return this._pluginList.filter((p) => include.includes(p.config.name))
     }
 }
