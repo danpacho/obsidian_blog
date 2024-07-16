@@ -1,44 +1,37 @@
 import {
+    PluginInterface,
+    type PluginInterfaceStaticConfig,
+} from '@obsidian_blogger/helpers/plugin'
+import {
     MetaEngine,
     type MetaEngineConstructor,
     type PolymorphicMeta,
 } from '../../meta/engine'
 import type { BuilderConstructor } from '../builder'
-
 /**
  * Represents the configuration for a build plugin.
  */
-export interface BuildPluginConfig {
-    /**
-     * The name of the plugin.
-     */
-    name: string
+export interface BuildPluginStaticConfig extends PluginInterfaceStaticConfig {}
+
+export type BuildPluginDynamicConfig = {
     /**
      * Whether to disable caching for the plugin.
      */
     disableCache?: boolean
 }
 
-export interface BuildPluginCoreDependencies
-    extends Omit<BuilderConstructor, 'parser' | 'corePluginConfig'> {}
+export interface BuildPluginDependencies
+    extends Omit<BuilderConstructor, 'parser' | 'corePluginConfigs'> {}
 
 /**
  * Abstract class representing a build plugin.
- * @template PluginConfig - The type of the plugin configuration.
- * @template PluginDependencies - The type of the plugin dependencies.
  */
 export abstract class BuildPlugin<
-    PluginConfig extends BuildPluginConfig,
-    PluginDependencies extends
-        BuildPluginCoreDependencies = BuildPluginCoreDependencies,
-> {
-    /**
-     * Gets the plugin configuration.
-     * @returns The plugin configuration.
-     */
-    public abstract getConfig(): PluginConfig
-
-    private _runTimeDependencies: PluginDependencies | undefined = undefined
+    Static extends BuildPluginStaticConfig,
+    Dynamic extends BuildPluginDynamicConfig = BuildPluginDynamicConfig,
+    Dependencies extends BuildPluginDependencies = BuildPluginDependencies,
+> extends PluginInterface<Static, Dynamic> {
+    private _runTimeDependencies: Dependencies | undefined = undefined
 
     /**
      * Retrieves a runtime dependency by deps key.
@@ -46,9 +39,9 @@ export abstract class BuildPlugin<
      * @returns The runtime dependency.
      * @throws Error if the plugin dependencies are not injected.
      */
-    protected getRunTimeDependency<
-        const DepsKey extends keyof PluginDependencies,
-    >(key: DepsKey): PluginDependencies[DepsKey] {
+    protected getRunTimeDependency<const DepsKey extends keyof Dependencies>(
+        key: DepsKey
+    ): Dependencies[DepsKey] {
         const deps = String(key)
         if (!this._runTimeDependencies) {
             throw new Error(
@@ -137,7 +130,7 @@ export abstract class BuildPlugin<
      * @param dependencies - The plugin dependencies to inject.
      * @ignore This is _internal API_ for the build system.
      */
-    public injectDependencies(dependencies: PluginDependencies) {
+    public injectDependencies(dependencies: Dependencies) {
         this._runTimeDependencies = dependencies
     }
 
