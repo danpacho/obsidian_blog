@@ -1,19 +1,25 @@
-import type { MarkdownProcessor } from '../../md/processor'
+import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
 import {
     BuildPlugin,
-    type BuildPluginConfig,
-    type BuildPluginCoreDependencies,
+    BuildPluginDependencies,
+    type BuildPluginDynamicConfig,
+    type BuildPluginStaticConfig,
 } from './build.plugin'
 
-export interface BuildContentsPluginConfig extends BuildPluginConfig {}
-export interface BuildContentsDependencies extends BuildPluginCoreDependencies {
+export interface BuildContentsPluginStaticConfig
+    extends BuildPluginStaticConfig {}
+export type BuildContentsDynamicConfig = BuildPluginDynamicConfig
+export interface BuildContentsPluginDependencies
+    extends BuildPluginDependencies {
     processor: MarkdownProcessor
 }
-export abstract class BuildContentsPlugin extends BuildPlugin<
-    BuildContentsPluginConfig,
-    BuildContentsDependencies
-> {
+export abstract class BuildContentsPlugin<
+    Static extends
+        BuildContentsPluginStaticConfig = BuildContentsPluginStaticConfig,
+    Dynamic extends BuildContentsDynamicConfig = BuildContentsDynamicConfig,
+> extends BuildPlugin<Static, Dynamic, BuildContentsPluginDependencies> {
     /**
      * Gets `Markdown processor`
      * ```ts
@@ -35,20 +41,6 @@ export abstract class BuildContentsPlugin extends BuildPlugin<
     }
 
     /**
-     * Builds the contents of the file.
-     * @param context - The context of the build, including the build store list.
-     * @returns The `new content` and the `write path`.
-     */
-    public abstract buildContents(context: {
-        buildStore: BuildStoreList
-    }): Promise<
-        Array<{
-            newContent: string
-            writePath: string
-        }>
-    >
-
-    /**
      * Optional cache checker function for determining if the build state and node information
      * @param state - The build state.
      * @param buildInfo - The information about the current build.
@@ -62,4 +54,37 @@ export abstract class BuildContentsPlugin extends BuildPlugin<
             allReports: Array<BuildInformation>
         }
     ) => boolean
+
+    /**
+     * Builds the contents of the file.
+     * @param context - The context of the build, including the build store list.
+     * @returns The `new content` and the `write path`.
+     */
+    public abstract buildContents(context: {
+        buildStore: BuildStoreList
+    }): Promise<
+        Array<{
+            newContent: string
+            writePath: string
+        }>
+    >
+
+    public async execute(
+        _: { stop: () => void; resume: () => void },
+        context: {
+            buildStore: BuildStoreList
+        }
+    ): Promise<PluginExecutionResponse> {
+        this.$jobManager.registerJob({
+            name: 'build_contents',
+            execute: async () => {
+                const newContents = await this.buildContents(context)
+                return newContents
+            },
+        })
+
+        await this.$jobManager.processJobs()
+
+        return this.$jobManager.history
+    }
 }
