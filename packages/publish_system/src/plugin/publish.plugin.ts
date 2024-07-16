@@ -4,28 +4,25 @@ import {
     type LoggerConstructor,
 } from '@obsidian_blogger/helpers/logger'
 import {
+    PluginInterface,
+    PluginInterfaceStaticConfig,
+} from '@obsidian_blogger/helpers/plugin'
+import {
     ShellExecutor,
     type ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
-import { JobManager, type JobManagerConstructor } from '../core/job.manager'
 
-export interface PublishPluginConstructor {
-    /**
-     * The name of the plugin
-     */
-    name: string
+export type PublishPluginDynamicConfig = {
     /**
      * The current working directory of the plugin
      */
     cwd: string
+}
+export interface PublishPluginStaticConfig extends PluginInterfaceStaticConfig {
     /**
      * Shell executor options
      */
     shell?: ShellExecutorConstructor
-    /**
-     * Job manager options
-     */
-    jobManager?: JobManagerConstructor
     /**
      * Logger options
      */
@@ -35,32 +32,19 @@ export interface PublishPluginConstructor {
 /**
  * Represents an abstract class for a publish plugin.
  */
-export abstract class PublishPlugin {
+export abstract class PublishPlugin<
+    Static extends PublishPluginStaticConfig,
+    Dynamic extends PublishPluginDynamicConfig = PublishPluginDynamicConfig,
+> extends PluginInterface<Static, Dynamic> {
     protected readonly $logger: Logger
-    protected readonly $jobManager: JobManager
     protected readonly $shell: ShellExecutor
     protected readonly $io: IO
-    /**
-     * The name of the plugin.
-     */
-    public readonly name: string
-    /**
-     * The current working directory of the plugin.
-     */
-    public readonly cwd: string
 
-    /**
-     * Creates a new instance of the PublishPlugin class.
-     * @param options - The options for the plugin.
-     */
-    public constructor(options: PublishPluginConstructor) {
-        this.name = options.name
-        this.cwd = options.cwd
-
+    public constructor() {
+        super()
         this.$io = new IO()
-        this.$logger = new Logger(options.logger)
-        this.$jobManager = new JobManager(options.jobManager)
-        this.$shell = new ShellExecutor(options.shell)
+        this.$logger = new Logger(this.staticConfig.logger)
+        this.$shell = new ShellExecutor(this.staticConfig.shell)
     }
 
     /**
@@ -69,13 +53,5 @@ export abstract class PublishPlugin {
      */
     public history() {
         return this.$jobManager.history
-    }
-
-    /**
-     * Updates the name of the logger.
-     * @param name - The new name for the logger.
-     */
-    public updateLoggerName(name: string): void {
-        this.$logger.updateName(name)
     }
 }
