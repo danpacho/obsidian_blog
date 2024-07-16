@@ -58,11 +58,8 @@ export type BuildStoreList = Array<BuildInformation>
 export type BuildStoreMap = Map<NodeId, BuildInformation>
 
 export interface BuildStoreConstructor {
-    readonly buildPath: {
-        assets: string
-        contents: string
-    }
     readonly io: IO
+    root: string
 }
 /**
  * Represents a store for build information.
@@ -101,8 +98,7 @@ export class BuildStore {
      * @returns The save path for the build store.
      */
     public get savePath(): string {
-        const STORE_NAME = 'build_store.json' as const
-        return `${this.option.buildPath.assets}/${STORE_NAME}`
+        return `${this.option.root}/build_report.json`
     }
 
     /**
