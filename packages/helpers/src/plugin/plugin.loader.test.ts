@@ -6,7 +6,7 @@ describe('PluginLoader', () => {
     class Plugin extends PluginInterface {
         public constructor(pluginId: number = 0) {
             super()
-            this.config.name = `plugin-${pluginId}`
+            this.staticConfig.name = `plugin-${pluginId}`
         }
 
         public override async prepare() {
@@ -21,7 +21,7 @@ describe('PluginLoader', () => {
             }
         }
 
-        protected defineConfig() {
+        protected defineStaticConfig() {
             return {
                 name: 'plugin',
                 description: 'Plugin description',
@@ -37,17 +37,57 @@ describe('PluginLoader', () => {
 
         loader.use(plugin)
 
-        expect(loader.load()).toEqual([plugin])
+        expect(
+            loader.load([
+                {
+                    name: 'plugin-0',
+                },
+            ])
+        ).toEqual([plugin])
     })
 
-    it('should register an array of plugins', () => {
+    it('should load the unique plugin', () => {
         const loader = new PluginLoader()
 
         const plugins = [new Plugin(), new Plugin(), new Plugin()]
 
         loader.use(plugins)
 
-        expect(loader.load()).toEqual(plugins)
+        const loaded = loader.load([
+            {
+                name: 'plugin-0',
+            },
+            {
+                name: 'plugin-0',
+            },
+            {
+                name: 'plugin-0',
+            },
+        ])
+        expect(loaded).toEqual([plugins[0]])
+    })
+
+    it('should load the with dynamic config', () => {
+        const loader = new PluginLoader()
+
+        const plugins = [new Plugin(), new Plugin(), new Plugin()]
+
+        loader.use(plugins)
+
+        const loaded = loader.load([
+            {
+                name: 'plugin-0',
+                dynamicConfig: {
+                    arg: 3,
+                },
+            },
+        ])
+
+        expect(loaded.map((e) => e.dynamicConfig)).toEqual([
+            {
+                arg: 3,
+            },
+        ])
     })
 
     it('should not register undefined plugin', () => {
@@ -55,7 +95,7 @@ describe('PluginLoader', () => {
 
         loader.use(undefined)
 
-        expect(loader.load()).toEqual([])
+        expect(loader.load([])).toEqual([])
     })
 
     it('should not register duplicate plugins', () => {
@@ -66,13 +106,22 @@ describe('PluginLoader', () => {
         loader.use(plugin)
         loader.use(plugin)
 
-        expect(loader.load()).toEqual([plugin])
+        expect(
+            loader.load([
+                {
+                    name: 'plugin-0',
+                },
+                {
+                    name: 'plugin-0',
+                },
+            ])
+        ).toEqual([plugin])
     })
 
     it('should return an empty array for no plugins', () => {
         const loader = new PluginLoader()
 
-        expect(loader.load()).toEqual([])
+        expect(loader.load([])).toEqual([])
     })
 
     it('should register class plugins with duplicate instances', () => {
@@ -84,10 +133,19 @@ describe('PluginLoader', () => {
         loader.use(plugin)
         loader.use(plugin)
 
-        const newPlugin = new Plugin()
+        const newPlugin = new Plugin(1)
         loader.use(newPlugin)
 
-        expect(loader.load()).toEqual([plugin, newPlugin])
+        expect(
+            loader.load([
+                {
+                    name: 'plugin-0',
+                },
+                {
+                    name: 'plugin-1',
+                },
+            ])
+        ).toEqual([plugin, newPlugin])
     })
 
     it('should extract plugin names', () => {
@@ -106,7 +164,7 @@ describe('PluginLoader', () => {
         ])
     })
 
-    it('should include plugins from the list', () => {
+    it('should use exact plugins from the list', () => {
         const loader = new PluginLoader()
 
         const plugin1 = new Plugin(1)
@@ -115,6 +173,12 @@ describe('PluginLoader', () => {
 
         loader.use([plugin1, plugin2, plugin3])
 
-        expect(loader.load(['plugin-2'])).toEqual([plugin2])
+        expect(
+            loader.load([
+                {
+                    name: 'plugin-2',
+                },
+            ])
+        ).toEqual([plugin2])
     })
 })
