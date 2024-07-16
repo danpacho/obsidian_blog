@@ -1,32 +1,29 @@
-import { GitShell, GitShellConstructor } from '../core/git'
-import { PublishPlugin, PublishPluginConstructor } from './publish.plugin'
+import { GitShell } from '../core/git'
+import {
+    PublishPlugin,
+    type PublishPluginDynamicConfig,
+    type PublishPluginStaticConfig,
+} from './publish.plugin'
 
-export interface RepositoryConstructor
-    extends PublishPluginConstructor,
-        GitShellConstructor {}
+export interface RepositoryStaticConfig extends PublishPluginStaticConfig {}
 
+export type RepositoryDynamicConfig = PublishPluginDynamicConfig & {
+    gitPath: string
+}
 /**
  * Abstract class representing a repository plugin.
  * Extends the PublishPlugin class.
  */
-export abstract class RepositoryPlugin extends PublishPlugin {
-    protected readonly $git: GitShell
+export abstract class RepositoryPlugin<
+    Static extends RepositoryStaticConfig = RepositoryStaticConfig,
+    Dynamic extends RepositoryDynamicConfig = RepositoryDynamicConfig,
+> extends PublishPlugin<Static, Dynamic> {
+    private _$git: GitShell | undefined = undefined
 
-    /**
-     * Creates a new instance of the RepositoryPlugin class.
-     * @param options - The options for the repository plugin.
-     */
-    public constructor(options: RepositoryConstructor) {
-        super(options)
-        this.$git = new GitShell(options)
+    public get $git(): GitShell {
+        if (this._$git === undefined) {
+            this._$git = new GitShell(this.dynamicConfig)
+        }
+        return this._$git
     }
-
-    /**
-     * Saves the specified parameters to the repository.
-     * @param saveParameters - The parameters to save.
-     * @returns A promise that resolves when the save operation is complete.
-     */
-    public abstract save(
-        saveParameters: Record<string, unknown>
-    ): Promise<unknown>
 }
