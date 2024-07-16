@@ -2,7 +2,10 @@
 import { StorageError } from './error'
 import { StorageConstructor, StorageInterface } from './storage.interface'
 
-export interface JsonStorageConstructor extends StorageConstructor {}
+export interface JsonStorageConstructor extends StorageConstructor {
+    serializer?: (data: any) => string
+    deserializer?: (json: string) => any
+}
 
 /**
  * Represents a JSON storage implementation that extends a base storage interface.
@@ -16,7 +19,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * @param options - The options for the JSON storage.
      */
     public constructor(
-        protected override readonly options: JsonStorageConstructor
+        public override readonly options: JsonStorageConstructor
     ) {
         const extension = options.root.split('.').pop()
         if (extension !== 'json') {
@@ -27,6 +30,29 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
             )
         }
         super(options)
+    }
+
+    public updateSerializer(
+        serializer: (data: Record<string, Schema>) => string
+    ) {
+        this.options.serializer = serializer
+    }
+
+    public updateDeserializer(
+        deserializer: (json: string) => Record<string, Schema>
+    ) {
+        this.options.deserializer = deserializer
+    }
+
+    public get serializer(): (data: Record<string, Schema>) => string {
+        return (
+            this.options.serializer ??
+            ((value: Record<string, Schema>) => JSON.stringify(value, null, 4))
+        )
+    }
+
+    public get deserializer(): (json: string) => Record<string, Schema> {
+        return this.options.deserializer ?? JSON.parse
     }
 
     /**
@@ -47,7 +73,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * Gets the underlying storage `json`
      */
     public get storageJson(): string {
-        return JSON.stringify(this.storageRecord, null, 4)
+        return this.serializer(this.storageRecord)
     }
 
     public async load(): Promise<void> {
@@ -63,10 +89,8 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
                         this._storage = new Map<string, Schema>()
                     } else {
                         try {
-                            const parsedData = JSON.parse(result.data)
-                            this._storage = new Map<string, Schema>(
-                                Object.entries(parsedData)
-                            )
+                            const parsedData = this.deserializer(result.data)
+                            this._storage = new Map(Object.entries(parsedData))
                         } catch (parseError) {
                             throw new StorageError(
                                 'load',
@@ -105,7 +129,8 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public get(key: string): Schema | undefined {
         try {
-            return this._storage.get(key)
+            const founded = this._storage.get(key)
+            return founded
         } catch (error) {
             throw new StorageError(
                 'get',
