@@ -1,32 +1,64 @@
-import { RepositoryConstructor, RepositoryPlugin } from '../../repository'
+import {
+    type RepositoryDynamicConfig,
+    RepositoryPlugin,
+    type RepositoryStaticConfig,
+} from '../../repository'
 
-export type GithubSaveConfig = {
+export interface GithubRepositoryDynamicConfig extends RepositoryDynamicConfig {
     branch: string
     commitMessage: string
     commitPrefix: string
     addPattern?: string
 }
 
-interface GithubRepositoryConstructor extends RepositoryConstructor {}
-export class GithubRepository extends RepositoryPlugin {
-    public constructor(options: GithubRepositoryConstructor) {
-        super(options)
+export class GithubRepository extends RepositoryPlugin<
+    RepositoryStaticConfig,
+    GithubRepositoryDynamicConfig
+> {
+    protected defineStaticConfig(): RepositoryStaticConfig {
+        return {
+            name: 'github',
+            description: 'Github repository commit and push automation plugin',
+            dynamicConfigDescriptions: [
+                {
+                    property: 'cwd',
+                    type: 'string',
+                },
+                {
+                    property: 'branch',
+                    type: 'string',
+                },
+                {
+                    property: 'commitPrefix',
+                    type: 'string',
+                },
+                {
+                    property: 'commitMessage',
+                    type: 'string',
+                },
+                {
+                    property: 'gitPath',
+                    type: 'string',
+                },
+            ],
+        }
     }
 
-    public async save({
-        branch,
-        commitMessage,
-        commitPrefix,
-        addPattern,
-    }: GithubSaveConfig) {
+    public async execute() {
+        return await this.save()
+    }
+
+    private async save() {
+        const { branch, commitMessage, commitPrefix, addPattern } =
+            this.dynamicConfig
         this.$logger.info(`Saving to ${this.name}`)
 
         this.$jobManager.registerJobs([
             {
-                id: 'git-check-remote-origin',
+                name: 'git-check-remote-origin',
                 execute: async ({ stop }) => {
                     const remoteOriginFounded: boolean =
-                        (await this.$git.remote())?.stdout !== ''
+                        (await this.$git?.remote())?.stdout !== ''
 
                     if (remoteOriginFounded === false) {
                         this.$logger.error('No remote origin found')
@@ -37,32 +69,32 @@ export class GithubRepository extends RepositoryPlugin {
                 },
             },
             {
-                id: 'git-add',
+                name: 'git-add',
                 execute: async () => {
                     if (addPattern) {
-                        return await this.$git.addByPattern(addPattern)
+                        return await this.$git?.addByPattern(addPattern)
                     } else {
-                        return await this.$git.addAll()
+                        return await this.$git?.addAll()
                     }
                 },
             },
             {
-                id: 'git-commit',
+                name: 'git-commit',
                 execute: async () => {
                     const commit = `${commitPrefix}: ${commitMessage}`
-                    const committed = await this.$git.commit(commit)
+                    const committed = await this.$git?.commit(commit)
                     return committed
                 },
-                after: async (job) => {
+                cleanup: async (job) => {
                     this.$logger.info(`Commit\n${job.response?.stdout}`)
                 },
             },
             {
-                id: 'git-push',
+                name: 'git-push',
                 execute: async () => {
-                    return await this.$git.push(branch)
+                    return await this.$git?.push(branch)
                 },
-                after: async () => {
+                cleanup: async () => {
                     this.$logger.success('Pushed to remote successfully')
                 },
             },

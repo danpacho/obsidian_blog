@@ -1,38 +1,48 @@
-import { type BuildScriptConstructor, BuildScriptPlugin } from '../../build'
-export type BlogBuildConfig = {
-    buildScript: Array<string>
-    verbose?: boolean
-}
+import { BuildScriptPlugin, type BuildScriptStaticConfig } from '../../build'
 
 export class BlogBuilder extends BuildScriptPlugin {
-    public constructor(options: BuildScriptConstructor) {
-        super(options)
+    protected defineStaticConfig(): BuildScriptStaticConfig {
+        return {
+            name: 'blog-build-script-runner',
+            description: 'Run blog build scripts',
+            dynamicConfigDescriptions: [
+                {
+                    property: 'cwd',
+                    type: 'string',
+                },
+                {
+                    property: 'command',
+                    type: 'Array<string>',
+                },
+            ],
+        }
     }
 
-    public async build({ buildScript, verbose = false }: BlogBuildConfig) {
+    public async execute() {
+        return await this.build()
+    }
+
+    private async build() {
         this.$jobManager.registerJobs([
             {
-                id: 'site-detect-package-manager',
-                execute: async () => await this.detectPackageManager(),
+                name: 'detect-package-manager',
+                execute: async () =>
+                    await this.detectPackageManager(this.dynamicConfig.cwd),
             },
             {
-                id: 'site-build',
+                name: 'build',
                 execute: async () => {
-                    const buildResult = await this.pkg(buildScript)
+                    const buildResult = await this.pkg()
                     if (!buildResult.success) {
                         this.$logger.error('Build failed')
-                        verbose &&
-                            this.$logger.log(
-                                JSON.stringify(buildResult, null, 2)
-                            )
+                        this.$logger.log(JSON.stringify(buildResult, null, 2))
                         return buildResult
                     }
 
                     this.$logger.success('Build succeeded')
-                    verbose &&
-                        this.$logger.log(
-                            JSON.stringify(buildResult.data.stdout, null, 2)
-                        )
+                    this.$logger.log(
+                        JSON.stringify(buildResult.data.stdout, null, 2)
+                    )
                     return buildResult
                 },
             },
@@ -40,8 +50,6 @@ export class BlogBuilder extends BuildScriptPlugin {
 
         await this.$jobManager.processJobs()
 
-        const history = this.$jobManager.history
-
-        return history
+        return this.$jobManager.history
     }
 }

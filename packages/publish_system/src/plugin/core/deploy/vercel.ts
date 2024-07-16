@@ -1,4 +1,4 @@
-import { DeployConstructor, DeployPlugin } from '../../deploy'
+import { DeployPlugin, type DeployStaticConfig } from '../../deploy'
 
 export type VercelDeployConfig = {
     someConfig: string
@@ -7,13 +7,27 @@ export type VercelDeployConfig = {
 // https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
 // Just demonstrating the concept of a deploy plugin
 
-interface VercelDeployConstructor extends DeployConstructor {}
 export class VercelDeploy extends DeployPlugin {
-    public constructor(options: VercelDeployConstructor) {
-        super(options)
+    protected override defineStaticConfig(): DeployStaticConfig {
+        return {
+            name: 'vercel',
+            description: 'Deploy to Vercel',
+            dynamicConfigDescriptions: [
+                {
+                    property: 'cwd',
+                    type: 'string',
+                },
+                {
+                    property: 'someConfig',
+                    type: 'string',
+                },
+            ],
+        }
     }
 
-    public async deploy(vercelConfig: VercelDeployConfig): Promise<unknown> {
-        return vercelConfig
+    public async execute() {
+        this.$logger.log(JSON.stringify(this.dynamicConfig, null, 4))
+        this.$logger.log('Deploying to Vercel...')
+        return this.$jobManager.history
     }
 }
