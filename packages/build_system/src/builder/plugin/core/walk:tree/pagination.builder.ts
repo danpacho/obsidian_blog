@@ -1,6 +1,9 @@
 import type { Promisify } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    WalkTreePlugin,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
@@ -25,13 +28,10 @@ export class PaginationBuilderPlugin extends WalkTreePlugin {
         return this.$createMetaEngine(this.config.contentMeta)
     }
 
-    public getConfig(): WalkTreePluginConfig {
+    public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
             name: 'PaginationBuilder',
-            exclude: 'description.md',
-            skipFolderNode: true,
-            disableCache: true,
-            walkType: 'DFS',
+            description: 'Generate pagination meta information for the content',
         }
     }
 

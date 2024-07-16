@@ -1,5 +1,10 @@
 import type { FileTreeNode } from 'packages/build_system/src/parser/node'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import { PluginInterfaceStaticConfig } from 'packages/helpers/dist'
+import {
+    WalkTreePlugin,
+    type WalkTreePluginDynamicConfig,
+    type WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type CategoryDescriptionGeneratorOptions,
     defaultCategoryDescriptionBuilderOptions,
@@ -9,28 +14,66 @@ import type {
     DefaultContentMeta,
 } from './shared/meta/interface'
 
-export interface CategoryDescriptionGeneratorConfig
-    extends CategoryDescriptionGeneratorOptions {
-    path?: string
-    descriptionFileName?: string
-}
-export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
-    public constructor(
-        public readonly config: CategoryDescriptionGeneratorConfig = {
-            ...defaultCategoryDescriptionBuilderOptions,
-            descriptionFileName: 'description.md',
+export interface CategoryDescriptionGeneratorStaticConfig
+    extends WalkTreePluginStaticConfig {}
+export type CategoryDescriptionGeneratorDynamicConfig =
+    WalkTreePluginDynamicConfig &
+        Partial<CategoryDescriptionGeneratorOptions> & {
+            path?: string
+            descriptionFileName?: string
         }
-    ) {
-        super()
+export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
+    CategoryDescriptionGeneratorStaticConfig,
+    CategoryDescriptionGeneratorDynamicConfig
+> {
+    override defaultOptions: {
+        defaultStaticConfigs?:
+            | Partial<
+                  Omit<
+                      CategoryDescriptionGeneratorStaticConfig,
+                      keyof PluginInterfaceStaticConfig
+                  >
+              >
+            | undefined
+        defaultDynamicConfigs?:
+            | Partial<CategoryDescriptionGeneratorDynamicConfig>
+            | undefined
+    } = {
+        defaultDynamicConfigs: {
+            categoryMeta: defaultCategoryDescriptionBuilderOptions.categoryMeta,
+            descriptionFileName: 'description.md',
+        },
     }
 
     private get meta() {
-        return this.$createMetaEngine(this.config.categoryMeta)
+        return this.$createMetaEngine(this.dynamicConfig.categoryMeta!)
     }
-    public getConfig(): WalkTreePluginConfig {
+
+    protected override defineStaticConfig(): CategoryDescriptionGeneratorStaticConfig {
         return {
-            name: 'CategoryDescriptionGenerator',
-            skipFolderNode: true,
+            name: 'category-description-generator',
+            description:
+                'Generate category description from {{description}}.md',
+            dynamicConfigDescriptions: [
+                {
+                    property: 'categoryMeta',
+                    type: `
+                    {
+                        parser: (meta: unknown) => PolymorphicMeta
+                        generator: (meta: unknown) => PolymorphicMeta
+                    }
+                    `,
+                },
+                {
+                    property: 'path',
+                    type: 'string',
+                },
+                {
+                    property: 'descriptionFileName',
+                    type: 'string',
+                    example: 'description.md',
+                },
+            ],
         }
     }
 
@@ -44,7 +87,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
                 const awaited = await acc
                 if (!awaited) return acc
 
-                if (curr.fileName === this.config.descriptionFileName)
+                if (curr.fileName === this.dynamicConfig.descriptionFileName)
                     return acc
 
                 if (curr.category === 'FOLDER') {
@@ -83,7 +126,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
                 if (!awaited) return acc
 
                 if (curr.category !== 'TEXT_FILE') return acc
-                if (curr.fileName !== this.config.descriptionFileName)
+                if (curr.fileName !== this.dynamicConfig.descriptionFileName)
                     return acc
 
                 const descriptionMeta = await this.meta.extractFromFile(
@@ -116,15 +159,15 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin {
         node: Parameters<WalkTreePlugin['walk']>[0],
         { siblings }: Parameters<WalkTreePlugin['walk']>[1]
     ): Promise<void> {
-        if (node.fileName !== this.config.descriptionFileName) return
+        if (node.fileName !== this.dynamicConfig.descriptionFileName) return
         if (!node.parentInfo) return
         if (!siblings) return
 
         const postCollectionContainer =
             await this.getPostCollectionContainer(siblings)
 
-        const writePath: string = this.config?.path
-            ? `${this.config.path}/${node.parentInfo.fileName}.json`
+        const writePath: string = this.dynamicConfig?.path
+            ? `${this.dynamicConfig.path}/${node.parentInfo.fileName}.json`
             : `${this.$buildPath.contents}/${node.parentInfo.fileName}.json`
 
         const collectionRecord = await this.$io.writer.write({

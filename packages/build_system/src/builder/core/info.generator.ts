@@ -1,7 +1,7 @@
 import { type UUID, createHash } from 'crypto'
 import { FileReader, type IO } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from '../../parser/node'
-import type { BuildPluginCoreDependencies } from '../plugin/build.plugin'
+import type { BuildPluginStaticConfig } from '../plugin/build.plugin'
 import type { BuildInformation } from './store'
 /**
  *  A unique identifier for a node
@@ -17,11 +17,11 @@ export interface BuildInfoGeneratorConstructor {
     readonly pathGenerator: {
         assets: (
             node: FileTreeNode,
-            buildTools: BuildPluginCoreDependencies
+            buildTools: BuildPluginStaticConfig
         ) => Promise<string>
         contents: (
             node: FileTreeNode,
-            buildTools: BuildPluginCoreDependencies
+            buildTools: BuildPluginStaticConfig
         ) => Promise<string>
     }
 }
@@ -83,7 +83,7 @@ export class BuildInfoGenerator {
      */
     public async generateContentBuildInfo(
         contentNode: FileTreeNode,
-        buildTools: BuildPluginCoreDependencies
+        buildTools: BuildPluginStaticConfig
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const originPath = contentNode.absolutePath
 
@@ -119,7 +119,7 @@ export class BuildInfoGenerator {
      */
     public async generateAssetBuildInfo(
         assetNode: FileTreeNode,
-        buildTools: BuildPluginCoreDependencies,
+        buildTools: BuildPluginStaticConfig,
         strict: boolean = false
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const ASSET_PREFIX = {

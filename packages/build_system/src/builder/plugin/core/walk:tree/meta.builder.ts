@@ -1,6 +1,9 @@
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    WalkTreePlugin,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
@@ -21,11 +24,10 @@ export class MetaBuilderPlugin extends WalkTreePlugin {
     }
     private readonly paramAnalyzer: ParamAnalyzer
 
-    public getConfig(): WalkTreePluginConfig {
+    public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
             name: 'MetaBuilder',
-            exclude: 'description.md',
-            skipFolderNode: true,
+            description: 'Generate meta information for the content',
         }
     }
 
