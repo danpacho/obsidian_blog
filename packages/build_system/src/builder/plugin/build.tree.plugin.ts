@@ -1,28 +1,42 @@
-import type { FileTreeNode } from '../../parser'
+import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import type { FileTreeNode, FileTreeParser } from '../../parser'
 import type { BuildInformation } from '../core'
-import { BuildPlugin, type BuildPluginConfig } from './build.plugin'
+import {
+    BuildPlugin,
+    type BuildPluginDynamicConfig,
+    type BuildPluginStaticConfig,
+} from './build.plugin'
 
 /**
  * Configuration options for the BuildTreePlugin.
  */
-export interface BuildTreePluginConfig extends BuildPluginConfig {
+export interface BuildTreePluginStaticConfig extends BuildPluginStaticConfig {}
+export type BuildTreePluginDynamicConfig = BuildPluginDynamicConfig & {
     /**
      * Specifies files or folders to exclude from the tree walk.
      */
     exclude?: Array<string> | string | RegExp
-
     /**
      * Determines whether to skip folder nodes during the tree walk.
      * - If set to `true`, folder nodes will be skipped.
      * - If set to `false` or not provided, folder nodes will be included in the tree walk.
      */
     skipFolderNode?: boolean
+    /**
+     * The type of tree walk to perform.
+     * - `DFS`: Depth-first search
+     * - `BFS`: Breadth-first search
+     */
+    walkType?: 'DFS' | 'BFS'
 }
 
 /**
  * Abstract class representing a plugin for building a tree during the build process.
  */
-export abstract class BuildTreePlugin extends BuildPlugin<BuildTreePluginConfig> {
+export abstract class BuildTreePlugin<
+    Static extends BuildTreePluginStaticConfig = BuildTreePluginStaticConfig,
+    Dynamic extends BuildTreePluginDynamicConfig = BuildTreePluginDynamicConfig,
+> extends BuildPlugin<Static, Dynamic> {
     /**
      * Walking a original file tree for rebuilding the file tree
      */
@@ -75,4 +89,35 @@ export abstract class BuildTreePlugin extends BuildPlugin<BuildTreePluginConfig>
             children: Array<FileTreeNode> | undefined
         }
     ) => boolean
+
+    public async execute(
+        _: { stop: () => void; resume: () => void },
+        context: {
+            parser: FileTreeParser
+            walkRoot?: FileTreeNode
+        }
+    ): Promise<PluginExecutionResponse> {
+        this.$jobManager.registerJob({
+            name: 'build:tree',
+            execute: async () => {
+                const defaultOptions = {
+                    type: this.dynamicConfig.walkType ?? 'DFS',
+                    skipFolderNode: this.dynamicConfig.skipFolderNode ?? true,
+                }
+                await context.parser.walk(
+                    this.walk,
+                    context.walkRoot
+                        ? {
+                              ...defaultOptions,
+                              walkRoot: context.walkRoot,
+                          }
+                        : defaultOptions
+                )
+            },
+        })
+
+        await this.$jobManager.processJobs()
+
+        return this.$jobManager.history
+    }
 }
