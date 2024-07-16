@@ -2,7 +2,10 @@
 import { describe, expect, it } from 'vitest'
 import { JobManager } from '../job'
 import { PluginConfigStore } from './plugin.config.store'
-import { PluginInterface, PluginInterfaceConfig } from './plugin.interface'
+import {
+    PluginInterface,
+    PluginInterfaceStaticConfig,
+} from './plugin.interface'
 import { PluginLoader } from './plugin.loader'
 import { PluginManager } from './plugin.manager'
 import { PluginRunner } from './plugin.runner'
@@ -51,10 +54,10 @@ describe('PluginManager', () => {
         class Plugin extends PluginInterface {
             constructor(id?: number) {
                 super()
-                this.config.name = `plugin-${id}`
+                this.staticConfig.name = `plugin-${id}`
             }
 
-            protected override defineConfig(): PluginInterfaceConfig {
+            protected override defineStaticConfig(): PluginInterfaceStaticConfig {
                 return {
                     name: 'plugin',
                     description: 'Plugin description',
@@ -68,25 +71,24 @@ describe('PluginManager', () => {
         }
 
         const plugin = new Plugin(1)
-        pluginManager.$loader.use(plugin)
-
         const plugin2 = new Plugin(2)
+
+        // Use
+        pluginManager.$loader.use(plugin)
         pluginManager.$loader.use(plugin2)
+        pluginManager.$loader.use([new Plugin(3), new Plugin(4)])
 
-        const plugins = [new Plugin(3), new Plugin(4)]
-        pluginManager.$loader.use(plugins)
-
-        await pluginManager.$config.load()
-        const response = await pluginManager.run([
+        // Load
+        const pipes = pluginManager.$loader.load([
             {
                 name: 'plugin-1',
-                args: {
+                dynamicConfig: {
                     arr: [1, 2],
                 },
             },
             {
                 name: 'plugin-2',
-                args: {
+                dynamicConfig: {
                     arr: [1, 2],
                 },
             },
@@ -94,13 +96,12 @@ describe('PluginManager', () => {
                 name: 'plugin-3',
             },
         ])
+        // Run
+        const response = await pluginManager.$runner.run(pipes)
 
-        expect(response).toStrictEqual({
-            run: true,
-            save: true,
-        })
-
+        // Check history
         const history = pluginManager.$jobManager.history
         expect(history).toHaveLength(3)
+        expect(response).toStrictEqual(true)
     })
 })
