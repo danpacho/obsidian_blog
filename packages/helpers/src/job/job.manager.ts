@@ -127,7 +127,7 @@ export type JobSubscriber<CurrJob extends Job> = (
      * The job history.
      */
     history: Stack<Job>['stack']
-) => unknown
+) => unknown | Promise<unknown>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JobRegistrationShape = JobRegistration<any, any>
@@ -207,10 +207,10 @@ export class JobManager<JobResponse = unknown> {
      * Notifies subscribers about the progress of a job.
      * @param job - The job that has progressed.
      */
-    private notifyJobProgress(job: Job<JobResponse>): void {
-        this.jobProgressSubscribers.forEach((subscriber) => {
-            subscriber(job, this._jobStackIndex, this.$history.stack)
-        })
+    private async notifyJobProgress(job: Job<JobResponse>): Promise<void> {
+        for (const subscriber of this.jobProgressSubscribers) {
+            await subscriber(job, this._jobStackIndex, this.$history.stack)
+        }
     }
 
     /**
@@ -295,7 +295,7 @@ export class JobManager<JobResponse = unknown> {
                 await job.cleanup?.(targetHistoryJob)
             }
 
-            this.notifyJobProgress(targetHistoryJob)
+            await this.notifyJobProgress(targetHistoryJob)
 
             this._jobRemaining -= 1
             this._jobStackIndex += 1
