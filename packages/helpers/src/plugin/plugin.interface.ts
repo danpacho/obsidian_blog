@@ -1,9 +1,15 @@
-import type { Job } from '../job'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+    Job,
+    JobManager,
+    JobManagerConstructor,
+    JobRegistrationShape,
+} from '../job'
 
 /**
- * Plugin base configuration interface
+ * Plugin base static configuration interface
  */
-export interface PluginInterfaceConfig {
+export interface PluginInterfaceStaticConfig {
     /**
      * Unique name of the plugin.
      */
@@ -13,59 +19,251 @@ export interface PluginInterfaceConfig {
      */
     description?: string
     /**
-     * Dynamic arguments description for the plugin.
-     *
-     * @description Should be started with \``` and ended with \```, very useful for Obsidian plugin user
-     * @example
-     * \```
-     * ```
-     * {
-     *     script: Array<string>
-     * }
-     * ```
-     * \```
+     * Job manager option.
      */
-    argsDescription?: string
+    jobManager?: JobManagerConstructor
+    /**
+     * Dynamic config description for the plugin.
+     * @example
+     * ```json
+     * [{
+     *      property: "script",
+     *      type: "Array<string>"
+     * }]
+     * ```
+     * **will be used at `obsidian` plugin.**
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    dynamicConfigDescriptions?: Array<{
+        /**
+         * Dynamic config property name.
+         */
+        property: string
+        /**
+         * Type of the dynamic config property.
+         */
+        type: string
+        /**
+         * Example of the dynamic config property.
+         */
+        example?: string
+    }>
 }
 
+/**
+ * Plugin execution response
+ */
+export type PluginExecutionResponse = Array<Job>
+
 class PluginInterfaceError extends SyntaxError {
-    public constructor(message: string, config: unknown) {
+    public constructor(message: string, config: unknown, cause?: unknown) {
         super(`› ${message}\n› config: ${JSON.stringify(config)}`)
         this.name = 'PluginInterfaceError'
+        this.cause = cause
     }
 }
+
+type FunctionType =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((...args: Array<any>) => any) | ((...args: Array<any>) => Promise<any>)
+/**
+ * Base shape of dynamic config
+ */
+type DynamicConfigValuePrimitive =
+    | string
+    | number
+    | boolean
+    | null
+    | RegExp
+    | FunctionType
+    | PluginInterfaceDynamicConfigShape
+    | Array<PluginInterfaceDynamicConfigShape>
+
+export interface PluginInterfaceDynamicConfigShape {
+    [key: string]:
+        | DynamicConfigValuePrimitive
+        | Array<DynamicConfigValuePrimitive>
+}
+export type PluginInterfaceDynamicConfig =
+    PluginInterfaceDynamicConfigShape | null
+
+export type PluginShape = PluginInterface<
+    PluginInterfaceStaticConfig,
+    PluginInterfaceDynamicConfig
+>
+
+/**
+ * Plugin configuration
+ */
+export type PluginConfig<
+    PluginStaticConfig extends
+        PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
+    PluginDynamicConfig extends
+        PluginInterfaceDynamicConfig = PluginInterfaceDynamicConfig,
+> = {
+    /**
+     * Static configuration of plugin
+     */
+    staticConfig: PluginStaticConfig
+    /**
+     * Dynamic configuration of plugin
+     */
+    dynamicConfig?: PluginDynamicConfig
+}
+
+/**
+ * Infer the configuration of the plugin
+ * @example
+ * ```ts
+ * type Configs = InferInferPluginConfig<MyPluginClass>
+ * ```
+ */
+export type InferPluginConfig<Plugin extends PluginShape> =
+    Plugin extends PluginInterface<infer Static, infer Dynamic>
+        ? {
+              staticConfig: Static
+              dynamicConfig: Dynamic
+          }
+        : never
 /**
  * Represents an abstract class for a plugin interface.
- * @template InjectedPluginConfig - The type of the plugin configuration {@link PluginInterfaceConfig}.
+ * @template StaticConfig - The type of the plugin configuration {@link PluginInterfaceStaticConfig}.
+ * @template DynamicConfig - The type of the plugin configuration {@link PluginInterfaceDynamicConfig}
  */
 export abstract class PluginInterface<
-    InjectedPluginConfig extends PluginInterfaceConfig = PluginInterfaceConfig,
-    PluginArgs = 'NO_ARGS',
-> {
+    StaticConfig extends
+        PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
+    DynamicConfig extends
+        PluginInterfaceDynamicConfig = PluginInterfaceDynamicConfig,
+> implements JobRegistrationShape
+{
+    protected readonly $jobManager: JobManager
     /**
-     * Gets the configuration of the plugin.
+     * Gets the static configuration of the plugin.
+     *
+     * > Static: **configuration defined by the plugin creator.**
      */
-    public get config(): InjectedPluginConfig {
-        return this._config
+    public get staticConfig(): StaticConfig {
+        return this._staticConfig
+    }
+
+    /**
+     * Update static configuration
+     * @param staticConfig
+     */
+    public updateStaticConfig(staticConfig: StaticConfig): void {
+        this._staticConfig = this.getMergedStaticConfig(staticConfig)
+    }
+
+    /**
+     * Gets the dynamic configuration of the plugin.
+     *
+     * > Dynamic: **`obsidian` plugin injected config.**
+     *
+     * @description **It is can be accessed after the plugin is `loaded`.**
+     * @description **You can't access this property at constructor.**
+     */
+    public get dynamicConfig(): DynamicConfig {
+        return this._dynamicConfig
+    }
+
+    private createDynamicConfigDescription(
+        dynamicConfig: DynamicConfig
+    ): Array<{ property: string; type: string }> {
+        if (!dynamicConfig) return []
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        function getTypeDescription(value: any): string {
+            if (value === null) {
+                return 'null'
+            } else if (Array.isArray(value)) {
+                return getArrayTypeDescription(value)
+            } else if (typeof value === 'object') {
+                return getObjectTypeDescription(value)
+            } else if (typeof value === 'function') {
+                return getFunctionTypeDescription(value)
+            } else {
+                return typeof value
+            }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        function getArrayTypeDescription(array: any[]): string {
+            const types = array.map(getTypeDescription)
+            const uniqueTypes = Array.from(new Set(types))
+
+            if (uniqueTypes.length === 1) {
+                return `Array<${uniqueTypes[0]}>`
+            } else {
+                return `readonly [${types.join(', ')}]`
+            }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        function getObjectTypeDescription(obj: any): string {
+            const entries = Object.entries(obj).map(
+                ([key, value]) => `${key}: ${getTypeDescription(value)}`
+            )
+            return `{ ${entries.join('; ')} }`
+        }
+
+        function getFunctionTypeDescription(func: FunctionType): string {
+            const funcString = func.toString()
+            const argsMatch = funcString.match(/\(([^)]*)\)/)
+            if (!argsMatch?.[1]) return `() => 'unknown'`
+            const args = argsMatch
+                ? argsMatch[1]
+                      .split(',')
+                      .map((arg) => {
+                          const name = arg.trim()
+                          return name
+                      })
+                      .join(', ')
+                : ''
+            const returnType = 'unknown' // In a real-world scenario, you might want to use type inference tools or decorators to get the actual return type.
+            return `(${args}) => ${returnType}`
+        }
+
+        return Object.entries(dynamicConfig).map(([key, value]) => {
+            return {
+                property: key,
+                type: getTypeDescription(value),
+            }
+        })
     }
 
     /**
      * Gets the name of the plugin.
      */
     public get name(): string {
-        return this._config.name
+        return this._staticConfig.name
     }
 
-    protected _config!: InjectedPluginConfig
+    private _staticConfig!: StaticConfig
+    private _dynamicConfig: DynamicConfig = null as DynamicConfig
+
+    /**
+     * Injects the dynamic configuration into the plugin.
+     * @param dynamicConfig Injection of dynamic configuration.
+     */
+    public injectDynamicConfig(dynamicConfig: DynamicConfig): void {
+        if (this._dynamicConfig !== null) return
+        const config = this.getMergedDynamicConfig(dynamicConfig)
+        if (!config) return
+
+        this._staticConfig.dynamicConfigDescriptions =
+            this._staticConfig.dynamicConfigDescriptions ??
+            this.createDynamicConfigDescription(config)
+
+        this._dynamicConfig = config
+    }
 
     /**
      * Defines the configuration for the plugin.
      */
-    protected abstract defineConfig(): InjectedPluginConfig
+    protected abstract defineStaticConfig(): StaticConfig
 
-    private validateConfig(
-        config: unknown
-    ): asserts config is PluginInterfaceConfig {
+    private validateConfig(config: unknown): asserts config is StaticConfig {
         const isRecord = (value: unknown): value is Record<string, unknown> =>
             typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -93,6 +291,15 @@ export abstract class PluginInterface<
             )
         }
 
+        try {
+            JSON.parse(JSON.stringify(config))
+        } catch (e) {
+            throw new PluginInterfaceError(
+                'Plugin configuration must be safely serializable by `JSON.stringify`.',
+                config
+            )
+        }
+
         const requiredKeys = ['name'] as const
         requiredKeys.forEach((key) => {
             if (!Object.keys(config).includes(key)) {
@@ -104,15 +311,60 @@ export abstract class PluginInterface<
         })
     }
 
+    private getMergedStaticConfig(staticConfig: StaticConfig): StaticConfig {
+        if (this.defaultOptions?.defaultDynamicConfigs === undefined)
+            return staticConfig
+
+        const mergedConfig = {
+            ...this.defaultOptions.defaultDynamicConfigs,
+            ...staticConfig,
+        }
+
+        return mergedConfig
+    }
+
+    private getMergedDynamicConfig(
+        dynamicConfig: DynamicConfig
+    ): DynamicConfig {
+        if (this.defaultOptions.defaultStaticConfigs === undefined)
+            return dynamicConfig
+
+        const mergedArgs = {
+            ...this.defaultOptions.defaultStaticConfigs,
+            ...dynamicConfig,
+        }
+        return mergedArgs
+    }
+
     /**
-     * Creates a new instance of the PluginInterface class.
+     * Creates a new instance of the `PluginInterface` class.
      * - `defineConfig` method to define the configuration.
+     *
+     * @param defaultOptions - The default options for the plugin.
      */
-    public constructor() {
+    public constructor(
+        public readonly defaultOptions: {
+            /**
+             * Default static configurations for the plugin.
+             */
+            defaultStaticConfigs?:
+                | Partial<Omit<StaticConfig, keyof PluginInterfaceStaticConfig>>
+                | undefined
+            /**
+             * Default dynamic configurations for the plugin.
+             */
+            defaultDynamicConfigs?: Partial<DynamicConfig> | undefined
+        } = {
+            defaultStaticConfigs: undefined,
+            defaultDynamicConfigs: undefined,
+        }
+    ) {
         try {
-            const config = this.defineConfig()
-            this.validateConfig(config)
-            this._config = config
+            const injectedConfig = this.defineStaticConfig()
+            const mergedConfig = this.getMergedStaticConfig(injectedConfig)
+            this.validateConfig(mergedConfig)
+            this._staticConfig = mergedConfig
+            this.$jobManager = new JobManager(this.staticConfig.jobManager)
         } catch (e) {
             throw new SyntaxError(
                 e instanceof Error ? e.message : JSON.stringify(e)
@@ -120,61 +372,19 @@ export abstract class PluginInterface<
         }
     }
 
-    /**
-     * Lifecycle hooks for the job registration.
-     *
-     * A function that is **executed to perform** the job.
-     * @param context The plugin execution context.
-     * @param controller The job execution controller.
-     * @example
-     * ```typescript
-     * {
-     *      stop: () => void
-     *      // Stops the job execution.
-     *      next: () => void
-     *      // Resumes the job execution.
-     * }
-     * ```
-     */
     public abstract execute(
         /**
-         * The plugin execution context.
+         * Execution flow controller
          */
-        context: PluginArgs extends 'NO_ARGS'
-            ? {
-                  /**
-                   * The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
-                   */
-                  prepared?: unknown
-              }
-            : {
-                  /**
-                   * The dynamic arguments passed to the job.
-                   */
-                  args: PluginArgs
-                  /**
-                   * The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
-                   */
-                  prepared?: unknown
-              },
+        controller: { stop: () => void; resume: () => void },
         /**
-         * The controller object for the job.
-         */
-        controller: {
-            /**
-             * Stops the job after current execution.
-             */
-            stop: () => void
-            /**
-             * Resumes the job after current execution.
-             */
-            resume: () => void
-        } /**
-         * The prepared calculation for the job.
+         * Context of the execution, we can inject any data
          *
-         * Calculated by the `prepare` function and will be passed through argument.
+         * - `PluginRunner` class
+         * - Plugin itself by return data of `prepare` method
          */
-    ): Promise<unknown>
+        context: unknown
+    ): Promise<PluginExecutionResponse>
 
     /**
      * Lifecycle hooks for the job registration.
@@ -191,5 +401,7 @@ export abstract class PluginInterface<
      * @param job The completed job.
      * @returns A promise that resolves when the after-job tasks are completed.
      */
-    public cleanup?(job: Job<unknown>): Promise<void>
+    public cleanup?(job: PluginExecutionResponse[number]): Promise<void>
 }
+
+export { type PluginLoadInformation } from './plugin.loader'
