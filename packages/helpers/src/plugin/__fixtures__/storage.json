@@ -1,10 +1,10 @@
 {
     "myPlugin": {
-        "config": {
+        "staticConfig": {
             "name": "value1",
             "description": "value2"
         },
-        "args": {
+        "dynamicConfig": {
             "key": "value"
         }
     }
