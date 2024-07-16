@@ -1,3 +1,4 @@
+import { type IO } from '@obsidian_blogger/helpers/io'
 import { toMarkdown } from 'mdast-util-to-markdown'
 import { remark } from 'remark'
 import remarkHtml from 'remark-html'
@@ -5,11 +6,10 @@ import type { Plugin } from 'unified'
 import type { Literal, Parent } from 'unist'
 import { visit } from 'unist-util-visit'
 import { AudioFileNode, ImageFileNode } from '../../../../parser/node'
-import { BuildStoreList } from '../../../core'
+import type { BuildStoreList } from '../../../core'
 import {
-    BuildContentsDependencies,
     BuildContentsPlugin,
-    BuildContentsPluginConfig,
+    type BuildContentsPluginStaticConfig,
 } from '../../build.contents.plugin'
 
 const RemarkObsidianReferencePlugin: Plugin<
@@ -18,7 +18,7 @@ const RemarkObsidianReferencePlugin: Plugin<
             origin: string
             build: string
         }>
-        io: BuildContentsDependencies['io']
+        io: IO
     }>
 > = (options) => {
     const { io, imageReference } = options
@@ -96,9 +96,11 @@ const RemarkObsidianReferencePlugin: Plugin<
 }
 
 export class ObsidianReferencePlugin extends BuildContentsPlugin {
-    public getConfig(): BuildContentsPluginConfig {
+    protected defineStaticConfig(): BuildContentsPluginStaticConfig {
         return {
-            name: 'ObsidianReference',
+            name: 'obsidian-reference',
+            description:
+                'convert obsidian image and audio reference to html tag and update link tag',
         }
     }
 
