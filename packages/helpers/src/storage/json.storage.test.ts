@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { json } from './json'
 import { JsonStorage } from './json.storage'
 
 describe('JsonStorage', () => {
@@ -61,5 +62,19 @@ describe('JsonStorage', () => {
                 },
             },
         })
+    })
+
+    it('should have custom serializer and deserializer', async () => {
+        storage.updateSerializer(json.serialize)
+        storage.updateDeserializer(json.deserialize)
+
+        await storage.set('$$key$$', () => {
+            return 1
+        })
+
+        await storage.load()
+        const value = await storage.get('$$key$$')
+
+        expect(value()).toBe(1)
     })
 })

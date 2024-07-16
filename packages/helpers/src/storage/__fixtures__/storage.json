@@ -19,5 +19,6 @@
                 "key": "value"
             }
         }
-    }
+    },
+    "$$key$$": "__FUNCTION__:() => {\n      return 1;\n    }"
 }
