@@ -14,7 +14,7 @@ export interface PublishSystemPlugin {
     /**
      *  Deploy plugin
      */
-    deploy?: DeployPlugin
+    deploy: DeployPlugin
 }
 
 type Adapter<T> = {
