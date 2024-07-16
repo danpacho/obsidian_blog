@@ -1,11 +1,17 @@
-import type { FileTreeNode } from '../../parser'
+import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import type { FileTreeNode, FileTreeParser } from '../../parser'
 import type { BuildInformation } from '../core'
-import { BuildPlugin, type BuildPluginConfig } from './build.plugin'
+import {
+    BuildPlugin,
+    BuildPluginDynamicConfig,
+    type BuildPluginStaticConfig,
+} from './build.plugin'
 
 /**
  * Configuration options for the WalkTreePlugin.
  */
-export interface WalkTreePluginConfig extends BuildPluginConfig {
+export interface WalkTreePluginStaticConfig extends BuildPluginStaticConfig {}
+export type WalkTreePluginDynamicConfig = BuildPluginDynamicConfig & {
     /**
      * Specifies files or folders to exclude from the tree walk.
      */
@@ -27,7 +33,10 @@ export interface WalkTreePluginConfig extends BuildPluginConfig {
 /**
  * Abstract class representing a plugin for walking a tree during the build process.
  */
-export abstract class WalkTreePlugin extends BuildPlugin<WalkTreePluginConfig> {
+export abstract class WalkTreePlugin<
+    Static extends WalkTreePluginStaticConfig = WalkTreePluginStaticConfig,
+    Dynamic extends WalkTreePluginDynamicConfig = WalkTreePluginDynamicConfig,
+> extends BuildPlugin<Static, Dynamic> {
     /**
      * Walking a original file tree for modifying the files
      */
@@ -80,4 +89,35 @@ export abstract class WalkTreePlugin extends BuildPlugin<WalkTreePluginConfig> {
             children: Array<FileTreeNode> | undefined
         }
     ) => boolean
+
+    public async execute(
+        _: { stop: () => void; resume: () => void },
+        context: {
+            parser: FileTreeParser
+            walkRoot?: FileTreeNode
+        }
+    ): Promise<PluginExecutionResponse> {
+        this.$jobManager.registerJob({
+            name: 'walk:tree',
+            execute: async () => {
+                const defaultOptions = {
+                    type: this.dynamicConfig.walkType ?? 'DFS',
+                    skipFolderNode: this.dynamicConfig.skipFolderNode ?? true,
+                }
+                await context.parser.walk(
+                    this.walk,
+                    context.walkRoot
+                        ? {
+                              ...defaultOptions,
+                              walkRoot: context.walkRoot,
+                          }
+                        : defaultOptions
+                )
+            },
+        })
+
+        await this.$jobManager.processJobs()
+
+        return this.$jobManager.history
+    }
 }
