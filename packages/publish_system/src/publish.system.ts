@@ -1,112 +1,134 @@
-import { PluginManager } from '@obsidian_blogger/helpers/plugin'
-import type { BuildScriptConstructor } from './plugin'
+import { type Job } from '@obsidian_blogger/helpers/job'
 import {
-    PublishSystemPlugin,
-    type PublishSystemPluginAdapter,
-} from './plugin/interface'
+    Logger,
+    type LoggerConstructor,
+} from '@obsidian_blogger/helpers/logger'
 import {
-    PublishPlugin,
-    type PublishPluginConstructor,
-} from './plugin/publish.plugin'
+    type PluginLoadInformation,
+    PluginManager,
+    type PluginShape,
+    Runner,
+} from '@obsidian_blogger/helpers/plugin'
+import { JsonStorage } from '@obsidian_blogger/helpers/storage'
+import type {
+    BuildScriptPlugin,
+    DeployPlugin,
+    RepositoryPlugin,
+} from './plugin'
+import { type PublishSystemPluginAdapter } from './plugin/interface'
 
-/**
- * Publish command arguments
- * @property builder - Builder command arguments
- * @property repository - Repository command arguments
- * @property deployer - Deployer command arguments
- */
-export interface PublishCommand {
-    /**
-     * BuildScript command arguments, should exact match with builder plugins
-     */
-    buildScript: ReadonlyArray<Record<string, unknown>>
-    /**
-     * Repository command arguments, should exact match with repository plugins
-     */
-    repository: ReadonlyArray<Record<string, unknown>>
-    /**
-     * Deployer command arguments, should exact match with deployer plugins
-     */
-    deploy?: ReadonlyArray<Record<string, unknown>>
+class PublishPluginRunner extends Runner.PluginRunner {
+    public async run(pluginPipes: PluginShape[]) {
+        for (const plugin of pluginPipes) {
+            this.$jobManager.registerJob({
+                name: plugin.name,
+                prepare: async () => {
+                    return await plugin.prepare?.()
+                },
+                execute: async (controller, prepared) => {
+                    return await plugin.execute(controller, prepared)
+                },
+                cleanup: async (job) => {
+                    await plugin.cleanup?.(job)
+                },
+            })
+        }
+
+        await this.$jobManager.processJobs()
+
+        return this.history
+    }
 }
 
-export interface PublishSystemConstructor extends PublishPluginConstructor {}
-export class PublishSystem extends PublishPlugin {
-    private readonly buildScriptPluginManager: PluginManager<
-        PublishSystemPlugin['buildScript'],
-        BuildScriptConstructor
-    >
-    private readonly repositoryPluginManager: PluginManager<
-        PublishSystemPlugin['repository'],
-        BuildScriptConstructor
-    >
-    private readonly deployPluginManager: PluginManager<
-        PublishSystemPlugin['deploy'],
-        BuildScriptConstructor
-    >
+export interface PublishSystemConstructor {
+    /**
+     * The root path of the bridge system
+     */
+    bridgeRoot: string
+    logger?: LoggerConstructor
+}
+export class PublishSystem {
+    private readonly $logger: Logger
+
+    private readonly $publishPluginRunner: PublishPluginRunner
+
+    private readonly $buildScriptPluginManager: PluginManager<BuildScriptPlugin>
+    private readonly $repositoryPluginManager: PluginManager<RepositoryPlugin>
+    private readonly $deployPluginManager: PluginManager<DeployPlugin>
+
+    private readonly $historyStorage: JsonStorage<Array<Job>>
+
+    public static storagePrefix = '.store/publish' as const
 
     public constructor(public readonly options: PublishSystemConstructor) {
-        super(options)
+        this.$logger = new Logger({
+            name: 'publish_system',
+            ...options.logger,
+        })
 
-        this.buildScriptPluginManager = new PluginManager()
-        this.repositoryPluginManager = new PluginManager()
-        this.deployPluginManager = new PluginManager()
+        this.$publishPluginRunner = new PublishPluginRunner()
 
-        this.updateLoggerName(options.name)
-        this.buildScriptPluginManager.$loader.plugins.forEach((b, i) =>
-            b.updateLoggerName(`${options.name}::builder_${i + 1}`)
-        )
-        this.repositoryPluginManager.$loader.plugins.forEach((r, i) =>
-            r.updateLoggerName(`${options.name}::repository_${i + 1}`)
-        )
-        this.deployPluginManager.$loader.plugins.forEach((d, i) =>
-            d?.updateLoggerName(`${options.name}::deployer_${i + 1}`)
-        )
+        this.$buildScriptPluginManager = new PluginManager({
+            name: 'publish_system::build_script',
+            root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__build_script.json`,
+            runner: this.$publishPluginRunner,
+        })
+        this.$repositoryPluginManager = new PluginManager({
+            name: 'publish_system::repository',
+            root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__repository.json`,
+            runner: this.$publishPluginRunner,
+        })
+        this.$deployPluginManager = new PluginManager({
+            name: 'publish_system::deploy',
+            root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__deploy.json`,
+            runner: this.$publishPluginRunner,
+        })
+        this.$historyStorage = new JsonStorage({
+            name: 'publish_system::history',
+            root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/history.json`,
+        })
+
+        this.pollingPublishHistory()
     }
 
     /**
-     * Gets the plugin pipeline info.
+     * Get the bridge root path
+     * @returns The bridge root path for `buildScript`, `repository`, `deploy`
      */
-    public getPluginPipelineInfo() {
+    public get bridgeRoot(): {
+        buildScript: string
+        repository: string
+        deploy: string
+        history: string
+    } {
         return {
-            buildScript: this.buildScriptPluginManager.$loader.plugins.map(
-                (b, i) => ({
-                    name: b.name,
-                    order: i + 1,
-                })
-            ),
-            repository: this.repositoryPluginManager.$loader.plugins.map(
-                (r, i) => ({
-                    name: r.name,
-                    order: i + 1,
-                })
-            ),
-            deploy: this.deployPluginManager.$loader.plugins.map((d, i) => ({
-                name: d?.name,
-                order: i + 1,
-            })),
+            buildScript: this.$buildScriptPluginManager.$config.options.root,
+            repository: this.$repositoryPluginManager.$config.options.root,
+            deploy: this.$deployPluginManager.$config.options.root,
+            history: this.$historyStorage.options.root,
         }
     }
 
     /**
      * Logs the plugin pipeline info.
      */
-    public logPluginPipelineInfo(pluginCommands?: PublishCommand) {
-        const pipelineInfo = this.getPluginPipelineInfo()
-        const pipelineEntries = Object.entries(pipelineInfo)
+    public logPluginPipelineInfo(pluginPipes: {
+        buildScript: Array<BuildScriptPlugin>
+        repository: Array<RepositoryPlugin>
+        deploy: Array<DeployPlugin>
+    }): void {
+        const pipelineEntries = Object.entries(pluginPipes)
 
         this.$logger.info('Plugin pipeline info::')
 
-        pipelineEntries.forEach(([key, value]) => {
+        pipelineEntries.forEach(([key, plugins]) => {
             this.$logger.info(`${key}:`)
-
             this.$logger.box(
-                value
-                    ?.map((v, i) => {
-                        const command =
-                            pluginCommands?.[key as keyof PublishCommand]?.[i]
+                plugins
+                    ?.map((plugin, i) => {
+                        const command = plugin.dynamicConfig
 
-                        return `${this.$logger.c.bgBlue.black.bold(` PIPE_${v.order}:: ${v.name} `)}\n› command\n${this.$logger.c.cyanBright(
+                        return `${this.$logger.c.bgBlue.black.bold(` PIPE_${i + 1}:: ${plugin.name} `)}\n› dynamic configuration\n${this.$logger.c.cyanBright(
                             JSON.stringify(command, null, 4)
                         )}`
                     })
@@ -120,13 +142,71 @@ export class PublishSystem extends PublishPlugin {
         })
     }
 
+    private async registerAllPlugins() {
+        try {
+            await this.$buildScriptPluginManager.$config.load()
+            await this.$repositoryPluginManager.$config.load()
+            await this.$deployPluginManager.$config.load()
+        } catch (e) {
+            this.$logger.error('Failed to load plugin configurations')
+            this.$logger.error(JSON.stringify(e, null, 4))
+        }
+
+        const plugins = {
+            buildScript: this.$buildScriptPluginManager.$loader.pluginList,
+            repository: this.$repositoryPluginManager.$loader.pluginList,
+            deploy: this.$deployPluginManager.$loader.pluginList,
+        }
+
+        const registerPlugins = async (
+            pluginManager: PluginManager,
+            pipes: Array<PluginShape>
+        ) => {
+            for (const pipe of pipes) {
+                if (pluginManager.$config.hasConfig(pipe.name) === false) {
+                    await pluginManager.$config.addConfig(pipe.name, {
+                        staticConfig: pipe.staticConfig,
+                        dynamicConfig: pipe.dynamicConfig,
+                    })
+                }
+            }
+        }
+
+        await registerPlugins(
+            this.$buildScriptPluginManager,
+            plugins.buildScript
+        )
+        await registerPlugins(this.$repositoryPluginManager, plugins.repository)
+        await registerPlugins(this.$deployPluginManager, plugins.deploy)
+    }
+
     /**
-     * Run publish CI/CD pipeline
-     * @param commands Publish command arguments
+     * Fetch plugin pipes dynamic configuration from `obsidian` user
      */
-    public async publish<Command extends PublishCommand = PublishCommand>(
-        commands: Command
-    ) {
+    private async fetchPluginPipesDynamicConfig(): Promise<{
+        buildScript: PluginLoadInformation
+        repository: PluginLoadInformation
+        deploy: PluginLoadInformation
+    }> {
+        const extractConfigs = (pluginManager: PluginManager) =>
+            Object.entries(pluginManager.$config.store).map(([key, value]) => ({
+                name: key,
+                dynamicConfig: value.dynamicConfig ?? null,
+            }))
+
+        const extractedDynamicConfigs = {
+            buildScript: extractConfigs(this.$buildScriptPluginManager),
+            repository: extractConfigs(this.$repositoryPluginManager),
+            deploy: extractConfigs(this.$deployPluginManager),
+        }
+        return extractedDynamicConfigs
+    }
+
+    private async loadPlugins(): Promise<{
+        buildScript: Array<BuildScriptPlugin>
+        repository: Array<RepositoryPlugin>
+        deploy: Array<DeployPlugin>
+    }> {
         const localDate = new Date().toLocaleString()
         this.$logger.box(
             `${this.$logger.c.blueBright('Publish system')} - ${localDate}`,
@@ -136,126 +216,119 @@ export class PublishSystem extends PublishPlugin {
                 borderColor: 'blueBright',
             }
         )
-        this.logPluginPipelineInfo(commands)
 
-        this.$jobManager.registerJobs([
-            {
-                id: 'build-script',
-                before: async () => {
-                    this.$logger.info('BuildScript initiated')
-                },
-                execute: async () => {
-                    const buildResponse =
-                        this.buildScriptPluginManager.$loader.plugins.reduce<
-                            Promise<Array<unknown>>
-                        >(
-                            async (acc, builder, i) => {
-                                const command = commands.buildScript[i]
-                                if (!command) {
-                                    this.$logger.error(
-                                        `No build command found for builder ${builder.name}`
-                                    )
-                                    return acc
-                                }
-                                const awaitedAcc = await acc
-                                const buildResponse =
-                                    await builder.build(command)
-                                awaitedAcc.push(buildResponse)
-                                return awaitedAcc
-                            },
-                            Promise.resolve([]) as Promise<Array<unknown>>
-                        )
-                    return buildResponse
-                },
-                after: async () => {
-                    this.$logger.info('BuildScript completed')
-                },
-            },
-            {
-                id: 'repository',
-                before: async () => {
-                    this.$logger.info('Repository initiated')
-                },
-                execute: async () => {
-                    const saveResponse =
-                        this.repositoryPluginManager.$loader.plugins.reduce<
-                            Promise<Array<unknown>>
-                        >(
-                            async (acc, repository, i) => {
-                                const command = commands.repository[i]
-                                if (!command) {
-                                    this.$logger.error(
-                                        `No save command found for repository ${repository.name}`
-                                    )
-                                    return acc
-                                }
-                                const awaitedAcc = await acc
-                                const saveResponse =
-                                    await repository.save(command)
-                                awaitedAcc.push(saveResponse)
-                                return awaitedAcc
-                            },
-                            Promise.resolve([]) as Promise<Array<unknown>>
-                        )
-                    return saveResponse
-                },
-                after: async () => {
-                    this.$logger.info('Repository completed')
-                },
-            },
-            {
-                id: 'deploy',
-                before: async () => {
-                    this.$logger.info('Deploy initiated')
-                },
-                execute: async () => {
-                    if (this.deployPluginManager.$loader.plugins.length === 0) {
-                        this.$logger.info('No deployer found')
-                        return
-                    }
+        await this.registerAllPlugins()
 
-                    const deployResponse =
-                        this.deployPluginManager.$loader.plugins.reduce<
-                            Promise<Array<unknown>>
-                        >(
-                            async (acc, deployer, i) => {
-                                const command = commands.deploy?.[i]
-                                if (!command) {
-                                    this.$logger.error(
-                                        `No deploy command found for deployer ${deployer?.name}`
-                                    )
-                                    return acc
-                                }
-                                const awaitedAcc = await acc
-                                const deployResponse =
-                                    await deployer?.deploy(command)
-                                awaitedAcc.push(deployResponse)
-                                return awaitedAcc
-                            },
-                            Promise.resolve([]) as Promise<Array<unknown>>
-                        )
-                    return deployResponse
-                },
-                after: async () => {
-                    this.$logger.info('Deploy completed')
-                },
-            },
-        ])
+        const pluginConfigs = await this.fetchPluginPipesDynamicConfig()
 
-        const success = await this.$jobManager.processJobs()
+        const deployPipes = this.$deployPluginManager.$loader.load(
+            pluginConfigs.deploy
+        )
+        const repositoryPipes = this.$repositoryPluginManager.$loader.load(
+            pluginConfigs.repository
+        )
+        const buildScriptPipes = this.$buildScriptPluginManager.$loader.load(
+            pluginConfigs.buildScript
+        )
 
-        if (success) {
-            this.$logger.success('Publish succeeded 🚀')
-        } else {
-            this.$logger.error('Publish failed 🚨')
+        const pipes = {
+            buildScript: buildScriptPipes,
+            repository: repositoryPipes,
+            deploy: deployPipes,
         }
 
-        const history = this.$jobManager.history
+        this.logPluginPipelineInfo(pipes)
+        return pipes
+    }
+
+    private async runPluginPipes(pluginPipes: {
+        buildScript: Array<BuildScriptPlugin>
+        repository: Array<RepositoryPlugin>
+        deploy: Array<DeployPlugin>
+    }) {
+        const buildScriptResponse =
+            await this.$buildScriptPluginManager.$runner.run(
+                pluginPipes.buildScript
+            )
+
+        const repositoryResponse =
+            await this.$repositoryPluginManager.$runner.run(
+                pluginPipes.repository
+            )
+
+        const deployResponse = await this.$deployPluginManager.$runner.run(
+            pluginPipes.deploy
+        )
 
         return {
-            history,
-            commands: commands,
+            buildScript: buildScriptResponse,
+            repository: repositoryResponse,
+            deploy: deployResponse,
         }
+    }
+
+    private async saveUpdatedPluginConfigs(pluginPipes: {
+        buildScript: Array<BuildScriptPlugin>
+        repository: Array<RepositoryPlugin>
+        deploy: Array<DeployPlugin>
+    }) {
+        const saveConfigs = async (
+            pluginManager: PluginManager,
+            pipes: Array<PluginShape>
+        ) => {
+            for (const pipe of pipes) {
+                const { name, staticConfig, dynamicConfig } = pipe
+                await pluginManager.$config.updateConfig(name, {
+                    staticConfig,
+                    dynamicConfig,
+                })
+            }
+        }
+
+        await saveConfigs(
+            this.$buildScriptPluginManager,
+            pluginPipes.buildScript
+        )
+        await saveConfigs(this.$repositoryPluginManager, pluginPipes.repository)
+        await saveConfigs(this.$deployPluginManager, pluginPipes.deploy)
+    }
+
+    private async initializeHistoryStore() {
+        await this.$historyStorage.set(
+            'publish_system',
+            this.$publishPluginRunner.history
+        )
+    }
+
+    private pollingPublishHistory() {
+        this.$publishPluginRunner.subscribe(async (...params) => {
+            const history = params[2]
+            await this.$historyStorage.set('publish_system', history)
+        })
+    }
+
+    /**
+     * Run publish CI/CD pipeline
+     * @param commands Publish command arguments
+     */
+    public async publish() {
+        const plugins = await this.loadPlugins()
+
+        await this.initializeHistoryStore()
+
+        const response = await this.runPluginPipes(plugins)
+
+        await this.saveUpdatedPluginConfigs(plugins)
+
+        return response
+    }
+
+    /**
+     * Get the history of the plugin jobs
+     * @returns The history of the plugin jobs
+     */
+    public get history() {
+        return this.$publishPluginRunner.history
     }
 
     /**
@@ -271,9 +344,9 @@ export class PublishSystem extends PublishPlugin {
      * })
      * ```
      */
-    public use(plugin: PublishSystemPluginAdapter) {
-        this.buildScriptPluginManager.$loader.use(plugin.buildScript)
-        this.repositoryPluginManager.$loader.use(plugin.repository)
-        this.deployPluginManager.$loader.use(plugin.deploy)
+    public use(plugin: PublishSystemPluginAdapter): void {
+        this.$buildScriptPluginManager.$loader.use(plugin.buildScript)
+        this.$repositoryPluginManager.$loader.use(plugin.repository)
+        this.$deployPluginManager.$loader.use(plugin.deploy)
     }
 }
