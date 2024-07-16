@@ -1,80 +1,71 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { JobManager } from '../job'
-import type { PluginInterface } from './plugin.interface'
+import {
+    type Job,
+    JobManager,
+    type JobManagerConstructor,
+    type JobSubscriber,
+} from '../job'
+import type { PluginExecutionResponse, PluginShape } from './plugin.interface'
 
-export interface PluginRunnerConstructor {
-    jobManager: JobManager
-}
-
-// type PluginWithArgs<Plugin> =
-//     Plugin extends PluginInterface<any, infer Args>
-//         ? Args extends 'NO_ARGS'
-//             ? {
-//                   plugin: Plugin
-//               }
-//             : {
-//                   plugin: Plugin
-//                   args: Args
-//               }
-//         : never
-
-// type ExtractPluginArgs<Plugins extends readonly PluginInterface<any, any>[]> = {
-//     [K in keyof Plugins]: PluginWithArgs<Plugins[K]>
-// }
-
+export interface PluginRunnerConstructor extends JobManagerConstructor {}
 /**
  * Manages the execution of plugin processes.
  */
-export class PluginRunner {
-    private readonly $jobManager: JobManager
+export abstract class PluginRunner<Plugin extends PluginShape = PluginShape> {
+    protected readonly $jobManager: JobManager<PluginExecutionResponse>
 
     /**
      * Creates an instance of PluginProcessManager.
      * @param options - The options for the PluginProcessManager.
      */
-    public constructor(public readonly options: PluginRunnerConstructor) {
-        this.$jobManager = options.jobManager
+    public constructor(public readonly options?: PluginRunnerConstructor) {
+        this.$jobManager = new JobManager(options)
+    }
+
+    /**
+     * Subscribes to job progress.
+     * @param subscriber - subscriber function.
+     */
+    public subscribe(subscriber: JobSubscriber<Job>) {
+        return this.$jobManager.subscribeJobProgress(subscriber)
+    }
+
+    /**
+     * Gets the history of plugin executions.
+     */
+    public get history() {
+        return this.$jobManager.history
     }
 
     /**
      * Runs the specified plugins.
      * @param pluginPipes - Array of `plugin` and `args` to run.
+     * @param options - Additional options for the plugin runner.
      * @returns A promise that resolves to the result of plugin execution.
-     */
-    public async run(
-        pluginPipes: Array<{
-            plugin: PluginInterface
-            args?: unknown
-        }>
-    ) {
-        for (let i = 0; i < pluginPipes.length; i++) {
-            const pluginRecord = pluginPipes[i]!
+     * @example
+     * ```ts
+     *  for (const plugin of pluginPipes) {
             this.$jobManager.registerJob({
-                name: pluginRecord.plugin.config.name,
+                name: plugin.name,
                 prepare: async () => {
-                    return await pluginRecord.plugin.prepare?.()
+                    return await plugin.prepare?.()
                 },
                 execute: async (controller, prepared) => {
-                    const pluginExecutionContext =
-                        'args' in pluginRecord
-                            ? {
-                                  args: pluginRecord.args,
-                                  prepared,
-                              }
-                            : { prepared }
-                    return await pluginRecord.plugin.execute(
-                        pluginExecutionContext,
-                        controller
-                    )
+                    return await plugin.execute(controller, prepared)
                 },
                 cleanup: async (job) => {
-                    await pluginRecord.plugin.cleanup?.(job)
-                    return
+                    await plugin.cleanup?.(job)
                 },
             })
         }
 
-        const pluginExecResult = await this.$jobManager.processJobs()
-        return pluginExecResult
-    }
+        await this.$jobManager.processJobs()
+
+        return this.history
+     * ```
+     */
+    public abstract run(
+        pluginPipes: Array<Plugin>,
+        ...options: Array<unknown>
+    ): Promise<this['history']>
 }
