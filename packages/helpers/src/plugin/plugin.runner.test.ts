@@ -1,14 +1,45 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { JobManager } from '../job'
-import { PluginInterface, PluginInterfaceConfig } from './plugin.interface'
+import { describe, expect, it } from 'vitest'
+import {
+    PluginInterface,
+    PluginInterfaceStaticConfig,
+    PluginShape,
+} from './plugin.interface'
 import { PluginRunner } from './plugin.runner'
 
 describe('PluginRunner', () => {
-    let pluginProcessManager: PluginRunner
-    let jobManager: JobManager
+    class Runner extends PluginRunner {
+        private _count: Array<number> = []
+        public get count(): Array<number> {
+            return this._count
+        }
+
+        public async run(pluginPipes: PluginShape[]) {
+            for (const plugin of pluginPipes) {
+                this.$jobManager.registerJob({
+                    name: plugin.name,
+                    prepare: async () => {
+                        this._count.push(1)
+                        return await plugin.prepare?.()
+                    },
+                    execute: async (controller, prepared) => {
+                        return await plugin.execute(controller, prepared)
+                    },
+                    cleanup: async (job) => {
+                        this._count.pop()
+                        await plugin.cleanup?.(job)
+                    },
+                })
+            }
+
+            await this.$jobManager.processJobs()
+
+            return this.history
+        }
+    }
+    const runner = new Runner()
 
     class Plugin extends PluginInterface<
-        PluginInterfaceConfig,
+        PluginInterfaceStaticConfig,
         {
             arr: Array<number>
         }
@@ -19,84 +50,46 @@ describe('PluginRunner', () => {
                 result: new Date().getSeconds(),
             }
         }
-        protected defineConfig(): PluginInterfaceConfig {
+        protected defineStaticConfig(): PluginInterfaceStaticConfig {
             return {
                 name: 'plugin',
                 description: 'Plugin description',
             }
         }
 
-        public async execute(context: {
-            args: { arr: Array<number> }
-            prepared?: unknown
-        }): Promise<unknown> {
-            return context
+        public async execute(): Promise<unknown> {
+            return 1
         }
     }
 
     class Plugin2 extends PluginInterface<
-        PluginInterfaceConfig,
+        PluginInterfaceStaticConfig,
         {
-            buildParams: Record<string, unknown>
+            buildParams: Array<number>
         }
     > {
-        public async run() {
+        protected defineStaticConfig(): PluginInterfaceStaticConfig {
             return {
-                run: 'plugin2',
-                result: new Date().getSeconds(),
-            }
-        }
-        protected defineConfig(): PluginInterfaceConfig {
-            return {
-                name: 'plugin',
+                name: 'plugin2',
                 description: 'Plugin description',
             }
         }
 
-        public async execute(context: {
-            args: { buildParams: Record<string, unknown> }
-            prepared?: unknown
-        }): Promise<unknown> {
-            return context
+        public async execute(): Promise<unknown> {
+            return 1
         }
     }
 
-    beforeEach(() => {
-        jobManager = new JobManager()
-        pluginProcessManager = new PluginRunner({
-            jobManager,
-        })
-    })
-
     it('should create a new instance of PluginProcessManager', () => {
-        expect(pluginProcessManager).toBeInstanceOf(PluginRunner)
+        expect(runner).toBeInstanceOf(PluginRunner)
     })
 
     it('should run plugins', async () => {
-        const res = await pluginProcessManager.run([
-            {
-                plugin: new Plugin(),
-                args: {
-                    arr: [1, 2],
-                },
-            },
-            {
-                plugin: new Plugin2(),
-                args: {
-                    buildParams: { key: 'value' },
-                },
-            },
-        ])
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(jobManager.history[0]?.response?.args).toStrictEqual({
-            arr: [1, 2],
-        })
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        expect(jobManager.history[1]?.response?.args).toStrictEqual({
-            buildParams: { key: 'value' },
-        })
-        expect(res).toBe(true)
+        const res = await runner.run([new Plugin(), new Plugin2()])
+        expect(res.length).toBe(2)
+    })
+
+    it('should add some internal logics for plugin running situations', () => {
+        expect(runner.count).toEqual([])
     })
 })
