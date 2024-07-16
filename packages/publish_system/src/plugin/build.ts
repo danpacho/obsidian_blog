@@ -1,37 +1,39 @@
-import { Promisify } from '@obsidian_blogger/helpers/promisify'
+import type { Promisify } from '@obsidian_blogger/helpers/promisify'
 import {
-    CommandResult,
+    type CommandResult,
     ShellExecutor,
-    ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
-import { PM, detect } from 'detect-package-manager'
-import { PublishPlugin, PublishPluginConstructor } from './publish.plugin'
+import { type PM, detect } from 'detect-package-manager'
+import {
+    PublishPlugin,
+    type PublishPluginDynamicConfig,
+    type PublishPluginStaticConfig,
+} from './publish.plugin'
 
-export interface BuildScriptConstructor
-    extends PublishPluginConstructor,
-        ShellExecutorConstructor {}
+export interface BuildScriptStaticConfig extends PublishPluginStaticConfig {}
+export type BuildScriptDynamicConfig = PublishPluginDynamicConfig & {
+    /**
+     * The build script command
+     */
+    command: Array<string>
+}
 /**
  * Abstract class representing a build script plugin
  * Extends the `PublishPlugin` class.
  */
-export abstract class BuildScriptPlugin extends PublishPlugin {
-    public packageManager: PM | null = null
-
-    /**
-     * Creates an instance of the `SiteBuilderPlugin` class.
-     * @param options - The options for the plugin.
-     */
-    public constructor(options: BuildScriptConstructor) {
-        super(options)
-    }
+export abstract class BuildScriptPlugin<
+    Static extends BuildScriptStaticConfig = BuildScriptStaticConfig,
+    Dynamic extends BuildScriptDynamicConfig = BuildScriptDynamicConfig,
+> extends PublishPlugin<Static, Dynamic> {
+    private packageManager: PM | null = null
 
     /**
      * Detects the package manager used in the project.
      * Sets the `packageManager` property accordingly.
      */
-    public async detectPackageManager(): Promise<void> {
+    public async detectPackageManager(cwd: string): Promise<void> {
         this.packageManager = await detect({
-            cwd: this.cwd,
+            cwd,
         })
     }
 
@@ -39,9 +41,11 @@ export abstract class BuildScriptPlugin extends PublishPlugin {
      * Detects the package manager runner.
      * @returns A promise that resolves to the command result of the runner source.
      */
-    private async detectPackageManagerRunner(): Promise<CommandResult> {
+    public async detectPackageManagerRunner(
+        cwd: string
+    ): Promise<CommandResult> {
         if (!this.packageManager) {
-            await this.detectPackageManager()
+            await this.detectPackageManager(cwd)
         }
 
         const runnerSource = await this.$shell.exec$(
@@ -57,10 +61,11 @@ export abstract class BuildScriptPlugin extends PublishPlugin {
      * @returns A promise that resolves to the command result.
      */
     protected async pkg(
-        commands: Array<string>,
         options: Parameters<ShellExecutor['spawn$']>[2] = {}
     ): Promisify<CommandResult> {
-        const runnerSource = await this.detectPackageManagerRunner()
+        const runnerSource = await this.detectPackageManagerRunner(
+            this.dynamicConfig.cwd
+        )
         const source = runnerSource.stdout.split('\n')[0]
 
         if (!source) {
@@ -78,23 +83,17 @@ export abstract class BuildScriptPlugin extends PublishPlugin {
             }
         }
         this.$logger.info(`Using ${this.packageManager} as package manager`)
-
-        const executed = await this.$shell.spawn$(source, commands, {
-            ...options,
-            cwd: this.cwd,
-        })
+        const executed = await this.$shell.spawn$(
+            source,
+            this.dynamicConfig.command,
+            {
+                ...options,
+                cwd: this.dynamicConfig.cwd,
+            }
+        )
         return {
             success: true,
             data: executed,
         }
     }
-
-    /**
-     * Building the site.
-     * @param buildParameters - The parameters for the build.
-     * @returns A promise that resolves to the result of the build.
-     */
-    public abstract build(
-        buildParameters: Record<string, unknown>
-    ): Promise<unknown>
 }
