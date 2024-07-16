@@ -16,12 +16,12 @@ describe('PluginConfigStore', () => {
         const pluginName = 'myPlugin'
         const config = { name: 'value1', description: 'value2' }
 
-        await store.addConfig(pluginName, { config })
+        await store.addConfig(pluginName, { staticConfig: config })
 
         expect(store.hasConfig(pluginName)).toBe(true)
         expect(store.getConfig(pluginName)).toEqual({
-            config: config,
-            args: null,
+            staticConfig: config,
+            dynamicConfig: null,
         })
     })
 
@@ -30,12 +30,12 @@ describe('PluginConfigStore', () => {
         const initialConfig = { name: 'value1', description: 'value2' }
         const updatedConfig = { name: 'newValue1', description: 'newValue2' }
 
-        await store.addConfig(pluginName, { config: initialConfig })
-        await store.updateConfig(pluginName, { config: updatedConfig })
+        await store.addConfig(pluginName, { staticConfig: initialConfig })
+        await store.updateConfig(pluginName, { staticConfig: updatedConfig })
 
         expect(store.getConfig(pluginName)).toEqual({
-            config: updatedConfig,
-            args: null,
+            staticConfig: updatedConfig,
+            dynamicConfig: null,
         })
     })
 
@@ -43,8 +43,8 @@ describe('PluginConfigStore', () => {
         const pluginName = 'myPlugin'
         const config = { name: 'value1', description: 'value2' }
 
-        await store.addConfig(pluginName, { config })
-        await store.addConfig(pluginName, { config })
+        await store.addConfig(pluginName, { staticConfig: config })
+        await store.addConfig(pluginName, { staticConfig: config })
 
         expect(Object.values(store.store).length).toBe(1)
     })
@@ -54,15 +54,15 @@ describe('PluginConfigStore', () => {
         const args = { key: 'value' }
 
         await store.updateConfig(pluginName, {
-            config: { name: 'value1', description: 'value2' },
-            args,
+            staticConfig: { name: 'value1', description: 'value2' },
+            dynamicConfig: args,
         })
         expect(store.getConfig(pluginName)).toStrictEqual({
-            config: {
+            staticConfig: {
                 name: 'value1',
                 description: 'value2',
             },
-            args: args,
+            dynamicConfig: args,
         })
     })
 
@@ -70,11 +70,11 @@ describe('PluginConfigStore', () => {
         const pluginName = 'myPlugin'
 
         expect(store.getConfig(pluginName)).toStrictEqual({
-            config: {
+            staticConfig: {
                 name: 'value1',
                 description: 'value2',
             },
-            args: {
+            dynamicConfig: {
                 key: 'value',
             },
         })
