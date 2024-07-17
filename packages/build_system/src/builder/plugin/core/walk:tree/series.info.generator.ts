@@ -27,7 +27,7 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
 
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'SeriesInfoGenerator',
+            name: 'series-info-generator',
             description: 'Generate series info for the content',
         }
     }

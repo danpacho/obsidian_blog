@@ -37,7 +37,7 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin {
 
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'StaticParamBuilder',
+            name: 'static-param-builder',
             description: 'Inject static params to the content',
         }
     }

@@ -30,7 +30,7 @@ export class PaginationBuilderPlugin extends WalkTreePlugin {
 
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'PaginationBuilder',
+            name: 'pagination-builder',
             description: 'Generate pagination meta information for the content',
         }
     }

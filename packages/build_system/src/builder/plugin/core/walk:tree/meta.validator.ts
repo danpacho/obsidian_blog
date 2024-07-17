@@ -25,7 +25,7 @@ export class MetaValidatorPlugin extends WalkTreePlugin {
 
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'MetaValidator',
+            name: 'meta-validator',
             description: 'Validate meta information for the content',
         }
     }

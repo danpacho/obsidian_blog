@@ -26,7 +26,7 @@ export class MetaBuilderPlugin extends WalkTreePlugin {
 
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'MetaBuilder',
+            name: 'meta-builder',
             description: 'Generate meta information for the content',
         }
     }
