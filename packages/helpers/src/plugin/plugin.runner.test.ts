@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
     PluginShape,
@@ -57,8 +58,8 @@ describe('PluginRunner', () => {
             }
         }
 
-        public async execute(): Promise<unknown> {
-            return 1
+        public async execute(): Promise<PluginExecutionResponse> {
+            return []
         }
     }
 
@@ -75,8 +76,8 @@ describe('PluginRunner', () => {
             }
         }
 
-        public async execute(): Promise<unknown> {
-            return 1
+        public async execute(): Promise<PluginExecutionResponse> {
+            return []
         }
     }
 
