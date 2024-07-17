@@ -11,7 +11,7 @@ export type NodeType =
     | 'AUDIO_FILE'
     | 'UNKNOWN_FILE'
 
-type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id'>
+type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id' | 'build_state'>
 
 /**
  * Represents an abstract class for a file tree node.
