@@ -5,13 +5,20 @@ import {
     type JobManagerConstructor,
     type JobSubscriber,
 } from '../job'
-import type { PluginExecutionResponse, PluginShape } from './plugin.interface'
+import type {
+    PluginExecutionResponse,
+    PluginInterfaceDependencies,
+    PluginShape,
+} from './plugin.interface'
 
 export interface PluginRunnerConstructor extends JobManagerConstructor {}
 /**
  * Manages the execution of plugin processes.
  */
-export abstract class PluginRunner<Plugin extends PluginShape = PluginShape> {
+export abstract class PluginRunner<
+    Plugin extends PluginShape = PluginShape,
+    RuntimeDependencies extends PluginInterfaceDependencies | null = null,
+> {
     protected readonly $jobManager: JobManager<PluginExecutionResponse>
 
     /**
@@ -66,6 +73,6 @@ export abstract class PluginRunner<Plugin extends PluginShape = PluginShape> {
      */
     public abstract run(
         pluginPipes: Array<Plugin>,
-        ...options: Array<unknown>
+        runtimeDependencies?: RuntimeDependencies
     ): Promise<this['history']>
 }
