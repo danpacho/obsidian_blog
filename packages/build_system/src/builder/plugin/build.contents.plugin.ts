@@ -7,6 +7,7 @@ import {
     type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
 } from './build.plugin'
+import type { PluginCachePipelines } from './cache.interface'
 
 export interface BuildContentsPluginStaticConfig
     extends BuildPluginStaticConfig {}
@@ -14,6 +15,8 @@ export type BuildContentsDynamicConfig = BuildPluginDynamicConfig
 export interface BuildContentsPluginDependencies
     extends BuildPluginDependencies {
     processor: MarkdownProcessor
+    buildStoreList: BuildStoreList
+    cachePipeline: PluginCachePipelines['buildContentsCachePipeline']
 }
 export abstract class BuildContentsPlugin<
     Static extends
@@ -71,20 +74,49 @@ export abstract class BuildContentsPlugin<
 
     public async execute(
         _: { stop: () => void; resume: () => void },
-        context: {
-            buildStore: BuildStoreList
-        }
-    ): Promise<PluginExecutionResponse> {
+        cachePipe: PluginCachePipelines['buildContentsCachePipeline']
+    ): Promise<
+        PluginExecutionResponse<
+            [
+                Array<{
+                    newContent: string
+                    writePath: string
+                }>,
+            ]
+        >
+    > {
         this.$jobManager.registerJob({
-            name: 'build_contents',
-            execute: async () => {
-                const newContents = await this.buildContents(context)
+            name: 'build:contents',
+            prepare: async () => {
+                this.$logger.updateName(this.name)
+
+                const buildStore = this.getRunTimeDependency('buildStore')
+
+                const cachedStore = cachePipe({
+                    config: this.dynamicConfig,
+                    store: buildStore,
+                    pluginCacheChecker: this.cacheChecker,
+                })
+
+                return cachedStore
+            },
+            execute: async (_, cachedStore: BuildStoreList) => {
+                const newContents = await this.buildContents({
+                    buildStore: cachedStore,
+                })
                 return newContents
             },
         })
 
         await this.$jobManager.processJobs()
 
-        return this.$jobManager.history
+        return this.$jobManager.history as PluginExecutionResponse<
+            [
+                Array<{
+                    newContent: string
+                    writePath: string
+                }>,
+            ]
+        >
     }
 }
