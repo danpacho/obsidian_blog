@@ -1,41 +1,39 @@
 import { Runner } from '@obsidian_blogger/helpers/plugin'
-import type { FileTreeNode, FileTreeParser } from '../parser'
-import type { BuildStoreList } from './core'
 import type {
     BuildContentsPlugin,
     BuildContentsPluginDependencies,
     BuildContentsPluginStaticConfig,
     BuildTreePlugin,
+    BuildTreePluginDependencies,
     BuildTreePluginDynamicConfig,
     BuildTreePluginStaticConfig,
     WalkTreePlugin,
+    WalkTreePluginDependencies,
     WalkTreePluginDynamicConfig,
     WalkTreePluginStaticConfig,
 } from './plugin'
-import type {
-    BuildPluginDependencies,
-    BuildPluginDynamicConfig,
-} from './plugin/build.plugin'
+import type { BuildPluginDynamicConfig } from './plugin/build.plugin'
 
-export class BuildTreePluginRunner extends Runner.PluginRunner<BuildTreePlugin> {
+export class BuildTreePluginRunner extends Runner.PluginRunner<
+    BuildTreePlugin,
+    BuildTreePluginDependencies
+> {
     public async run(
         pluginPipes: BuildTreePlugin<
             BuildTreePluginStaticConfig,
             BuildTreePluginDynamicConfig
         >[],
-        context: {
-            parser: FileTreeParser
-            walkRoot?: FileTreeNode
-        } & BuildPluginDependencies
+        deps: BuildTreePluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
             this.$jobManager.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(context)
+                    plugin.injectDependencies(deps)
+                    await plugin.prepare?.()
                 },
                 execute: async (controller) => {
-                    return await plugin.execute(controller, context)
+                    return await plugin.execute(controller, deps.cachePipeline)
                 },
                 cleanup: async (job) => {
                     await plugin.cleanup?.(job)
@@ -49,25 +47,26 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<BuildTreePlugin> 
     }
 }
 
-export class WalkTreePluginRunner extends Runner.PluginRunner<WalkTreePlugin> {
+export class WalkTreePluginRunner extends Runner.PluginRunner<
+    WalkTreePlugin,
+    WalkTreePluginDependencies
+> {
     public async run(
         pluginPipes: WalkTreePlugin<
             WalkTreePluginStaticConfig,
             WalkTreePluginDynamicConfig
         >[],
-        context: {
-            parser: FileTreeParser
-            walkRoot?: FileTreeNode
-        } & BuildPluginDependencies
+        deps: WalkTreePluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
             this.$jobManager.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(context)
+                    plugin.injectDependencies(deps)
+                    await plugin.prepare?.()
                 },
                 execute: async (controller) => {
-                    return await plugin.execute(controller, context)
+                    return await plugin.execute(controller, deps.cachePipeline)
                 },
                 cleanup: async (job) => {
                     await plugin.cleanup?.(job)
@@ -81,26 +80,47 @@ export class WalkTreePluginRunner extends Runner.PluginRunner<WalkTreePlugin> {
     }
 }
 
-export class BuildContentsPluginRunner extends Runner.PluginRunner<BuildContentsPlugin> {
+export class BuildContentsPluginRunner extends Runner.PluginRunner<
+    BuildContentsPlugin,
+    BuildContentsPluginDependencies
+> {
     public async run(
         pluginPipes: BuildContentsPlugin<
             BuildContentsPluginStaticConfig,
             BuildPluginDynamicConfig
         >[],
-        context: {
-            buildStoreList: BuildStoreList
-        } & BuildContentsPluginDependencies
+        deps: BuildContentsPluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
             this.$jobManager.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(context)
+                    plugin.injectDependencies(deps)
+                    await plugin.prepare?.()
                 },
                 execute: async (controller) => {
-                    return await plugin.execute(controller, {
-                        buildStore: context.buildStoreList,
-                    })
+                    const buildedContents = await plugin.execute(
+                        controller,
+                        deps.cachePipeline
+                    )
+
+                    const target = buildedContents[0]?.response
+                    if (!target) return
+
+                    for (const { writePath, newContent } of target) {
+                        const updatedTextFile = await deps.io.writer.write({
+                            data: newContent,
+                            filePath: writePath,
+                        })
+
+                        if (!updatedTextFile.success) {
+                            deps.logger.error(
+                                `Failed to modify contents at ${writePath}`
+                            )
+                        }
+                    }
+
+                    return target.map(({ writePath }) => writePath)
                 },
                 cleanup: async (job) => {
                     await plugin.cleanup?.(job)
