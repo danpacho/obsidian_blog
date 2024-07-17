@@ -208,17 +208,10 @@ export class PublishSystem {
         ) => {
             for (const pipe of pipes) {
                 if (pluginManager.$config.hasConfig(pipe.name) === false) {
-                    await pluginManager.$config.addConfig(
-                        pipe.name,
-                        pipe.dynamicConfig
-                            ? {
-                                  staticConfig: pipe.staticConfig,
-                                  dynamicConfig: pipe.dynamicConfig,
-                              }
-                            : {
-                                  staticConfig: pipe.staticConfig,
-                              }
-                    )
+                    await pluginManager.$config.addConfig(pipe.name, {
+                        staticConfig: pipe.staticConfig,
+                        dynamicConfig: pipe.dynamicConfig ?? null,
+                    })
                 }
             }
         }

@@ -118,7 +118,8 @@ export type PluginShape = PluginInterface<
 export type PluginConfig<
     PluginStaticConfig extends
         PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
-    PluginDynamicConfig extends PluginInterfaceDynamicConfig | null = null,
+    PluginDynamicConfig extends
+        PluginInterfaceDynamicConfig | null = PluginInterfaceDynamicConfig | null,
 > = {
     /**
      * Static configuration of plugin
