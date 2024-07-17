@@ -1,6 +1,6 @@
-import type { BuildContentsPlugin } from './build.contents.plugin'
-import type { BuildTreePlugin } from './build.tree.plugin'
-import type { WalkTreePlugin } from './walk.tree.plugin'
+import type { BuildContentsPlugin } from './plugin/build.contents.plugin'
+import type { BuildTreePlugin } from './plugin/build.tree.plugin'
+import type { WalkTreePlugin } from './plugin/walk.tree.plugin'
 
 export interface BuildSystemPlugin {
     /**
