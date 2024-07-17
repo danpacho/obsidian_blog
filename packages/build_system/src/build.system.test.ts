@@ -79,6 +79,7 @@ describe('BuildSystem', async () => {
 
     const system = new BuildSystem({
         builder: {
+            bridgeRoot: `${process.cwd()}/packages/build_system/src/__tests__/dist/bridge`,
             buildPath: {
                 contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
                 assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
