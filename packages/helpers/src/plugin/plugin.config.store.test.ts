@@ -55,6 +55,8 @@ describe('PluginConfigStore', () => {
 
         await store.updateConfig(pluginName, {
             staticConfig: { name: 'value1', description: 'value2' },
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             dynamicConfig: args,
         })
         expect(store.getConfig(pluginName)).toStrictEqual({

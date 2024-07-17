@@ -16,9 +16,7 @@ describe('PluginLoader', () => {
         }
 
         public async execute() {
-            return {
-                name: 1,
-            }
+            return []
         }
 
         protected defineStaticConfig() {
