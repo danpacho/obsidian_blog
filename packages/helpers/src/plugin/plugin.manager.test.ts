@@ -1,19 +1,43 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { describe, expect, it } from 'vitest'
-import { JobManager } from '../job'
 import { PluginConfigStore } from './plugin.config.store'
 import {
+    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
+    PluginShape,
 } from './plugin.interface'
 import { PluginLoader } from './plugin.loader'
 import { PluginManager } from './plugin.manager'
 import { PluginRunner } from './plugin.runner'
 
 describe('PluginManager', () => {
+    class Runner extends PluginRunner {
+        public async run(pipes: Array<PluginShape>): Promise<this['history']> {
+            for (const plugin of pipes) {
+                this.$jobManager.registerJob({
+                    name: plugin.name,
+                    prepare: async () => {
+                        return await plugin.prepare?.()
+                    },
+                    execute: async (controller, prepared) => {
+                        return await plugin.execute(controller, prepared)
+                    },
+                    cleanup: async (job) => {
+                        await plugin.cleanup?.(job)
+                    },
+                })
+            }
+
+            await this.$jobManager.processJobs()
+
+            return this.history
+        }
+    }
     const pluginManager = new PluginManager({
         name: 'plugin-manager',
         root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/manager_storage.json`,
+        runner: new Runner(),
     })
 
     it('should create a new instance of PluginManager', () => {
@@ -45,11 +69,6 @@ describe('PluginManager', () => {
         expect(pluginManager.$runner).toBeInstanceOf(PluginRunner)
     })
 
-    it('should have a JobManager instance', () => {
-        expect(pluginManager.$jobManager).toBeDefined()
-        expect(pluginManager.$jobManager).toBeInstanceOf(JobManager)
-    })
-
     it('should [add -> run] plugins', async () => {
         class Plugin extends PluginInterface {
             constructor(id?: number) {
@@ -63,10 +82,8 @@ describe('PluginManager', () => {
                     description: 'Plugin description',
                 }
             }
-            public async execute(): Promise<unknown> {
-                return {
-                    data: Math.random(),
-                }
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
 
@@ -99,9 +116,6 @@ describe('PluginManager', () => {
         // Run
         const response = await pluginManager.$runner.run(pipes)
 
-        // Check history
-        const history = pluginManager.$jobManager.history
-        expect(history).toHaveLength(3)
-        expect(response).toStrictEqual(true)
+        expect(response).toHaveLength(3)
     })
 })
