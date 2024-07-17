@@ -1,6 +1,5 @@
 import { IO, Logger } from '@obsidian_blogger/helpers'
 import { Builder, type BuilderConstructor } from './builder'
-import type { BuildStoreList } from './builder/core'
 import type { BuildSystemAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 
@@ -44,8 +43,13 @@ export class BuildSystem {
      * Build the project
      * @returns Build result
      */
-    public async build(): Promise<BuildStoreList> {
-        return await this.$builder.build()
+    public async build() {
+        const response = await this.$builder.build({
+            walkTreePluginLoadInformation: [],
+            buildContentsPluginLoadInformation: [],
+            buildTreePluginLoadInformation: [],
+        })
+        return response
     }
 
     /**
