@@ -50,10 +50,27 @@ export interface PluginInterfaceStaticConfig {
     }>
 }
 
+type MappedJob<JobResponses extends readonly [...unknown[]]> =
+    JobResponses extends readonly [infer Head, ...infer Tail]
+        ? Tail extends readonly [...unknown[]]
+            ? [Job<Head>, ...MappedJob<Tail>]
+            : [Job<Head>]
+        : JobResponses
+
 /**
  * Plugin execution response
+ * @example
+ * ```ts
+ * type ExecutionResponse = PluginExecutionResponse<[string, number]>
+ * // [Job<string>, Job<number>]
+ * type ExecutionResponse = PluginExecutionResponse<string>
+ * // Array<Job<string>>
+ * ```
  */
-export type PluginExecutionResponse = Array<Job>
+export type PluginExecutionResponse<ExecutionResponse = unknown> =
+    ExecutionResponse extends readonly [...unknown[]]
+        ? MappedJob<ExecutionResponse>
+        : Array<Job<ExecutionResponse>>
 
 class PluginInterfaceError extends SyntaxError {
     public constructor(message: string, config: unknown, cause?: unknown) {
@@ -84,12 +101,15 @@ export interface PluginInterfaceDynamicConfigShape {
         | DynamicConfigValuePrimitive
         | Array<DynamicConfigValuePrimitive>
 }
-export type PluginInterfaceDynamicConfig =
-    PluginInterfaceDynamicConfigShape | null
+export interface PluginInterfaceDynamicConfig
+    extends PluginInterfaceDynamicConfigShape {}
+
+export interface PluginInterfaceDependencies {}
 
 export type PluginShape = PluginInterface<
     PluginInterfaceStaticConfig,
-    PluginInterfaceDynamicConfig
+    PluginInterfaceDynamicConfig | null,
+    PluginInterfaceDependencies | null
 >
 
 /**
@@ -98,8 +118,7 @@ export type PluginShape = PluginInterface<
 export type PluginConfig<
     PluginStaticConfig extends
         PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
-    PluginDynamicConfig extends
-        PluginInterfaceDynamicConfig = PluginInterfaceDynamicConfig,
+    PluginDynamicConfig extends PluginInterfaceDynamicConfig | null = null,
 > = {
     /**
      * Static configuration of plugin
@@ -133,11 +152,55 @@ export type InferPluginConfig<Plugin extends PluginShape> =
 export abstract class PluginInterface<
     StaticConfig extends
         PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
-    DynamicConfig extends
-        PluginInterfaceDynamicConfig = PluginInterfaceDynamicConfig,
+    DynamicConfig extends PluginInterfaceDynamicConfig | null = null,
+    Dependencies extends PluginInterfaceDependencies | null = null,
 > implements JobRegistrationShape
 {
     protected readonly $jobManager: JobManager
+    /**
+     * Gets the runtime dependencies of the plugin.
+     */
+    public get dependencies() {
+        return this._runTimeDependencies
+    }
+    private _runTimeDependencies: Dependencies | null = null
+
+    /**
+     * Retrieves a runtime dependency by deps key.
+     * @param key - The key of the dependency.
+     * @returns The runtime dependency.
+     * @throws Error if the plugin dependencies are not injected.
+     */
+    protected getRunTimeDependency<const DepsKey extends keyof Dependencies>(
+        key: DepsKey
+    ): Dependencies[DepsKey] {
+        const deps = String(key)
+        if (!this._runTimeDependencies) {
+            throw new Error(
+                `Plugin dependencies not injected.\nPlease do not use $ signed properties inside of the constructor.\nError dependencies at ${deps}`,
+                {
+                    cause: [
+                        'Plugin dependencies not injected',
+                        'Use $ signed properties inside of the constructor',
+                        `Error dependencies at ${deps}`,
+                    ],
+                }
+            )
+        }
+        return this._runTimeDependencies![key]
+    }
+
+    /**
+     * Injects the plugin dependencies.
+     *
+     * > **Dependencies:** user-defined class or other functional things.
+     *
+     * @param dependencies - The plugin dependencies to inject.
+     */
+    public injectDependencies(dependencies: Dependencies) {
+        this._runTimeDependencies = dependencies
+    }
+
     /**
      * Gets the static configuration of the plugin.
      *
