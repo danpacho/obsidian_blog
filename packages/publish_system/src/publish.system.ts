@@ -1,3 +1,4 @@
+import { IO } from '@obsidian_blogger/helpers/io'
 import { type Job } from '@obsidian_blogger/helpers/job'
 import {
     Logger,
@@ -9,6 +10,10 @@ import {
     type PluginShape,
     Runner,
 } from '@obsidian_blogger/helpers/plugin'
+import {
+    ShellExecutor,
+    type ShellExecutorConstructor,
+} from '@obsidian_blogger/helpers/shell'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
 import type {
     BuildScriptPlugin,
@@ -16,13 +21,25 @@ import type {
     RepositoryPlugin,
 } from './plugin'
 import { type PublishSystemPluginAdapter } from './plugin/interface'
+import {
+    PublishPlugin,
+    PublishPluginDependencies,
+} from './plugin/publish.plugin'
 
-class PublishPluginRunner extends Runner.PluginRunner {
-    public async run(pluginPipes: PluginShape[]) {
+class PublishPluginRunner extends Runner.PluginRunner<
+    PublishPlugin,
+    PublishPluginDependencies
+> {
+    public async run(
+        pluginPipes: PublishPlugin[],
+        dependencies: PublishPluginDependencies
+    ) {
         for (const plugin of pluginPipes) {
             this.$jobManager.registerJob({
                 name: plugin.name,
                 prepare: async () => {
+                    dependencies.logger.updateName(plugin.name)
+                    plugin.injectDependencies(dependencies)
                     return await plugin.prepare?.()
                 },
                 execute: async (controller, prepared) => {
@@ -46,15 +63,28 @@ export interface PublishSystemConstructor {
      */
     bridgeRoot: string
     logger?: LoggerConstructor
+    shell?: ShellExecutorConstructor
 }
 export class PublishSystem {
     private readonly $logger: Logger
+    private readonly $io: IO
+    private readonly $shell: ShellExecutor
 
-    private readonly $publishPluginRunner: PublishPluginRunner
-
-    private readonly $buildScriptPluginManager: PluginManager<BuildScriptPlugin>
-    private readonly $repositoryPluginManager: PluginManager<RepositoryPlugin>
-    private readonly $deployPluginManager: PluginManager<DeployPlugin>
+    private readonly $buildScriptPluginRunner: PublishPluginRunner
+    private readonly $buildScriptPluginManager: PluginManager<
+        BuildScriptPlugin,
+        PublishPluginRunner
+    >
+    private readonly $repositoryPluginRunner: PublishPluginRunner
+    private readonly $repositoryPluginManager: PluginManager<
+        RepositoryPlugin,
+        PublishPluginRunner
+    >
+    private readonly $deployPluginRunner: PublishPluginRunner
+    private readonly $deployPluginManager: PluginManager<
+        DeployPlugin,
+        PublishPluginRunner
+    >
 
     private readonly $historyStorage: JsonStorage<Array<Job>>
 
@@ -63,32 +93,46 @@ export class PublishSystem {
     public constructor(public readonly options: PublishSystemConstructor) {
         this.$logger = new Logger({
             name: 'publish_system',
-            ...options.logger,
+            ...options?.logger,
         })
+        this.$io = new IO()
+        this.$shell = new ShellExecutor(options?.shell)
 
-        this.$publishPluginRunner = new PublishPluginRunner()
-
+        this.$buildScriptPluginRunner = new PublishPluginRunner()
         this.$buildScriptPluginManager = new PluginManager({
             name: 'publish_system::build_script',
             root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__build_script.json`,
-            runner: this.$publishPluginRunner,
+            runner: this.$buildScriptPluginRunner,
         })
+
+        this.$repositoryPluginRunner = new PublishPluginRunner()
         this.$repositoryPluginManager = new PluginManager({
             name: 'publish_system::repository',
             root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__repository.json`,
-            runner: this.$publishPluginRunner,
+            runner: this.$repositoryPluginRunner,
         })
+
+        this.$deployPluginRunner = new PublishPluginRunner()
         this.$deployPluginManager = new PluginManager({
             name: 'publish_system::deploy',
             root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/plugin__deploy.json`,
-            runner: this.$publishPluginRunner,
+            runner: this.$deployPluginRunner,
         })
+
         this.$historyStorage = new JsonStorage({
             name: 'publish_system::history',
             root: `${options.bridgeRoot}/${PublishSystem.storagePrefix}/history.json`,
         })
 
         this.pollingPublishHistory()
+    }
+
+    private get dependencies(): PublishPluginDependencies {
+        return {
+            io: this.$io,
+            logger: this.$logger,
+            shell: this.$shell,
+        }
     }
 
     /**
@@ -159,15 +203,22 @@ export class PublishSystem {
         }
 
         const registerPlugins = async (
-            pluginManager: PluginManager,
+            pluginManager: PluginManager<PluginShape, PublishPluginRunner>,
             pipes: Array<PluginShape>
         ) => {
             for (const pipe of pipes) {
                 if (pluginManager.$config.hasConfig(pipe.name) === false) {
-                    await pluginManager.$config.addConfig(pipe.name, {
-                        staticConfig: pipe.staticConfig,
-                        dynamicConfig: pipe.dynamicConfig,
-                    })
+                    await pluginManager.$config.addConfig(
+                        pipe.name,
+                        pipe.dynamicConfig
+                            ? {
+                                  staticConfig: pipe.staticConfig,
+                                  dynamicConfig: pipe.dynamicConfig,
+                              }
+                            : {
+                                  staticConfig: pipe.staticConfig,
+                              }
+                    )
                 }
             }
         }
@@ -188,11 +239,19 @@ export class PublishSystem {
         repository: PluginLoadInformation
         deploy: PluginLoadInformation
     }> {
-        const extractConfigs = (pluginManager: PluginManager) =>
-            Object.entries(pluginManager.$config.store).map(([key, value]) => ({
-                name: key,
-                dynamicConfig: value.dynamicConfig ?? null,
-            }))
+        const extractConfigs = (
+            pluginManager: PluginManager<PluginShape, PublishPluginRunner>
+        ) =>
+            Object.entries(pluginManager.$config.store).map(([key, value]) =>
+                value.dynamicConfig
+                    ? {
+                          name: key,
+                          dynamicConfig: value.dynamicConfig,
+                      }
+                    : {
+                          name: key,
+                      }
+            )
 
         const extractedDynamicConfigs = {
             buildScript: extractConfigs(this.$buildScriptPluginManager),
@@ -248,16 +307,19 @@ export class PublishSystem {
     }) {
         const buildScriptResponse =
             await this.$buildScriptPluginManager.$runner.run(
-                pluginPipes.buildScript
+                pluginPipes.buildScript,
+                this.dependencies
             )
 
         const repositoryResponse =
             await this.$repositoryPluginManager.$runner.run(
-                pluginPipes.repository
+                pluginPipes.repository,
+                this.dependencies
             )
 
         const deployResponse = await this.$deployPluginManager.$runner.run(
-            pluginPipes.deploy
+            pluginPipes.deploy,
+            this.dependencies
         )
 
         return {
@@ -273,15 +335,22 @@ export class PublishSystem {
         deploy: Array<DeployPlugin>
     }) {
         const saveConfigs = async (
-            pluginManager: PluginManager,
+            pluginManager: PluginManager<PluginShape, PublishPluginRunner>,
             pipes: Array<PluginShape>
         ) => {
             for (const pipe of pipes) {
                 const { name, staticConfig, dynamicConfig } = pipe
-                await pluginManager.$config.updateConfig(name, {
-                    staticConfig,
-                    dynamicConfig,
-                })
+                await pluginManager.$config.updateConfig(
+                    name,
+                    dynamicConfig
+                        ? {
+                              staticConfig,
+                              dynamicConfig,
+                          }
+                        : {
+                              staticConfig,
+                          }
+                )
             }
         }
 
@@ -296,14 +365,22 @@ export class PublishSystem {
     private async initializeHistoryStore() {
         await this.$historyStorage.set(
             'publish_system',
-            this.$publishPluginRunner.history
+            this.$buildScriptPluginRunner.history
         )
     }
 
     private pollingPublishHistory() {
-        this.$publishPluginRunner.subscribe(async (...params) => {
+        this.$buildScriptPluginRunner.subscribe(async (...params) => {
             const history = params[2]
-            await this.$historyStorage.set('publish_system', history)
+            await this.$historyStorage.set('buildScript', history)
+        })
+        this.$repositoryPluginRunner.subscribe(async (...params) => {
+            const history = params[2]
+            await this.$historyStorage.set('repository', history)
+        })
+        this.$deployPluginRunner.subscribe(async (...params) => {
+            const history = params[2]
+            await this.$historyStorage.set('deploy', history)
         })
     }
 
@@ -328,7 +405,11 @@ export class PublishSystem {
      * @returns The history of the plugin jobs
      */
     public get history() {
-        return this.$publishPluginRunner.history
+        return {
+            buildScript: this.$buildScriptPluginRunner.history,
+            repository: this.$repositoryPluginRunner.history,
+            deploy: this.$deployPluginRunner.history,
+        }
     }
 
     /**
