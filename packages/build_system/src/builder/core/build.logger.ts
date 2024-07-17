@@ -1,6 +1,6 @@
 import type { Logger } from '@obsidian_blogger/helpers/logger'
+import type { FileTreeParser } from '../../parser'
 import type { FileTreeNode, FolderNode } from '../../parser/node'
-import type { FileTreeParser } from '../../parser/parser'
 import type { BuildInformation, BuildStoreList } from './store'
 
 interface BuildResultLoggerConstructor {
@@ -15,18 +15,12 @@ interface BuildResultLoggerConstructor {
  * Represents a logger for build results.
  */
 export class BuildResultLogger {
-    /**
-     * Gets the parser used by the logger.
-     */
-    private get $parser() {
-        return this.option.parser
-    }
-
-    /**
-     * Gets the logger instance used by the logger.
-     */
     private get $logger() {
         return this.option.logger
+    }
+
+    private get $parser() {
+        return this.option.parser
     }
 
     /**
@@ -34,18 +28,6 @@ export class BuildResultLogger {
      * @param option - The options for the logger.
      */
     public constructor(public readonly option: BuildResultLoggerConstructor) {}
-
-    /**
-     * Retrieves the Abstract Syntax Tree (AST) for the build.
-     * @returns A promise that resolves to the root folder node of the AST, or undefined if the AST is empty.
-     */
-    private async getAST(): Promise<FolderNode | undefined> {
-        if (this.$parser.ast?.children.length !== 0) return this.$parser.ast
-
-        const ast = await this.$parser.parse()
-        if (!ast) return undefined
-        return ast
-    }
 
     /**
      * Generates the log message for a file or folder node in the tree.
@@ -97,42 +79,45 @@ export class BuildResultLogger {
      * @param buildReportSet - The build report set.
      * @param logRemoved - Indicates if removed files should be logged.
      */
-    private async writeASTLog(
-        targetRootDirPath: string,
-        buildReportSet: BuildStoreList,
-        logRemoved: boolean = false
-    ): Promise<void> {
-        this.$parser.updateRootFolder(targetRootDirPath)
-
-        const ast = await this.getAST()
-        if (ast === undefined) {
-            this.$logger.log(`Failed to write AST log for ${targetRootDirPath}`)
-            return
-        }
-
+    private async writeASTLog({
+        ast,
+        buildReport,
+        logRemoved = false,
+    }: {
+        ast: FolderNode
+        buildReport: BuildStoreList
+        logRemoved?: boolean
+    }): Promise<FolderNode | undefined> {
         this.$logger.log(
             this.$logger.c.green(
-                ` ● [ ${this.$logger.c.bold(ast.fileName)} ] » ${this.$logger.c.underline(targetRootDirPath)}`
+                ` ● [ ${this.$logger.c.bold(ast.fileName)} ] » ${this.$logger.c.underline(this.$parser.options.rootFolder)}`
             ),
             {
                 prefix: 'none',
             }
         )
-        await this.walkASTForBuildLog(buildReportSet, logRemoved)
+        await this.walkASTForBuildLog(buildReport, logRemoved)
+
+        return ast
     }
 
     /**
      * Writes the builder log for the build report.
      * @param buildReport - The build report.
      */
-    public async writeBuilderLog(buildReport: BuildStoreList): Promise<void> {
+    public async writeBuilderLog({
+        ast,
+        buildReport,
+    }: {
+        ast: FolderNode
+        buildReport: BuildStoreList
+    }): Promise<void> {
         this.writeBuildReportHeader()
-        await this.writeASTLog(
-            this.option.buildPath.contents,
+
+        await this.writeASTLog({
+            ast,
             buildReport,
-            true
-        )
-        await this.writeASTLog(this.option.buildPath.assets, buildReport)
+        })
     }
 
     /**
