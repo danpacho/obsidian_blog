@@ -1,11 +1,13 @@
 import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
-import type { FileTreeNode, FileTreeParser } from '../../parser'
+import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import {
     BuildPlugin,
-    BuildPluginDynamicConfig,
+    type BuildPluginDependencies,
+    type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
 } from './build.plugin'
+import type { PluginCachePipelines } from './cache.interface'
 
 /**
  * Configuration options for the WalkTreePlugin.
@@ -30,13 +32,17 @@ export type WalkTreePluginDynamicConfig = BuildPluginDynamicConfig & {
     walkType?: 'DFS' | 'BFS'
 }
 
+export interface WalkTreePluginDependencies extends BuildPluginDependencies {
+    cachePipeline: PluginCachePipelines['treeCachePipeline']
+    walkRoot?: FileTreeNode
+}
 /**
  * Abstract class representing a plugin for walking a tree during the build process.
  */
 export abstract class WalkTreePlugin<
     Static extends WalkTreePluginStaticConfig = WalkTreePluginStaticConfig,
     Dynamic extends WalkTreePluginDynamicConfig = WalkTreePluginDynamicConfig,
-> extends BuildPlugin<Static, Dynamic> {
+> extends BuildPlugin<Static, Dynamic, WalkTreePluginDependencies> {
     /**
      * Walking a original file tree for modifying the files
      */
@@ -71,48 +77,79 @@ export abstract class WalkTreePlugin<
      * @returns A boolean indicating whether the build state and node information should be cached.
      */
     public override cacheChecker?: (
-        /**
-         * The build state of the file.
-         */
-        state: BuildInformation['build_state'],
-        /**
-         * The node information.
-         */
-        nodeInfo: {
+        currentNode: {
+            /**
+             * The build state of the file.
+             */
+            state: BuildInformation['build_state']
             /**
              * The node of the file.
              */
             node: FileTreeNode
+        },
+        /**
+         * The node context
+         */
+        nodeContext: {
             /**
-             * The children of the node.
+             * Children of the current node
              */
             children: Array<FileTreeNode> | undefined
+            /**
+             * Siblings of the current node
+             */
+            siblings: Array<FileTreeNode> | undefined
+            /**
+             * Current node index in the siblings list
+             */
+            siblingsIndex: number | undefined
         }
     ) => boolean
 
     public async execute(
         _: { stop: () => void; resume: () => void },
-        context: {
-            parser: FileTreeParser
-            walkRoot?: FileTreeNode
-        }
+        cachePipe: PluginCachePipelines['treeCachePipeline']
     ): Promise<PluginExecutionResponse> {
         this.$jobManager.registerJob({
             name: 'walk:tree',
+            prepare: async () => {
+                this.$logger.updateName(this.name)
+            },
             execute: async () => {
                 const defaultOptions = {
-                    type: this.dynamicConfig.walkType ?? 'DFS',
-                    skipFolderNode: this.dynamicConfig.skipFolderNode ?? true,
+                    type: this.dynamicConfig?.walkType ?? 'DFS',
+                    skipFolderNode: this.dynamicConfig?.skipFolderNode ?? true,
                 }
-                await context.parser.walk(
-                    this.walk,
-                    context.walkRoot
+
+                const parser = this.getRunTimeDependency('parser')
+                const cacheManager = this.getRunTimeDependency('cacheManager')
+                const walkRoot = this.getRunTimeDependency('walkRoot')
+
+                this.walk = this.walk.bind(this)
+
+                await parser.walk(
+                    async (node, context) => {
+                        if (
+                            cachePipe({
+                                node,
+                                context,
+                                cacheManager,
+                                config: this.dynamicConfig,
+                                pluginCacheChecker: this.cacheChecker,
+                            })
+                        ) {
+                            return
+                        }
+                        await this.walk(node, context)
+                    },
+                    walkRoot
                         ? {
                               ...defaultOptions,
-                              walkRoot: context.walkRoot,
+                              walkRoot,
                           }
                         : defaultOptions
                 )
+                return
             },
         })
 
