@@ -1,6 +1,6 @@
-import type { BuildScriptPlugin } from './build'
-import type { DeployPlugin } from './deploy'
-import type { RepositoryPlugin } from './repository'
+import type { BuildScriptPlugin } from './plugin/build'
+import type { DeployPlugin } from './plugin/deploy'
+import type { RepositoryPlugin } from './plugin/repository'
 
 export interface PublishSystemPlugin {
     /**

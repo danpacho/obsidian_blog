@@ -20,11 +20,11 @@ import type {
     DeployPlugin,
     RepositoryPlugin,
 } from './plugin'
-import { type PublishSystemPluginAdapter } from './plugin/interface'
 import {
     PublishPlugin,
     PublishPluginDependencies,
 } from './plugin/publish.plugin'
+import { type PublishSystemPluginAdapter } from './publish.system.interface'
 
 class PublishPluginRunner extends Runner.PluginRunner<
     PublishPlugin,
