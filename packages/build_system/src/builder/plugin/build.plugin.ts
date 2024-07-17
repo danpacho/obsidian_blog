@@ -8,6 +8,7 @@ import {
     type PolymorphicMeta,
 } from '../../meta/engine'
 import type { BuilderConstructor } from '../builder'
+import type { BuildCacheManager, BuildInfoGenerator, BuildStore } from '../core'
 /**
  * Represents the configuration for a build plugin.
  */
@@ -20,8 +21,11 @@ export type BuildPluginDynamicConfig = {
     disableCache?: boolean
 }
 
-export interface BuildPluginDependencies
-    extends Omit<BuilderConstructor, 'parser' | 'corePluginConfigs'> {}
+export interface BuildPluginDependencies extends BuilderConstructor {
+    buildStore: BuildStore
+    cacheManager: BuildCacheManager
+    buildInfoGenerator: BuildInfoGenerator
+}
 
 /**
  * Abstract class representing a build plugin.
@@ -30,34 +34,7 @@ export abstract class BuildPlugin<
     Static extends BuildPluginStaticConfig,
     Dynamic extends BuildPluginDynamicConfig = BuildPluginDynamicConfig,
     Dependencies extends BuildPluginDependencies = BuildPluginDependencies,
-> extends PluginInterface<Static, Dynamic> {
-    private _runTimeDependencies: Dependencies | undefined = undefined
-
-    /**
-     * Retrieves a runtime dependency by deps key.
-     * @param key - The key of the dependency.
-     * @returns The runtime dependency.
-     * @throws Error if the plugin dependencies are not injected.
-     */
-    protected getRunTimeDependency<const DepsKey extends keyof Dependencies>(
-        key: DepsKey
-    ): Dependencies[DepsKey] {
-        const deps = String(key)
-        if (!this._runTimeDependencies) {
-            throw new Error(
-                `Plugin dependencies not injected.\nPlease do not use $ signed properties inside of the constructor.\nError dependencies at ${deps}`,
-                {
-                    cause: [
-                        'Plugin dependencies not injected',
-                        'Use $ signed properties inside of the constructor',
-                        `Error dependencies at ${deps}`,
-                    ],
-                }
-            )
-        }
-        return this._runTimeDependencies[key]
-    }
-
+> extends PluginInterface<Static, Dynamic, Dependencies> {
     /**
      * Creates a meta engine with the specified engine components(`generator`, `parser`).
      * @param engineComponents - The engine components for creating the meta engine.
@@ -123,15 +100,6 @@ export abstract class BuildPlugin<
      */
     protected get $buildPath() {
         return this.getRunTimeDependency('buildPath')!
-    }
-
-    /**
-     * Injects the plugin dependencies.
-     * @param dependencies - The plugin dependencies to inject.
-     * @ignore This is _internal API_ for the build system.
-     */
-    public injectDependencies(dependencies: Dependencies) {
-        this._runTimeDependencies = dependencies
     }
 
     /**
