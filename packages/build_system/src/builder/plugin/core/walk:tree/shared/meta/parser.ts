@@ -1,5 +1,4 @@
 import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
-import { prettyPrint } from '../../../../../../utils/logger'
 import type { DefaultCategoryMeta, DefaultContentMeta } from './interface'
 
 export type MetaParser = (meta: unknown) => PolymorphicMeta
@@ -28,6 +27,8 @@ const IsContentMeta = (input: unknown): input is DefaultContentMeta => {
 
     return true
 }
+
+const prettyPrint = (input: unknown): string => JSON.stringify(input, null, 2)
 
 export const ContentMetaParser: MetaParser = (input: unknown) => {
     if (!IsContentMeta(input)) {
