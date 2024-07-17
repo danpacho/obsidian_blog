@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
 } from './plugin.interface'
@@ -14,8 +15,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<void> {
-                return
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
         const plugin = new TestPlugin()
@@ -47,8 +48,8 @@ describe('PluginInterface', () => {
                 return 1
             }
 
-            public async execute(): Promise<unknown> {
-                return
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
         try {
@@ -70,8 +71,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<void> {
-                return
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
         const plugin = new TestPlugin()
@@ -92,8 +93,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<void> {
-                return
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
         const plugin = new TestPlugin()
@@ -137,8 +138,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<void> {
-                return
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
             }
         }
         const test = {
