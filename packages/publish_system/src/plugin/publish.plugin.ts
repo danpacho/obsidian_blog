@@ -29,22 +29,27 @@ export interface PublishPluginStaticConfig extends PluginInterfaceStaticConfig {
     logger?: LoggerConstructor
 }
 
+export interface PublishPluginDependencies {
+    io: IO
+    shell: ShellExecutor
+    logger: Logger
+}
 /**
  * Represents an abstract class for a publish plugin.
  */
 export abstract class PublishPlugin<
-    Static extends PublishPluginStaticConfig,
+    Static extends PublishPluginStaticConfig = PublishPluginStaticConfig,
     Dynamic extends PublishPluginDynamicConfig = PublishPluginDynamicConfig,
-> extends PluginInterface<Static, Dynamic> {
-    protected readonly $logger: Logger
-    protected readonly $shell: ShellExecutor
-    protected readonly $io: IO
-
-    public constructor() {
-        super()
-        this.$io = new IO()
-        this.$logger = new Logger(this.staticConfig.logger)
-        this.$shell = new ShellExecutor(this.staticConfig.shell)
+    Dependencies extends PublishPluginDependencies = PublishPluginDependencies,
+> extends PluginInterface<Static, Dynamic, Dependencies> {
+    protected get $logger() {
+        return this.getRunTimeDependency('logger')
+    }
+    protected get $shell() {
+        return this.getRunTimeDependency('shell')
+    }
+    protected get $io() {
+        return this.getRunTimeDependency('io')
     }
 
     /**
