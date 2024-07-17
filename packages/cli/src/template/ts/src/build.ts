@@ -5,7 +5,7 @@ import {
     type Node,
 } from '@obsidian_blogger/build_system'
 
-const PathGenerator = (node: Node.FTreeNode, rootPath: string) => {
+const PathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
     const analyzeFileName = (
         folderName?: string
     ): {
@@ -42,7 +42,7 @@ const PathGenerator = (node: Node.FTreeNode, rootPath: string) => {
         node,
         rootPath,
     }: {
-        node: Node.FTreeNode
+        node: Node.FileTreeNode
         rootPath: string
     }): string => {
         const absPath = node.absolutePath
