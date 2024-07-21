@@ -13,6 +13,13 @@ export interface StorageConstructor {
      * The root path of the storage.
      */
     root: string
+    /**
+     * Late initialization flag.
+     *
+     * - `true` : The storage will not be initialized immediately.
+     * - `false` : The storage will be initialized immediately.
+     */
+    lateInit?: boolean
 }
 
 /**
@@ -30,7 +37,16 @@ export abstract class StorageInterface<Schema> {
         this.$logger = new Logger({
             name: options.name,
         })
-        this.checkStorageExistence(options.root)
+        if (!options.lateInit) {
+            this.checkStorageExistence(options.root)
+        }
+    }
+
+    /**
+     * Initializes the storage.
+     */
+    public async init(): Promise<void> {
+        await this.checkStorageExistence(this.options.root)
     }
 
     /**
@@ -42,7 +58,7 @@ export abstract class StorageInterface<Schema> {
         this.checkStorageExistence(root)
     }
 
-    private checkStorageExistence(root: string): void {
+    private async checkStorageExistence(root: string): Promise<void> {
         this.$io.reader.fileExists(root).then((exists) => {
             if (!exists) {
                 this.$logger.warn('Storage file does not exist.')
