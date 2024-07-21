@@ -23,6 +23,22 @@ export class PluginConfigStore {
     private readonly $storage: JsonStorage<PluginConfig>
 
     /**
+     * Initializes the config store.
+     */
+    public async init(): Promise<void> {
+        await this.$storage.init()
+    }
+
+    /**
+     * Update root path
+     * @param root New root path for the storage.
+     */
+    public updateRoot(root: string) {
+        this.$storage.updateRoot(root)
+        this.options.root = root
+    }
+
+    /**
      * Resets the config store.
      */
     public async reset(): Promise<void> {
