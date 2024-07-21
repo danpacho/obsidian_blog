@@ -17,7 +17,7 @@ export type PluginLoadInformation = Array<{
     /**
      * Dynamic configuration for the plugin, injected from the `obsidian`
      */
-    dynamicConfig?: PluginInterfaceDynamicConfig
+    dynamicConfig: PluginInterfaceDynamicConfig | null
 }>
 
 type PluginKey = PluginInterface['name']
@@ -80,18 +80,7 @@ export class PluginLoader<Plugin extends PluginShape = PluginShape> {
      * @param loadInformation The information to load the plugins.
      * @returns The loaded plugins.
      */
-    public load(
-        loadInformation: Array<{
-            /**
-             * Name of the plugin, should be unique
-             */
-            name: string
-            /**
-             * Dynamic configuration for the plugin, injected from the `obsidian`
-             */
-            dynamicConfig?: PluginInterfaceDynamicConfig
-        }>
-    ): Array<Plugin> {
+    public load(loadInformation: PluginLoadInformation): Array<Plugin> {
         const loaded: Set<PluginKey> = new Set<PluginKey>()
         const plugins: Array<Plugin> = loadInformation
             .map((info) => {
