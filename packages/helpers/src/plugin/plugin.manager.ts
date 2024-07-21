@@ -37,19 +37,25 @@ export class PluginManager<
     /**
      * The plugin runner for running plugins.
      */
-    public readonly $runner: Runner
+    public get $runner(): Runner {
+        return this.options.runner
+    }
     /**
      * Creates a new instance of the PluginManager class.
      *
      * @param options - Optional options for configuring the plugin manager.
      */
-    public constructor(options: PluginManagerConstructor<Runner>) {
+    public constructor(
+        public readonly options: PluginManagerConstructor<Runner>
+    ) {
         this.$config = new PluginConfigStore(options)
         this.$loader = new PluginLoader(options)
-        this.$runner = options.runner
     }
 
-    public updateRoot(root: string) {
-        this.$config.options.root = root
+    /**
+     * Initializes the config json storage
+     */
+    public async init(): Promise<void> {
+        await this.$config.init()
     }
 }
