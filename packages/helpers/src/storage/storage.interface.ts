@@ -33,6 +33,15 @@ export abstract class StorageInterface<Schema> {
         this.checkStorageExistence(options.root)
     }
 
+    /**
+     * Update root path of storage
+     * @param root new root path
+     */
+    public updateRoot(root: string): void {
+        this.options.root = root
+        this.checkStorageExistence(root)
+    }
+
     private checkStorageExistence(root: string): void {
         this.$io.reader.fileExists(root).then((exists) => {
             if (!exists) {
