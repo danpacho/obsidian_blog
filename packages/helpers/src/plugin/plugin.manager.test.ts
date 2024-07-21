@@ -111,6 +111,7 @@ describe('PluginManager', () => {
             },
             {
                 name: 'plugin-3',
+                dynamicConfig: null,
             },
         ])
         // Run

@@ -235,16 +235,10 @@ export class PublishSystem {
         const extractConfigs = (
             pluginManager: PluginManager<PluginShape, PublishPluginRunner>
         ) =>
-            Object.entries(pluginManager.$config.store).map(([key, value]) =>
-                value.dynamicConfig
-                    ? {
-                          name: key,
-                          dynamicConfig: value.dynamicConfig,
-                      }
-                    : {
-                          name: key,
-                      }
-            )
+            Object.entries(pluginManager.$config.store).map(([key, value]) => ({
+                name: key,
+                dynamicConfig: value.dynamicConfig ?? null,
+            }))
 
         const extractedDynamicConfigs = {
             buildScript: extractConfigs(this.$buildScriptPluginManager),

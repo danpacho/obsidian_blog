@@ -249,6 +249,7 @@ export class Builder {
             this.$builderInternalPluginManager.$loader.load([
                 {
                     name: 'sync-build-store',
+                    dynamicConfig: null,
                 },
             ]),
             {
@@ -266,6 +267,7 @@ export class Builder {
             this.$builderInternalPluginManager.$loader.load([
                 {
                     name: 'duplicate-obsidian-vault-into-source',
+                    dynamicConfig: null,
                 },
             ]),
             {
@@ -285,6 +287,7 @@ export class Builder {
             this.$builderInternalPluginManager.$loader.load([
                 {
                     name: 'inject-build-info-to-generated-tree',
+                    dynamicConfig: null,
                 },
             ]),
             {
