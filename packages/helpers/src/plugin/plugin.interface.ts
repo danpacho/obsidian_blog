@@ -377,10 +377,14 @@ export abstract class PluginInterface<
 
     private getMergedStaticConfig(staticConfig: StaticConfig): StaticConfig {
         if (this.defaultOptions?.defaultDynamicConfigs === undefined)
-            return staticConfig
+            return {
+                ...this.staticConfig,
+                ...staticConfig,
+            }
 
         const mergedConfig = {
             ...this.defaultOptions.defaultDynamicConfigs,
+            ...this.staticConfig,
             ...staticConfig,
         }
 
@@ -390,11 +394,11 @@ export abstract class PluginInterface<
     private getMergedDynamicConfig(
         dynamicConfig: DynamicConfig
     ): DynamicConfig {
-        if (this.defaultOptions.defaultStaticConfigs === undefined)
+        if (this.defaultOptions.defaultDynamicConfigs === undefined)
             return dynamicConfig
 
         const mergedArgs = {
-            ...this.defaultOptions.defaultStaticConfigs,
+            ...this.defaultOptions.defaultDynamicConfigs,
             ...dynamicConfig,
         }
         return mergedArgs
@@ -426,7 +430,9 @@ export abstract class PluginInterface<
         try {
             const injectedConfig = this.defineStaticConfig()
             const mergedConfig = this.getMergedStaticConfig(injectedConfig)
+
             this.validateConfig(mergedConfig)
+
             this._staticConfig = mergedConfig
             this.$jobManager = new JobManager(this.staticConfig.jobManager)
         } catch (e) {
