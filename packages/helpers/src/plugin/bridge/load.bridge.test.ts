@@ -4,10 +4,10 @@ import {
     PluginInterface,
     PluginInterfaceStaticConfig,
     PluginShape,
-} from './plugin.interface'
-import { PluginManager } from './plugin.manager'
-import { PluginPipelineBridge } from './plugin.pipeline.bridge'
-import { PluginRunner } from './plugin.runner'
+} from '../plugin.interface'
+import { PluginManager } from '../plugin.manager'
+import { PluginRunner } from '../plugin.runner'
+import { LoadConfigBridgeStore } from './load.config.store'
 
 describe('PluginPipelineBridge', async () => {
     class Runner extends PluginRunner {
@@ -70,23 +70,23 @@ describe('PluginPipelineBridge', async () => {
         }
 
         public async execute(): Promise<PluginExecutionResponse> {
-            return []
+            this.$jobManager.registerJob({
+                name: this.staticConfig.name,
+                execute: async () => {
+                    return 1
+                },
+            })
+
+            await this.$jobManager.processJobs()
+
+            return this.$jobManager.history
         }
     }
 
-    const pipelineManager = new PluginPipelineBridge({
-        name: 'plugin-pipeline-bridge',
+    const configBridge = new LoadConfigBridgeStore({
         storePrefix: '.store',
         bridgeRoot: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__`,
-        managerPipeline: [pluginManager, pluginManager2, pluginManager3],
-    })
-
-    it('should get history', () => {
-        expect(pipelineManager.history).toStrictEqual({
-            'plugin-manager': [],
-            'plugin-manager2': [],
-            'plugin-manager3': [],
-        })
+        managers: [pluginManager, pluginManager2, pluginManager3],
     })
 
     it('should use plugin in each manager', () => {
@@ -100,15 +100,30 @@ describe('PluginPipelineBridge', async () => {
         pluginManager3.$loader.use(plugins)
     })
 
-    it('should run plugins by pipeline', async () => {
-        await pipelineManager.run()
-    })
-
-    it('simulation:: obsidian user injects plugin dynamic configuration at store', () => {
-        expect(pipelineManager.storeRoots.map((e) => e.name)).toStrictEqual([
-            'plugin-manager',
-            'plugin-manager2',
-            'plugin-manager3',
+    it('should load plugin information', async () => {
+        const loaded = await configBridge.loadInformation(
+            pluginManager.options.name
+        )
+        const loaded2 = await configBridge.loadInformation(
+            pluginManager2.options.name
+        )
+        const loaded3 = await configBridge.loadInformation(
+            pluginManager3.options.name
+        )
+        expect(loaded).toStrictEqual([
+            { name: 'example-plugin-0', dynamicConfig: null },
+            { name: 'example-plugin-1', dynamicConfig: null },
+            { name: 'example-plugin-2', dynamicConfig: null },
+        ])
+        expect(loaded2).toStrictEqual([
+            { name: 'example-plugin-0', dynamicConfig: null },
+            { name: 'example-plugin-1', dynamicConfig: null },
+            { name: 'example-plugin-2', dynamicConfig: null },
+        ])
+        expect(loaded3).toStrictEqual([
+            { name: 'example-plugin-0', dynamicConfig: null },
+            { name: 'example-plugin-1', dynamicConfig: null },
+            { name: 'example-plugin-2', dynamicConfig: null },
         ])
     })
 })
