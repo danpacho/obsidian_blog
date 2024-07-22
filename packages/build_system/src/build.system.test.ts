@@ -78,8 +78,8 @@ describe('BuildSystem', async () => {
     }
 
     const system = new BuildSystem({
+        bridgeRoot: `${process.cwd()}/packages/build_system/src/__tests__/dist/bridge`,
         builder: {
-            bridgeRoot: `${process.cwd()}/packages/build_system/src/__tests__/dist/bridge`,
             buildPath: {
                 contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
                 assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
@@ -95,7 +95,6 @@ describe('BuildSystem', async () => {
         },
         parser: {
             rootFolder: '$$blog$$',
-            // rootFolder: '/Users/june/Documents/obsidian_june',
             treeSyntax: {
                 fileNameMatcher: ({ name, depth }) => {
                     if (depth >= 6) return false
@@ -138,7 +137,6 @@ describe('BuildSystem', async () => {
 
     it('should build', async () => {
         expect(system.build).toBeDefined()
-        const report = await system.build()
-        expect(report).toBeDefined()
+        await system.build()
     })
 })
