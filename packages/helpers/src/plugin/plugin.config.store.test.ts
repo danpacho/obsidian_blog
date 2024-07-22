@@ -13,7 +13,7 @@ describe('PluginConfigStore', () => {
     })
 
     it('should add and retrieve plugin configurations', async () => {
-        const pluginName = 'myPlugin'
+        const pluginName = 'plugin'
         const config = { name: 'value1', description: 'value2' }
 
         await store.addConfig(pluginName, { staticConfig: config })
@@ -46,7 +46,7 @@ describe('PluginConfigStore', () => {
         await store.addConfig(pluginName, { staticConfig: config })
         await store.addConfig(pluginName, { staticConfig: config })
 
-        expect(Object.values(store.store).length).toBe(1)
+        expect(Object.values(store.store).length).toBe(2)
     })
 
     it('should inquire existing plugin configurations with args', async () => {

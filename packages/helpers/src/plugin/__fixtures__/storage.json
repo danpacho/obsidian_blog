@@ -1,4 +1,11 @@
 {
+    "plugin": {
+        "staticConfig": {
+            "name": "value1",
+            "description": "value2"
+        },
+        "dynamicConfig": null
+    },
     "myPlugin": {
         "staticConfig": {
             "name": "value1",
