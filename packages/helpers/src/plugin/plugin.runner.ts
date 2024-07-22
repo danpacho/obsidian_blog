@@ -17,7 +17,8 @@ export interface PluginRunnerConstructor extends JobManagerConstructor {}
  */
 export abstract class PluginRunner<
     Plugin extends PluginShape = PluginShape,
-    RuntimeDependencies extends PluginInterfaceDependencies | null = null,
+    RuntimeDependencies extends
+        PluginInterfaceDependencies | null = PluginInterfaceDependencies | null,
 > {
     protected readonly $jobManager: JobManager<PluginExecutionResponse>
 
