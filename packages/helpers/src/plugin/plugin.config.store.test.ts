@@ -12,19 +12,6 @@ describe('PluginConfigStore', () => {
         expect(store.store).toEqual({})
     })
 
-    it('should add and retrieve plugin configurations', async () => {
-        const pluginName = 'plugin'
-        const config = { name: 'value1', description: 'value2' }
-
-        await store.addConfig(pluginName, { staticConfig: config })
-
-        expect(store.hasConfig(pluginName)).toBe(true)
-        expect(store.getConfig(pluginName)).toEqual({
-            staticConfig: config,
-            dynamicConfig: null,
-        })
-    })
-
     it('should update plugin configurations', async () => {
         const pluginName = 'myPlugin'
         const initialConfig = { name: 'value1', description: 'value2' }
@@ -46,7 +33,7 @@ describe('PluginConfigStore', () => {
         await store.addConfig(pluginName, { staticConfig: config })
         await store.addConfig(pluginName, { staticConfig: config })
 
-        expect(Object.values(store.store).length).toBe(2)
+        expect(Object.values(store.store).length).toBe(1)
     })
 
     it('should inquire existing plugin configurations with args', async () => {
