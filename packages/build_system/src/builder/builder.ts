@@ -1,6 +1,6 @@
 import { Logger } from '@obsidian_blogger/helpers/logger'
 import {
-    PluginLoadInformation,
+    type PluginLoadInformation,
     PluginManager,
 } from '@obsidian_blogger/helpers/plugin'
 import { MarkdownProcessor } from '../md/processor'
@@ -24,7 +24,7 @@ import {
     type BuildInfoGeneratorConstructor,
 } from './core/info.generator'
 import { BuildStore, type BuildStoreConstructor } from './core/store'
-import { type BuildSystemAdapter } from './plugin'
+import { type BuildSystemPluginAdapter } from './plugin'
 import { BuildContentsPlugin } from './plugin/build.contents.plugin'
 import { BuildTreePlugin } from './plugin/build.tree.plugin'
 import { PluginCachePipelines } from './plugin/cache.interface'
@@ -42,6 +42,7 @@ export interface BuilderConstructor
     readonly parser: FileTreeParser
     readonly logger: Logger
     bridgeRoot: string
+    storagePrefix: string
 }
 
 export class Builder {
@@ -51,8 +52,7 @@ export class Builder {
     private readonly $buildInfoGenerator: BuildInfoGenerator
     private readonly $mdProcessor: MarkdownProcessor
 
-    private readonly $pluginCachePipelines: PluginCachePipelines =
-        new BuilderPluginCachePipelines()
+    private readonly $pluginCachePipelines: PluginCachePipelines
     public readonly $builderInternalPluginRunner: BuilderInternalPluginRunner
     public readonly $builderInternalPluginManager: PluginManager<
         BuilderInternalPlugin,
@@ -74,8 +74,6 @@ export class Builder {
     >
     public readonly $buildContentsPluginRunner: BuildContentsPluginRunner
 
-    public static storagePrefix = '.store/publish' as const
-
     private get $parser(): FileTreeParser {
         return this.options.parser
     }
@@ -86,12 +84,13 @@ export class Builder {
     public constructor(private readonly options: BuilderConstructor) {
         this.$store = new BuildStore({
             io: options.io,
-            root: `${options.bridgeRoot}/${Builder.storagePrefix}/cache.json`,
+            root: `${options.bridgeRoot}/${options.storagePrefix}/cache.json`,
         })
         this.$cacheManager = new BuildCacheManager({
             ...options,
             store: this.$store,
         })
+        this.$pluginCachePipelines = new BuilderPluginCachePipelines()
 
         this.$buildInfoGenerator = new BuildInfoGenerator(options)
         this.$buildLogger = new BuildResultLogger(options)
@@ -102,8 +101,9 @@ export class Builder {
         this.$builderInternalPluginRunner = new BuilderInternalPluginRunner()
         this.$builderInternalPluginManager = new PluginManager({
             name: 'build_system::internal',
-            root: `${options.bridgeRoot}/${Builder.storagePrefix}/plugin__internal.json`,
+            root: 'late_init.json',
             runner: this.$builderInternalPluginRunner,
+            lateInit: true,
         })
         this.setupInternalPlugins()
 
@@ -112,22 +112,25 @@ export class Builder {
         this.$treeBuildPluginRunner = new BuildTreePluginRunner()
         this.$treeBuildPluginManager = new PluginManager({
             name: 'build_system::build_tree',
-            root: `${options.bridgeRoot}/${Builder.storagePrefix}/plugin__build_tree.json`,
+            root: 'late_init.json',
             runner: this.$treeBuildPluginRunner,
+            lateInit: true,
         })
         // B > Tree Walk
         this.$treeWalkPluginRunner = new WalkTreePluginRunner()
         this.$treeWalkPluginManager = new PluginManager({
             name: 'build_system::walk_tree',
-            root: `${options.bridgeRoot}/${Builder.storagePrefix}/plugin__walk_tree.json`,
+            root: 'late_init.json',
             runner: this.$treeWalkPluginRunner,
+            lateInit: true,
         })
         // C > Build Contents
         this.$buildContentsPluginRunner = new BuildContentsPluginRunner()
         this.$buildContentsPluginManager = new PluginManager({
             name: 'build_system::build_contents',
-            root: `${options.bridgeRoot}/${Builder.storagePrefix}/plugin__build_contents.json`,
+            root: 'late_init.json',
             runner: this.$buildContentsPluginRunner,
+            lateInit: true,
         })
     }
 
@@ -143,7 +146,7 @@ export class Builder {
         'build:tree': buildTreePlugins,
         'walk:tree': walkTreePlugins,
         'build:contents': buildContentsPlugins,
-    }: BuildSystemAdapter): Builder {
+    }: BuildSystemPluginAdapter): Builder {
         this.$treeBuildPluginManager.$loader.use(buildTreePlugins)
         this.$treeWalkPluginManager.$loader.use(walkTreePlugins)
         this.$buildContentsPluginManager.$loader.use(buildContentsPlugins)
@@ -206,19 +209,19 @@ export class Builder {
     private async buildContents(
         loadInformation: PluginLoadInformation
     ): Promise<void> {
-        await this.$buildContentsPluginManager.$runner.run(
-            this.$buildContentsPluginManager.$loader.load(loadInformation),
-            {
-                ...this.options,
-                buildStore: this.$store,
-                buildStoreList: this.$store.getStoreList('current'),
-                processor: this.$mdProcessor,
-                cacheManager: this.$cacheManager,
-                buildInfoGenerator: this.$buildInfoGenerator,
-                cachePipeline:
-                    this.$pluginCachePipelines.buildContentsCachePipeline,
-            }
-        )
+        const pluginPipes =
+            this.$buildContentsPluginManager.$loader.load(loadInformation)
+
+        await this.$buildContentsPluginManager.$runner.run(pluginPipes, {
+            ...this.options,
+            buildStore: this.$store,
+            buildStoreList: this.$store.getStoreList('current'),
+            processor: this.$mdProcessor,
+            cacheManager: this.$cacheManager,
+            buildInfoGenerator: this.$buildInfoGenerator,
+            cachePipeline:
+                this.$pluginCachePipelines.buildContentsCachePipeline,
+        })
     }
 
     private async logBuildResult(): Promise<void> {
@@ -305,20 +308,17 @@ export class Builder {
      * @param loadInformation - Build plugins load information
      */
     public async build(loadInformation: {
-        buildTreePluginLoadInformation: PluginLoadInformation
-        walkTreePluginLoadInformation: PluginLoadInformation
-        buildContentsPluginLoadInformation: PluginLoadInformation
+        buildTree: PluginLoadInformation
+        walkTree: PluginLoadInformation
+        buildContents: PluginLoadInformation
     }) {
-        const {
-            buildTreePluginLoadInformation,
-            walkTreePluginLoadInformation,
-            buildContentsPluginLoadInformation,
-        } = loadInformation
+        const { buildTree, walkTree, buildContents } = loadInformation
+
         // [ Phase1 ]:: Synchronize build store
         await this.syncBuildStore()
 
         // [ Phase2 ]:: Build origin file tree structure
-        await this.buildTree(buildTreePluginLoadInformation)
+        await this.buildTree(buildTree)
 
         // [ Phase3 ]:: Duplicate Obsidian vault into source
         await this.duplicateObsidianVaultIntoSource()
@@ -327,23 +327,15 @@ export class Builder {
         await this.injectBuildInfoToGeneratedTree()
 
         // [ Phase5 ]:: Walk generated tree and apply plugins
-        await this.walkTree(walkTreePluginLoadInformation)
+        await this.walkTree(walkTree)
 
         // [ Phase6 ]:: Apply contents modifier plugins
-        await this.buildContents(buildContentsPluginLoadInformation)
+        await this.buildContents(buildContents)
 
         // [ Phase7 ]:: Log build result
         await this.logBuildResult()
 
         // [ Phase8 ]:: Clean up and save cache manager
         await this.cleanup()
-
-        return {
-            internal: this.$builderInternalPluginManager.$runner.history,
-            buildTree: this.$treeBuildPluginManager.$runner.history,
-            walkTree: this.$treeWalkPluginManager.$runner.history,
-            buildContents: this.$buildContentsPluginManager.$runner.history,
-            ast: await this.getAST(),
-        }
     }
 }
