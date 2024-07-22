@@ -375,15 +375,19 @@ export abstract class PluginInterface<
         })
     }
 
-    private getMergedStaticConfig(staticConfig: StaticConfig): StaticConfig {
-        if (this.defaultOptions?.defaultDynamicConfigs === undefined)
+    /**
+     * Get merged static config with default static config
+     * @param staticConfig new static config
+     */
+    public getMergedStaticConfig(staticConfig: StaticConfig): StaticConfig {
+        if (this.defaultOptions?.defaultStaticConfigs === undefined)
             return {
                 ...this.staticConfig,
                 ...staticConfig,
             }
 
         const mergedConfig = {
-            ...this.defaultOptions.defaultDynamicConfigs,
+            ...this.defaultOptions.defaultStaticConfigs,
             ...this.staticConfig,
             ...staticConfig,
         }
@@ -391,9 +395,11 @@ export abstract class PluginInterface<
         return mergedConfig
     }
 
-    private getMergedDynamicConfig(
-        dynamicConfig: DynamicConfig
-    ): DynamicConfig {
+    /**
+     * Get merged dynamic config with default dynamic config
+     * @param dynamicConfig new dynamic config
+     */
+    public getMergedDynamicConfig(dynamicConfig: DynamicConfig): DynamicConfig {
         if (this.defaultOptions.defaultDynamicConfigs === undefined)
             return dynamicConfig
 
