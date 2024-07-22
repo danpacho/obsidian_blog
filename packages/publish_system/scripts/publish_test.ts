@@ -5,20 +5,20 @@ import { CorePlugins, PublishSystem } from '../src'
 const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
 
 const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
+    const roots = publisher.$configBridgeStore.configStoreRoot
+
     const bridgeForBuildScript = new Config.PluginConfigStore({
         name: 'bridge',
-        root: publisher.bridgeRoot.buildScript,
+        root: roots[0].root,
     })
     const bridgeForRepository = new Config.PluginConfigStore({
         name: 'bridge',
-        root: publisher.bridgeRoot.repository,
+        root: roots[1].root,
     })
     const bridgeForDeploy = new Config.PluginConfigStore({
         name: 'bridge',
-        root: publisher.bridgeRoot.deploy,
+        root: roots[2].root,
     })
-
-    console.log(publisher.bridgeRoot, null, 4)
 
     const shell = new ShellExecutor()
 
@@ -92,7 +92,6 @@ const publish = async () => {
     })
 
     // 3. [Assume] Blog is updated
-
     const uniqueID = new Date().toISOString().replace(/:/g, '_')
     // Assume that file is updated
     await io.writer.write({
@@ -103,12 +102,10 @@ const publish = async () => {
     })
 
     // 4. Execute plugins
-    const publishResult = await publisher.publish()
-
-    console.log(publishResult)
+    await publisher.publish()
 
     await io.writer.write({
-        data: JSON.stringify(publisher.history, null, 2),
+        data: 'SUCCESS',
         filePath: `${BLOG_ROOT}/ci_test/${uniqueID}_pub_result.json`,
     })
 }
