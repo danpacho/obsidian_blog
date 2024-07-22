@@ -21,4 +21,4 @@ type Adapter<T> = {
     [PluginKey in keyof T]?: Array<T[PluginKey]> | T[PluginKey]
 }
 
-export type BuildSystemAdapter = Adapter<BuildSystemPlugin>
+export type BuildSystemPluginAdapter = Adapter<BuildSystemPlugin>
