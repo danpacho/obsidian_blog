@@ -40,9 +40,6 @@ export class BlogBuilder extends BuildScriptPlugin {
                     }
 
                     this.$logger.success('Build succeeded')
-                    this.$logger.log(
-                        JSON.stringify(buildResult.data.stdout, null, 2)
-                    )
                     return buildResult
                 },
             },

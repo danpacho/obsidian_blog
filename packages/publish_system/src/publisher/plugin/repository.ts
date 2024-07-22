@@ -1,4 +1,4 @@
-import { GitShell } from '../core/git'
+import { GitShell } from '../../core/git'
 import {
     PublishPlugin,
     type PublishPluginDynamicConfig,
