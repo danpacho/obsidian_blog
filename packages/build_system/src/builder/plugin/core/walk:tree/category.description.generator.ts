@@ -1,5 +1,5 @@
+import type { PluginInterfaceStaticConfig } from '@obsidian_blogger/helpers/plugin'
 import type { FileTreeNode } from 'packages/build_system/src/parser/node'
-import { PluginInterfaceStaticConfig } from 'packages/helpers/dist'
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
