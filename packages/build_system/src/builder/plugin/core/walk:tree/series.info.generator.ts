@@ -1,5 +1,8 @@
 import type { FileTreeNode } from 'packages/build_system/src/parser/node'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    WalkTreePlugin,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
@@ -22,11 +25,10 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
         return this.$createMetaEngine(this.config.contentMeta)
     }
 
-    public getConfig(): WalkTreePluginConfig {
+    public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'SeriesInfoGenerator',
-            exclude: 'description.md',
-            skipFolderNode: true,
+            name: 'series-info-generator',
+            description: 'Generate series info for the content',
         }
     }
 

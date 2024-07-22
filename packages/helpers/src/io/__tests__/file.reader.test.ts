@@ -20,7 +20,7 @@ describe('FileReader', () => {
     const reader = new FileReader()
     const finder = new FilePathFinder()
 
-    const basePath = `${process.cwd()}/packages/helpers/src/io/__mocks__`
+    const basePath = `${process.cwd()}/packages/helpers/src/io/__fixtures__`
 
     it('should READ file content', async () => {
         const filePath = await finder.findFile('test.md')

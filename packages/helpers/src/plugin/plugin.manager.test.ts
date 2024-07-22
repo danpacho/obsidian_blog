@@ -1,12 +1,43 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { describe, expect, it } from 'vitest'
 import { PluginConfigStore } from './plugin.config.store'
+import {
+    PluginExecutionResponse,
+    PluginInterface,
+    PluginInterfaceStaticConfig,
+    PluginShape,
+} from './plugin.interface'
 import { PluginLoader } from './plugin.loader'
 import { PluginManager } from './plugin.manager'
+import { PluginRunner } from './plugin.runner'
 
 describe('PluginManager', () => {
-    let pluginManager: PluginManager<unknown, unknown>
-    beforeEach(() => {
-        pluginManager = new PluginManager()
+    class Runner extends PluginRunner {
+        public async run(pipes: Array<PluginShape>): Promise<this['history']> {
+            for (const plugin of pipes) {
+                this.$jobManager.registerJob({
+                    name: plugin.name,
+                    prepare: async () => {
+                        return await plugin.prepare?.()
+                    },
+                    execute: async (controller, prepared) => {
+                        return await plugin.execute(controller, prepared)
+                    },
+                    cleanup: async (job) => {
+                        await plugin.cleanup?.(job)
+                    },
+                })
+            }
+
+            await this.$jobManager.processJobs()
+
+            return this.history
+        }
+    }
+    const pluginManager = new PluginManager({
+        name: 'plugin-manager',
+        root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/manager_storage.json`,
+        runner: new Runner(),
     })
 
     it('should create a new instance of PluginManager', () => {
@@ -29,5 +60,63 @@ describe('PluginManager', () => {
 
         expect(pluginManager.$loader).toBeDefined()
         expect(pluginManager.$loader).toBeInstanceOf(PluginLoader)
+    })
+
+    it('should have a PluginRunner instance', () => {
+        // @ts-ignore
+        expect(pluginManager.$runner).toBeDefined()
+        // @ts-ignore
+        expect(pluginManager.$runner).toBeInstanceOf(PluginRunner)
+    })
+
+    it('should [add -> run] plugins', async () => {
+        class Plugin extends PluginInterface {
+            constructor(id?: number) {
+                super()
+                this.staticConfig.name = `plugin-${id}`
+            }
+
+            protected override defineStaticConfig(): PluginInterfaceStaticConfig {
+                return {
+                    name: 'plugin',
+                    description: 'Plugin description',
+                }
+            }
+            public async execute(): Promise<PluginExecutionResponse> {
+                return []
+            }
+        }
+
+        const plugin = new Plugin(1)
+        const plugin2 = new Plugin(2)
+
+        // Use
+        pluginManager.$loader.use(plugin)
+        pluginManager.$loader.use(plugin2)
+        pluginManager.$loader.use([new Plugin(3), new Plugin(4)])
+
+        // Load
+        const pipes = pluginManager.$loader.load([
+            {
+                name: 'plugin-1',
+                dynamicConfig: {
+                    arr: [1, 2],
+                },
+            },
+            {
+                name: 'plugin-2',
+                dynamicConfig: {
+                    arr: [1, 2],
+                },
+            },
+            {
+                name: 'plugin-3',
+                dynamicConfig: null,
+            },
+        ])
+        // Run
+        const response = await pluginManager.$runner.run(pipes)
+
+        expect(response).toHaveLength(3)
     })
 })

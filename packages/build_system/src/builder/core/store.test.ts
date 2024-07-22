@@ -4,13 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { BuildInformation, BuildStore } from './store'
 
 describe('BuildStore', () => {
-    const buildPath = {
-        assets: '/path/to/assets',
-        contents: '/path/to/contents',
-    }
     const buildStore = new BuildStore({
-        buildPath,
         io: new IOManager(),
+        root: '/path/to/root',
     })
 
     const buildId: UUID =

@@ -1,19 +1,28 @@
-import type { MarkdownProcessor } from '../../md/processor'
+import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
 import {
     BuildPlugin,
-    type BuildPluginConfig,
-    type BuildPluginCoreDependencies,
+    BuildPluginDependencies,
+    type BuildPluginDynamicConfig,
+    type BuildPluginStaticConfig,
 } from './build.plugin'
+import type { PluginCachePipelines } from './cache.interface'
 
-export interface BuildContentsPluginConfig extends BuildPluginConfig {}
-export interface BuildContentsDependencies extends BuildPluginCoreDependencies {
+export interface BuildContentsPluginStaticConfig
+    extends BuildPluginStaticConfig {}
+export type BuildContentsDynamicConfig = BuildPluginDynamicConfig
+export interface BuildContentsPluginDependencies
+    extends BuildPluginDependencies {
     processor: MarkdownProcessor
+    buildStoreList: BuildStoreList
+    cachePipeline: PluginCachePipelines['buildContentsCachePipeline']
 }
-export abstract class BuildContentsPlugin extends BuildPlugin<
-    BuildContentsPluginConfig,
-    BuildContentsDependencies
-> {
+export abstract class BuildContentsPlugin<
+    Static extends
+        BuildContentsPluginStaticConfig = BuildContentsPluginStaticConfig,
+    Dynamic extends BuildContentsDynamicConfig = BuildContentsDynamicConfig,
+> extends BuildPlugin<Static, Dynamic, BuildContentsPluginDependencies> {
     /**
      * Gets `Markdown processor`
      * ```ts
@@ -35,20 +44,6 @@ export abstract class BuildContentsPlugin extends BuildPlugin<
     }
 
     /**
-     * Builds the contents of the file.
-     * @param context - The context of the build, including the build store list.
-     * @returns The `new content` and the `write path`.
-     */
-    public abstract buildContents(context: {
-        buildStore: BuildStoreList
-    }): Promise<
-        Array<{
-            newContent: string
-            writePath: string
-        }>
-    >
-
-    /**
      * Optional cache checker function for determining if the build state and node information
      * @param state - The build state.
      * @param buildInfo - The information about the current build.
@@ -62,4 +57,66 @@ export abstract class BuildContentsPlugin extends BuildPlugin<
             allReports: Array<BuildInformation>
         }
     ) => boolean
+
+    /**
+     * Builds the contents of the file.
+     * @param context - The context of the build, including the build store list.
+     * @returns The `new content` and the `write path`.
+     */
+    public abstract buildContents(context: {
+        buildStore: BuildStoreList
+    }): Promise<
+        Array<{
+            newContent: string
+            writePath: string
+        }>
+    >
+
+    public async execute(
+        _: { stop: () => void; resume: () => void },
+        cachePipe: PluginCachePipelines['buildContentsCachePipeline']
+    ): Promise<
+        PluginExecutionResponse<
+            [
+                Array<{
+                    newContent: string
+                    writePath: string
+                }>,
+            ]
+        >
+    > {
+        this.$jobManager.registerJob({
+            name: 'build:contents',
+            prepare: async () => {
+                this.$logger.updateName(this.name)
+
+                const buildStore = this.getRunTimeDependency('buildStore')
+
+                const cachedStore = cachePipe({
+                    config: this.dynamicConfig,
+                    store: buildStore,
+                    pluginCacheChecker: this.cacheChecker,
+                })
+
+                return cachedStore
+            },
+            execute: async (_, cachedStore: BuildStoreList) => {
+                const newContents = await this.buildContents({
+                    buildStore: cachedStore,
+                })
+                return newContents
+            },
+        })
+
+        await this.$jobManager.processJobs()
+
+        return this.$jobManager.history as PluginExecutionResponse<
+            [
+                Array<{
+                    newContent: string
+                    writePath: string
+                }>,
+            ]
+        >
+    }
 }

@@ -58,11 +58,8 @@ export type BuildStoreList = Array<BuildInformation>
 export type BuildStoreMap = Map<NodeId, BuildInformation>
 
 export interface BuildStoreConstructor {
-    readonly buildPath: {
-        assets: string
-        contents: string
-    }
     readonly io: IO
+    root: string
 }
 /**
  * Represents a store for build information.
@@ -70,9 +67,9 @@ export interface BuildStoreConstructor {
 export class BuildStore {
     /**
      * Constructs a new instance of the BuildStore class.
-     * @param option The options for the build store.
+     * @param options The options for the build store.
      */
-    public constructor(public readonly option: BuildStoreConstructor) {}
+    public constructor(public readonly options: BuildStoreConstructor) {}
 
     /**
      * The store object that holds the previous and current build store maps.
@@ -101,8 +98,7 @@ export class BuildStore {
      * @returns The save path for the build store.
      */
     public get savePath(): string {
-        const STORE_NAME = 'build_store.json' as const
-        return `${this.option.buildPath.assets}/${STORE_NAME}`
+        return this.options.root
     }
 
     /**
@@ -239,7 +235,7 @@ export class BuildStore {
      * @returns The stateful result containing the loaded build report if successful, or an error if not successful.
      */
     public async loadReport(): Promisify<BuildStoreMap> {
-        const prevReportLoadState = await this.option.io.reader.readFile(
+        const prevReportLoadState = await this.options.io.reader.readFile(
             this.savePath
         )
 
@@ -271,7 +267,7 @@ export class BuildStore {
      * @returns The stateful result containing the saved build report if successful, or an error if not successful.
      */
     public async saveReport(): Promisify<BuildStoreMap> {
-        const reportSaveState = await this.option.io.writer.write({
+        const reportSaveState = await this.options.io.writer.write({
             filePath: this.savePath,
             data: this.storeJson,
         })

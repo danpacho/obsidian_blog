@@ -1,7 +1,10 @@
 import { FileReader } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    WalkTreePlugin,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
@@ -32,11 +35,10 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin {
         return this.$createMetaEngine(this.config.contentMeta)
     }
 
-    public getConfig(): WalkTreePluginConfig {
+    public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'StaticParamBuilder',
-            exclude: 'description.md',
-            skipFolderNode: true,
+            name: 'static-param-builder',
+            description: 'Inject static params to the content',
         }
     }
 

@@ -1,5 +1,8 @@
 import type { FileTreeNode } from 'packages/build_system/src/parser'
-import { WalkTreePlugin, WalkTreePluginConfig } from '../../walk.tree.plugin'
+import {
+    WalkTreePlugin,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
@@ -20,11 +23,10 @@ export class MetaValidatorPlugin extends WalkTreePlugin {
         return this.$createMetaEngine(this.config.contentMeta)
     }
 
-    public getConfig(): WalkTreePluginConfig {
+    public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
-            name: 'MetaValidator',
-            exclude: 'description.md',
-            skipFolderNode: true,
+            name: 'meta-validator',
+            description: 'Validate meta information for the content',
         }
     }
 

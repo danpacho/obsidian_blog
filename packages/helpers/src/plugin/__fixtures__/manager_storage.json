@@ -1,0 +1,33 @@
+{
+    "plugin-1": {
+        "config": {
+            "name": "plugin-1",
+            "description": "Plugin description"
+        },
+        "args": {
+            "arr": [
+                1,
+                2
+            ]
+        }
+    },
+    "plugin-2": {
+        "config": {
+            "name": "plugin-2",
+            "description": "Plugin description"
+        },
+        "args": {
+            "arr": [
+                1,
+                2
+            ]
+        }
+    },
+    "plugin-3": {
+        "config": {
+            "name": "plugin-3",
+            "description": "Plugin description"
+        },
+        "args": null
+    }
+}

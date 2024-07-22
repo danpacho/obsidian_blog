@@ -1,27 +1,64 @@
-type PluginName = string
+import { JsonStorage, type JsonStorageConstructor, json } from '../storage'
+import type { PluginConfig } from './plugin.interface'
 
-export interface PluginConfigStoreConstructor {}
+type PluginName = PluginConfig['staticConfig']['name']
 
+export interface PluginConfigStoreConstructor extends JsonStorageConstructor {}
 /**
  * Represents a store for plugin configurations.
- * @template PluginConfig - The type of the plugin configuration.
  */
-export class PluginConfigStore<PluginConfig> {
+export class PluginConfigStore {
     /**
      * Creates an instance of PluginConfigStore.
      * @param options - Optional configuration options for the store.
      */
-    public constructor(
-        private readonly options?: PluginConfigStoreConstructor
-    ) {}
+    public constructor(public readonly options: PluginConfigStoreConstructor) {
+        this.$storage = new JsonStorage({
+            ...options,
+            serializer: json.serialize,
+            deserializer: json.deserialize,
+        })
+    }
 
-    private readonly _store: Map<PluginName, PluginConfig> = new Map()
+    private readonly $storage: JsonStorage<PluginConfig>
 
     /**
-     * Gets the underlying store map.
+     * Initializes the config store.
+     */
+    public async init(): Promise<void> {
+        await this.$storage.init()
+    }
+
+    /**
+     * Update root path
+     * @param root New root path for the storage.
+     */
+    public updateRoot(root: string) {
+        this.$storage.updateRoot(root)
+        this.options.root = root
+    }
+
+    /**
+     * Resets the config store.
+     */
+    public async reset(): Promise<void> {
+        await this.$storage.reset()
+        return
+    }
+
+    /**
+     * Loads the config store.
+     */
+    public async load(): Promise<void> {
+        await this.$storage.load()
+        return
+    }
+
+    /**
+     * Gets the underlying store record.
      */
     public get store(): Record<PluginName, PluginConfig> {
-        return Object.fromEntries(this._store)
+        return this.$storage.storageRecord
     }
 
     /**
@@ -30,7 +67,7 @@ export class PluginConfigStore<PluginConfig> {
      * @returns A boolean indicating whether the configuration exists.
      */
     public hasConfig(name: string): boolean {
-        return this._store.has(name)
+        return this.$storage.storage.has(name)
     }
 
     /**
@@ -38,9 +75,17 @@ export class PluginConfigStore<PluginConfig> {
      * @param pluginName - The name of the plugin.
      * @param config - The configuration to add.
      */
-    public addConfig(pluginName: string, config: PluginConfig) {
+    public async addConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
         if (this.hasConfig(pluginName)) return
-        this._store.set(pluginName, config)
+
+        await this.$storage.set(pluginName, {
+            staticConfig: config.staticConfig,
+            dynamicConfig: config.dynamicConfig ?? null,
+        })
+        return
     }
 
     /**
@@ -48,8 +93,35 @@ export class PluginConfigStore<PluginConfig> {
      * @param pluginName - The name of the plugin.
      * @param config - The updated configuration.
      */
-    public updateConfig(pluginName: string, config: PluginConfig) {
-        this._store.set(pluginName, config)
+    public async updateConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
+        await this.$storage.set(pluginName, {
+            staticConfig: config.staticConfig,
+            dynamicConfig: config.dynamicConfig ?? null,
+        })
+        return
+    }
+
+    /**
+     * Updates a dynamic configuration only in the store.
+     * @param pluginName - The name of the plugin.
+     * @param dynamicConfig - The dynamic configuration
+     */
+    public async updateDynamicConfig(
+        pluginName: string,
+        dynamicConfig: PluginConfig['dynamicConfig']
+    ): Promise<void> {
+        const config = this.getConfig(pluginName)
+        if (!config) return
+        if (!dynamicConfig) return
+
+        await this.$storage.set(pluginName, {
+            staticConfig: config.staticConfig,
+            dynamicConfig,
+        })
+        return
     }
 
     /**
@@ -58,6 +130,6 @@ export class PluginConfigStore<PluginConfig> {
      * @returns The configuration if found, otherwise undefined.
      */
     public getConfig(name: string): PluginConfig | undefined {
-        return this._store.get(name)
+        return this.$storage.get(name)
     }
 }

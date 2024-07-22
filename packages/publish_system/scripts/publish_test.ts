@@ -1,48 +1,98 @@
-import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
+/* eslint-disable no-console */
+import { Config, IO, ShellExecutor } from '@obsidian_blogger/helpers'
 import { CorePlugins, PublishSystem } from '../src'
 
-const publish = async () => {
-    const io = new IO()
+const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
+
+const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
+    const roots = publisher.$configBridgeStore.configStoreRoot
+
+    const bridgeForBuildScript = new Config.PluginConfigStore({
+        name: 'bridge',
+        root: roots[0].root,
+    })
+    const bridgeForRepository = new Config.PluginConfigStore({
+        name: 'bridge',
+        root: roots[1].root,
+    })
+    const bridgeForDeploy = new Config.PluginConfigStore({
+        name: 'bridge',
+        root: roots[2].root,
+    })
+
     const shell = new ShellExecutor()
 
-    const BLOG_ROOT =
-        '/Users/june/Documents/project/blogger_astro_blog' as const
+    const dynamicConfigs = {
+        'blog-build-script-runner': {
+            dynamicConfig: {
+                cwd: BLOG_ROOT,
+                command: ['build'],
+            },
+        },
+        github: {
+            dynamicConfig: {
+                cwd: BLOG_ROOT,
+                branch: 'main',
+                commitPrefix: 'feat',
+                commitMessage: `published by publisher, automatically generated @${new Date()
+                    .toISOString()
+                    .replace(/:/g, '_')}`,
+                gitPath: (await shell.exec$('which git')).stdout,
+            },
+        },
+        vercel: {
+            dynamicConfig: {
+                cwd: BLOG_ROOT,
+                someConfig: 'someValue',
+            },
+        },
+    }
 
-    const builder = new CorePlugins.BlogBuilder({
-        name: 'blog_builder',
-        cwd: BLOG_ROOT,
-    })
-    const tester = new CorePlugins.BlogBuilder({
-        name: 'blog_tester',
-        cwd: BLOG_ROOT,
-    })
+    await bridgeForBuildScript.updateDynamicConfig(
+        'blog-build-script-runner',
+        dynamicConfigs['blog-build-script-runner'].dynamicConfig
+    )
 
-    const gitPath = (await shell.exec$('which git')).stdout
+    await bridgeForRepository.updateDynamicConfig(
+        'github',
+        dynamicConfigs.github.dynamicConfig
+    )
 
-    const github = new CorePlugins.GithubRepository({
-        name: 'github_repository',
-        cwd: BLOG_ROOT,
-        gitPath,
-    })
+    await bridgeForDeploy.updateDynamicConfig(
+        'vercel',
+        dynamicConfigs.vercel.dynamicConfig
+    )
+}
 
-    const vercel = new CorePlugins.VercelDeploy({
-        name: 'vercel_deploy',
-        cwd: BLOG_ROOT,
-    })
-
+/**
+ * - `Initial` case
+ *
+ * the static configs generated === will not executed
+ *
+ * - `Non-initial` case
+ *   1. User writes the config in obsidian, inject at bridge storage
+ *   2. Scripts uses the plugins, <static>
+ *   3. Blog is updated
+ *   4. Execute plugins
+ */
+const publish = async () => {
+    const io = new IO()
     const publisher = new PublishSystem({
-        name: 'pub_system',
-        cwd: BLOG_ROOT,
+        bridgeRoot: `${process.cwd()}/scripts`,
     })
 
+    // 1. [Assume] User writes the config, inject at bridge storage
+    await injectDynamicConfigFromObsidian(publisher)
+
+    // 2. Scripts uses the plugins, <static>
     publisher.use({
-        buildScript: [builder, tester],
-        repository: [github],
-        deploy: [vercel],
+        buildScript: [new CorePlugins.BlogBuilder()],
+        repository: [new CorePlugins.GithubRepository()],
+        deploy: [new CorePlugins.VercelDeploy()],
     })
 
+    // 3. [Assume] Blog is updated
     const uniqueID = new Date().toISOString().replace(/:/g, '_')
-
     // Assume that file is updated
     await io.writer.write({
         filePath: `${BLOG_ROOT}/ci_test/${new Date()
@@ -51,40 +101,11 @@ const publish = async () => {
         data: `test generated @${uniqueID}`,
     })
 
-    // Publish
-    const publishResult = await publisher.publish<{
-        buildScript: readonly [
-            CorePlugins.BlogBuildConfig,
-            CorePlugins.BlogBuildConfig,
-        ]
-        repository: readonly [CorePlugins.GithubSaveConfig]
-        deploy?: readonly [CorePlugins.VercelDeployConfig]
-    }>({
-        buildScript: [
-            {
-                buildScript: ['build'],
-            },
-            {
-                buildScript: ['test'],
-            },
-        ],
-        repository: [
-            {
-                branch: 'main',
-                commitPrefix: 'feat',
-                commitMessage: `published by publisher, automatically generated @${new Date()
-                    .toISOString()
-                    .replace(/:/g, '_')}`,
-            },
-        ],
-        deploy: [{ someConfig: 'someValue' }],
-    })
-
-    // eslint-disable-next-line no-console
-    console.log(publishResult.history)
+    // 4. Execute plugins
+    await publisher.publish()
 
     await io.writer.write({
-        data: JSON.stringify(publishResult, null, 2),
+        data: 'SUCCESS',
         filePath: `${BLOG_ROOT}/ci_test/${uniqueID}_pub_result.json`,
     })
 }

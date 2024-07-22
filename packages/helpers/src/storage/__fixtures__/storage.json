@@ -1,0 +1,24 @@
+{
+    "key": {
+        "key": {
+            "key": {
+                "key": "value"
+            }
+        }
+    },
+    "key2": {
+        "key": {
+            "key": {
+                "key": "value"
+            }
+        }
+    },
+    "key3": {
+        "key": {
+            "key": {
+                "key": "value"
+            }
+        }
+    },
+    "$$key$$": "__FUNCTION__:() => {\n      return 1;\n    }"
+}

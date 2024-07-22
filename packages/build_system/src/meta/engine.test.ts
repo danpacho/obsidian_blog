@@ -65,7 +65,7 @@ describe('MetaManager', () => {
     })
 
     it('should extract meta from md file', async () => {
-        const path = `${process.cwd()}/packages/build_system/src/meta/__mocks__/meta.filled.md`
+        const path = `${process.cwd()}/packages/build_system/src/meta/__fixtures__/meta.filled.md`
         const extractedMeta = await manager.extractFromFile(path)
         expect(extractedMeta.success).toBe(true)
         if (extractedMeta.success) {
@@ -100,7 +100,7 @@ describe('MetaManager', () => {
     })
 
     it('should inject meta to new file', async () => {
-        const path = `${process.cwd()}/packages/build_system/src/meta/__mocks__/meta.injected.md`
+        const path = `${process.cwd()}/packages/build_system/src/meta/__fixtures__/meta.injected.md`
         const metaData = {
             title: 'Hello World',
             date: new Date('2024-03-01'),
@@ -124,7 +124,7 @@ describe('MetaManager', () => {
     })
 
     it('should inject meta to existing file', async () => {
-        const path = `${process.cwd()}/packages/build_system/src/meta/__mocks__/meta.injected.md`
+        const path = `${process.cwd()}/packages/build_system/src/meta/__fixtures__/meta.injected.md`
         const metaData = {
             title: 'New title ',
             date: new Date('2024-05-05'),
@@ -147,7 +147,7 @@ describe('MetaManager', () => {
     })
 
     it('should inject meta with invalid meta data', async () => {
-        const path = `${process.cwd()}/packages/build_system/src/meta/__mocks__/meta.injected.md`
+        const path = `${process.cwd()}/packages/build_system/src/meta/__fixtures__/meta.injected.md`
         const metaData = {
             date: new Date('2024-05-05'),
             title: 'new title',
