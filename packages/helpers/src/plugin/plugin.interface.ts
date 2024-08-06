@@ -255,7 +255,7 @@ export abstract class PluginInterface<
     public injectDynamicConfig(dynamicConfig: DynamicConfig): void {
         if (this._dynamicConfig !== null) return
         const config = this.getMergedDynamicConfig(dynamicConfig)
-        if (!config) return
+        if (config === null) return
 
         if (!this.staticConfig.dynamicConfigSchema) {
             throw new PluginInterfaceError(
@@ -263,14 +263,17 @@ export abstract class PluginInterface<
                 this.staticConfig.dynamicConfigSchema
             )
         }
+
         const parsed = PluginInterface.$dynamicConfigParser.parse<
             Exclude<DynamicConfig, null>
         >(this.staticConfig.dynamicConfigSchema, config)
+
         if (parsed.success) {
-            this._dynamicConfig = parsed.data
-        } else {
-            throw parsed.error
+            this._dynamicConfig = this.getMergedDynamicConfig(parsed.data)
+            return
         }
+
+        throw parsed.error
     }
 
     /**
@@ -327,23 +330,108 @@ export abstract class PluginInterface<
     }
 
     /**
+     * Define default dynamic config schema for shared plugin
+     */
+    public baseDynamicConfigSchema?(): PluginDynamicConfigSchema
+
+    /**
      * Get merged static config with default static config
      * @param staticConfig new static config
      */
     public getMergedStaticConfig(staticConfig: StaticConfig): StaticConfig {
-        if (this.defaultOptions?.defaultStaticConfigs === undefined)
-            return {
-                ...this.staticConfig,
-                ...staticConfig,
-            }
+        if (!this?.baseDynamicConfigSchema) return staticConfig
 
-        const mergedConfig = {
-            ...this.defaultOptions.defaultStaticConfigs,
-            ...this.staticConfig,
-            ...staticConfig,
-        }
+        const res = this.baseDynamicConfigSchema?.()
+        const mergedConfig = this.deepMergeRecord(
+            {
+                dynamicConfigSchema: res,
+            },
+            staticConfig as Record<string, unknown>
+        ) as StaticConfig
 
         return mergedConfig
+    }
+
+    /**
+     * Get default dynamic config
+     * @returns default dynamic config
+     * @example
+     * ```ts
+     * defineStaticConfig(): StaticConfig {
+     *    return {
+     *      name: 'plugin-name',
+     *      description: 'plugin-description',
+     *      dynamicConfigSchema: {
+     *        name: {
+     *          type: 'Array<string>',
+     *          description: 'Names',
+     *          defaultValue: ['John Doe'],
+     *          // <--- default dynamic config
+     *       },
+     *    },
+     * }
+     * // Returns
+     * // {
+     * //   name: ['John Doe']
+     * // }
+     * ```
+     */
+    public get defaultDynamicConfig(): Partial<DynamicConfig> | null {
+        if (this.staticConfig.dynamicConfigSchema === undefined) return null
+
+        const parseDynamicConfig = (
+            dynamicConfig: PluginDynamicConfigSchema
+        ): Partial<DynamicConfig> => {
+            return Object.entries(dynamicConfig)?.reduce<
+                Partial<Exclude<DynamicConfig, null>>
+            >(
+                (acc, [key, value]) => {
+                    const defaultValue = value.defaultValue
+                    const accRes = acc as Record<string, unknown>
+                    if (typeof value.type === 'string') {
+                        if (defaultValue !== undefined) {
+                            accRes[key] = defaultValue
+                        }
+                    } else if (
+                        typeof value.type === 'object' &&
+                        !Array.isArray(value.type)
+                    ) {
+                        accRes[key] = parseDynamicConfig(value.type)
+                    }
+                    return accRes as Partial<Exclude<DynamicConfig, null>>
+                },
+                {} as Partial<Exclude<DynamicConfig, null>>
+            )
+        }
+
+        return parseDynamicConfig(this.staticConfig.dynamicConfigSchema)
+    }
+
+    private isObject(value: unknown): value is Record<string, unknown> {
+        return (
+            value !== null && typeof value === 'object' && !Array.isArray(value)
+        )
+    }
+    private deepMergeRecord(
+        base: Record<string, unknown>,
+        after: Record<string, unknown>
+    ): Record<string, unknown> {
+        const result: Record<string, unknown> = { ...base }
+
+        for (const key in after) {
+            if (Object.prototype.hasOwnProperty.call(after, key)) {
+                const baseValue = base[key]
+                const afterValue = after[key]
+
+                if (this.isObject(baseValue) && this.isObject(afterValue)) {
+                    result[key] = this.deepMergeRecord(baseValue, afterValue)
+                } else {
+                    result[key] = afterValue
+                }
+            }
+        }
+
+        return result
     }
 
     /**
@@ -351,13 +439,14 @@ export abstract class PluginInterface<
      * @param dynamicConfig new dynamic config
      */
     public getMergedDynamicConfig(dynamicConfig: DynamicConfig): DynamicConfig {
-        if (this.defaultOptions.defaultDynamicConfigs === undefined)
-            return dynamicConfig
+        if (this.defaultDynamicConfig === null) return dynamicConfig
+        if (!dynamicConfig) return this.defaultDynamicConfig as DynamicConfig
 
-        const mergedArgs = {
-            ...this.defaultOptions.defaultDynamicConfigs,
-            ...dynamicConfig,
-        }
+        const mergedArgs = this.deepMergeRecord(
+            this.defaultDynamicConfig,
+            dynamicConfig
+        ) as DynamicConfig
+
         return mergedArgs
     }
 
@@ -367,30 +456,14 @@ export abstract class PluginInterface<
      *
      * @param defaultOptions - The default options for the plugin.
      */
-    public constructor(
-        public readonly defaultOptions: {
-            /**
-             * Default static configurations for the plugin.
-             */
-            defaultStaticConfigs?:
-                | Partial<Omit<StaticConfig, keyof PluginInterfaceStaticConfig>>
-                | undefined
-            /**
-             * Default dynamic configurations for the plugin.
-             */
-            defaultDynamicConfigs?: Partial<DynamicConfig> | undefined
-        } = {
-            defaultStaticConfigs: undefined,
-            defaultDynamicConfigs: undefined,
-        }
-    ) {
+    public constructor() {
         try {
-            const injectedConfig = this.defineStaticConfig()
-            const mergedConfig = this.getMergedStaticConfig(injectedConfig)
+            const baseConfig = this.defineStaticConfig()
+            const mergedBaseConfig = this.getMergedStaticConfig(baseConfig)
 
-            this.validateConfig(mergedConfig)
+            this.validateConfig(mergedBaseConfig)
 
-            this._staticConfig = mergedConfig
+            this.updateStaticConfig(mergedBaseConfig)
             this.$jobManager = new JobManager(
                 this.staticConfig.jobManagerConfig
             )
