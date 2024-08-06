@@ -165,13 +165,14 @@ export class LoadConfigBridgeStore {
         ) => {
             for (const pipe of pipes) {
                 if (pluginManager.$config.hasConfig(pipe.name) === false) {
+                    const mergedDynamicConfig = pipe.getMergedDynamicConfig(
+                        pipe.dynamicConfig
+                    )
                     await pluginManager.$config.addConfig(pipe.name, {
                         staticConfig: pipe.getMergedStaticConfig(
                             pipe.staticConfig
                         ),
-                        dynamicConfig: pipe.getMergedDynamicConfig(
-                            pipe.dynamicConfig
-                        ),
+                        dynamicConfig: mergedDynamicConfig,
                     })
                 }
             }
