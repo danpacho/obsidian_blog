@@ -5,8 +5,22 @@ import { ArgTypeError } from './type.error'
 interface PluginDynamicSchemaInfo {
     /**
      * The type of the argument
+     * @example
+     * ```ts
+     * type: 'string' // Primitive type
+     *
+     * type: 'Array<string>' // Array type
+     *
+     * type: 'Array' // any Array type
+     *
+     * type: ['string', 'number'] // Union type, string | number
+     * ```
      */
-    type: PrimitiveType | PluginDynamicConfigSchema
+    type: PrimitiveType | Array<PrimitiveType> | PluginDynamicConfigSchema
+    /**
+     * Whether the argument is optional
+     */
+    optional?: boolean
     /**
      * A description of the argument
      */
@@ -90,9 +104,42 @@ export class DynamicConfigParser {
 
                 const targetValue = value[key]
 
+                const isOptional =
+                    schemaValue.optional && targetValue === undefined
+                if (isOptional) {
+                    if (schemaValue.defaultValue !== undefined) {
+                        _result[key] = schemaValue.defaultValue
+                    }
+                    continue
+                }
+
                 if (typeof schemaValue.type === 'string') {
                     _path.push(key)
                     this.$.AssertByType(schemaValue.type, targetValue)
+
+                    _result[key] = targetValue
+                    _path.pop()
+                } else if (Array.isArray(schemaValue.type)) {
+                    _path.push(key)
+                    const isUnionFound = schemaValue.type.some((type) => {
+                        try {
+                            this.$.AssertByType(type, targetValue)
+                            return true
+                        } catch (e) {
+                            return false
+                        }
+                    })
+
+                    if (isUnionFound === false) {
+                        throw new DynamicConfigParserError(
+                            {
+                                expected: schemaValue.type.join(' | '),
+                                received: targetValue,
+                            },
+                            schema,
+                            _path
+                        )
+                    }
 
                     _result[key] = targetValue
                     _path.pop()
@@ -145,14 +192,26 @@ export class DynamicConfigParser {
                     (acc, key) => {
                         const schemaValue = schema[key]
                         if (!schemaValue) return {}
+
                         if (typeof schemaValue.type === 'string') {
-                            acc[key] = schemaValue.type
-                            return acc
-                        } else {
-                            const res = extractSchemaType(schemaValue.type)
-                            acc[key] = res
+                            const type = schemaValue.optional
+                                ? `${schemaValue.type} | undefined`
+                                : schemaValue.type
+                            acc[key] = type
                             return acc
                         }
+
+                        if (Array.isArray(schemaValue.type)) {
+                            const type = schemaValue.optional
+                                ? schemaValue.type.join(' | ') + ' | undefined'
+                                : schemaValue.type.join(' | ')
+                            acc[key] = type
+                            return acc
+                        }
+
+                        const res = extractSchemaType(schemaValue.type)
+                        acc[key] = res
+                        return acc
                     },
                     {}
                 )
