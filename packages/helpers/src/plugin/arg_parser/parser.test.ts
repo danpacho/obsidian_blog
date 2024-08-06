@@ -38,6 +38,26 @@ describe('DynamicConfigParser', () => {
             },
             description: 'This is a json object',
         },
+        union: {
+            type: ['boolean', 'int', 'Array'],
+            description: 'This is a union type',
+        },
+        optional: {
+            optional: true,
+            description: 'This is an optional field',
+            type: 'string',
+        },
+        literal: {
+            type: {
+                a: {
+                    type: ['Literal<red>', 'Literal<green>'],
+                    description: 'This is a literal field',
+                    optional: true,
+                },
+            },
+            description: 'This is a literal field',
+            optional: true,
+        },
     }
 
     it('should be correctly parse and track errors', () => {
@@ -63,6 +83,7 @@ describe('DynamicConfigParser', () => {
                     x: 1,
                 },
             },
+            union: true,
         })
         expect(safe.success).toBe(true)
         if (safe.success) {
@@ -75,6 +96,7 @@ describe('DynamicConfigParser', () => {
                         x: 1,
                     },
                 },
+                union: true,
             })
         }
     })
@@ -87,6 +109,11 @@ describe('DynamicConfigParser', () => {
                 bg: 'yellow',
                 bias: {},
             },
+            union: [],
+            optional: '1',
+            literal: {
+                a: 'green',
+            },
         })
         expect(parsed.success).toBe(true)
         if (parsed.success) {
@@ -98,6 +125,11 @@ describe('DynamicConfigParser', () => {
                     bias: {
                         x: 0,
                     },
+                },
+                union: [],
+                optional: '1',
+                literal: {
+                    a: 'green',
                 },
             })
         }
