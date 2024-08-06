@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { PluginDynamicConfigSchema } from '../arg_parser'
 import {
     PluginExecutionResponse,
     PluginInterface,
@@ -54,7 +55,12 @@ describe('PluginPipelineBridge', async () => {
         runner: new Runner(),
     })
 
-    class ExamplePlugin extends PluginInterface {
+    class ExamplePlugin extends PluginInterface<
+        PluginInterfaceStaticConfig,
+        {
+            add: (a: number, b: number) => number
+        }
+    > {
         protected override defineStaticConfig(): PluginInterfaceStaticConfig {
             return {
                 name: 'example-plugin',
@@ -62,10 +68,22 @@ describe('PluginPipelineBridge', async () => {
             }
         }
 
+        public override baseDynamicConfigSchema(): PluginDynamicConfigSchema {
+            return {
+                add: {
+                    type: 'Function',
+                    description: 'Add two numbers',
+                    defaultValue: (a: number, b: number) => a + b,
+                    typeDescription: '(a: number, b: number): number',
+                },
+            }
+        }
+
         public constructor(id: number = 0) {
             super()
             this.updateStaticConfig({
                 name: `example-plugin-${id}`,
+                description: 'Example plugin',
             })
         }
 
@@ -110,20 +128,20 @@ describe('PluginPipelineBridge', async () => {
         const loaded3 = await configBridge.loadInformation(
             pluginManager3.options.name
         )
-        expect(loaded).toStrictEqual([
-            { name: 'example-plugin-0', dynamicConfig: null },
-            { name: 'example-plugin-1', dynamicConfig: null },
-            { name: 'example-plugin-2', dynamicConfig: null },
+        expect(loaded.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
         ])
-        expect(loaded2).toStrictEqual([
-            { name: 'example-plugin-0', dynamicConfig: null },
-            { name: 'example-plugin-1', dynamicConfig: null },
-            { name: 'example-plugin-2', dynamicConfig: null },
+        expect(loaded2.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
         ])
-        expect(loaded3).toStrictEqual([
-            { name: 'example-plugin-0', dynamicConfig: null },
-            { name: 'example-plugin-1', dynamicConfig: null },
-            { name: 'example-plugin-2', dynamicConfig: null },
+        expect(loaded3.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
         ])
     })
 })

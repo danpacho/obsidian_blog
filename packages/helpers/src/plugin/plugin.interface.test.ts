@@ -57,7 +57,7 @@ describe('PluginInterface', () => {
         } catch (e) {
             if (e instanceof Error) {
                 expect(e).toBeInstanceOf(SyntaxError)
-                expect(e.message).toContain('{}')
+                expect(e.message).toContain('config: 1')
             }
         }
     })
