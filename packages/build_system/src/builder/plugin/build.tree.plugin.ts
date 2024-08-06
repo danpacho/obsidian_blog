@@ -1,4 +1,5 @@
 import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
 import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import {
@@ -43,6 +44,35 @@ export abstract class BuildTreePlugin<
     Static extends BuildTreePluginStaticConfig = BuildTreePluginStaticConfig,
     Dynamic extends BuildTreePluginDynamicConfig = BuildTreePluginDynamicConfig,
 > extends BuildPlugin<Static, Dynamic, BuildTreePluginDependencies> {
+    public override baseDynamicConfigSchema(): PluginDynamicConfigSchema {
+        return {
+            disableCache: {
+                type: 'boolean',
+                description: 'Whether to disable caching for the plugin',
+                defaultValue: false,
+                optional: true,
+            },
+            exclude: {
+                type: 'Array',
+                description: 'Files or folders to exclude from the tree walk',
+                optional: true,
+            },
+            skipFolderNode: {
+                type: 'boolean',
+                description:
+                    'Whether to skip folder nodes during the tree walk',
+                defaultValue: true,
+                optional: true,
+            },
+            walkType: {
+                type: ['Literal<BFS>', 'Literal<DFS>'],
+                description: 'The type of tree walk to perform',
+                defaultValue: 'DFS',
+                optional: true,
+            },
+        }
+    }
+
     /**
      * Walking a original file tree for rebuilding the file tree
      */

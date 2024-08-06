@@ -1,4 +1,5 @@
 import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
 import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
 import {
@@ -23,6 +24,17 @@ export abstract class BuildContentsPlugin<
         BuildContentsPluginStaticConfig = BuildContentsPluginStaticConfig,
     Dynamic extends BuildContentsDynamicConfig = BuildContentsDynamicConfig,
 > extends BuildPlugin<Static, Dynamic, BuildContentsPluginDependencies> {
+    public override baseDynamicConfigSchema(): PluginDynamicConfigSchema {
+        return {
+            disableCache: {
+                type: 'boolean',
+                description: 'Whether to disable caching for the plugin',
+                defaultValue: false,
+                optional: true,
+            },
+        }
+    }
+
     /**
      * Gets `Markdown processor`
      * ```ts
