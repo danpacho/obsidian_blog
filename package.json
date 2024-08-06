@@ -31,7 +31,7 @@
         "test:ci": "pnpm test:coverage && pnpm prettier && pnpm ts:typecheck && pnpm build",
         "ts:typecheck": "tsc --noEmit --allowImportingTsExtensions --skipLibCheck --jsx react-jsx",
         "ts:performance": "rimraf ts-perf && tsc --noEmit --generateTrace ts-perf",
-        "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules && rimraf node_modules",
+        "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules dist && rimraf node_modules dist",
         "prepublish": "pnpm test:ci && pnpm bench",
         "prettier": "prettier 'packages/**/*.{ts,js,astro}' --check",
         "prettier:fix": "prettier 'packages/**/*.{ts,js,astro}' --write",
