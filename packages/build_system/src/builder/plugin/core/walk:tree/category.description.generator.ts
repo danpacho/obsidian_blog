@@ -1,4 +1,3 @@
-import type { PluginInterfaceStaticConfig } from '@obsidian_blogger/helpers/plugin'
 import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 import {
     WalkTreePlugin,
@@ -26,25 +25,6 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
     CategoryDescriptionGeneratorStaticConfig,
     CategoryDescriptionGeneratorDynamicConfig
 > {
-    override defaultOptions: {
-        defaultStaticConfigs?:
-            | Partial<
-                  Omit<
-                      CategoryDescriptionGeneratorStaticConfig,
-                      keyof PluginInterfaceStaticConfig
-                  >
-              >
-            | undefined
-        defaultDynamicConfigs?:
-            | Partial<CategoryDescriptionGeneratorDynamicConfig>
-            | undefined
-    } = {
-        defaultDynamicConfigs: {
-            categoryMeta: defaultCategoryDescriptionBuilderOptions.categoryMeta,
-            descriptionFileName: 'description.md',
-        },
-    }
-
     private get meta() {
         return this.$createMetaEngine(this.dynamicConfig.categoryMeta!)
     }
@@ -62,24 +42,33 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
                             description: 'Parser function for the meta',
                             typeDescription:
                                 '(meta: unknown): Record<string, unknown>',
+                            defaultValue:
+                                defaultCategoryDescriptionBuilderOptions
+                                    .categoryMeta.parser,
                         },
                         generator: {
                             type: 'Function',
                             description: 'Generator function for the meta',
                             typeDescription:
                                 '(meta: unknown): Record<string, unknown>',
+                            defaultValue:
+                                defaultCategoryDescriptionBuilderOptions
+                                    .categoryMeta.generator,
                         },
                     },
                     description: 'Category meta parser and generator',
+                    optional: true,
                 },
                 path: {
                     type: 'string',
                     description: 'The path to write the generated file',
+                    optional: true,
                 },
                 descriptionFileName: {
                     type: 'string',
                     description: 'The file name of the description file',
                     defaultValue: 'description.md',
+                    optional: true,
                 },
             },
         }
