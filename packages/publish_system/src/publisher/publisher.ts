@@ -51,11 +51,21 @@ export class Publisher {
         PublishPluginRunner
     >
 
+    /**
+     * Get plugin manager names
+     * @description for bridging, it is required information
+     */
+    public static readonly managerName = {
+        buildScript: 'publish_system::build_script',
+        repository: 'publish_system::repository',
+        deploy: 'publish_system::deploy',
+    } as const
+
     public constructor(public readonly options: PublisherConstructor) {
         // A > Build Script
         this.$buildScriptPluginRunner = new PublishPluginRunner()
         this.$buildScriptPluginManager = new PluginManager({
-            name: 'publish_system::build_script',
+            name: Publisher.managerName.buildScript,
             root: 'late_init.json',
             runner: this.$buildScriptPluginRunner,
             lateInit: true,
@@ -63,7 +73,7 @@ export class Publisher {
         // B > Repository
         this.$repositoryPluginRunner = new PublishPluginRunner()
         this.$repositoryPluginManager = new PluginManager({
-            name: 'publish_system::repository',
+            name: Publisher.managerName.repository,
             root: 'late_init.json',
             runner: this.$repositoryPluginRunner,
             lateInit: true,
@@ -71,7 +81,7 @@ export class Publisher {
         // C > Deploy
         this.$deployPluginRunner = new PublishPluginRunner()
         this.$deployPluginManager = new PluginManager({
-            name: 'publish_system::deploy',
+            name: Publisher.managerName.deploy,
             root: 'late_init.json',
             runner: this.$deployPluginRunner,
             lateInit: true,

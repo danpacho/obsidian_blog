@@ -81,6 +81,17 @@ export class Builder {
         return this.options.logger
     }
 
+    /**
+     * Get plugin manager names
+     * @description for bridging, it is required information
+     */
+    public static readonly managerName = {
+        internal: 'build_system::internal',
+        buildTree: 'build_system::build_tree',
+        walkTree: 'build_system::walk_tree',
+        buildContents: 'build_system::build_contents',
+    } as const
+
     public constructor(private readonly options: BuilderConstructor) {
         this.$store = new BuildStore({
             io: options.io,
@@ -100,7 +111,7 @@ export class Builder {
         // Internal plugins
         this.$builderInternalPluginRunner = new BuilderInternalPluginRunner()
         this.$builderInternalPluginManager = new PluginManager({
-            name: 'build_system::internal',
+            name: Builder.managerName.internal,
             root: 'late_init.json',
             runner: this.$builderInternalPluginRunner,
             lateInit: true,
@@ -111,7 +122,7 @@ export class Builder {
         // A > Tree Build
         this.$treeBuildPluginRunner = new BuildTreePluginRunner()
         this.$treeBuildPluginManager = new PluginManager({
-            name: 'build_system::build_tree',
+            name: Builder.managerName.buildTree,
             root: 'late_init.json',
             runner: this.$treeBuildPluginRunner,
             lateInit: true,
@@ -119,7 +130,7 @@ export class Builder {
         // B > Tree Walk
         this.$treeWalkPluginRunner = new WalkTreePluginRunner()
         this.$treeWalkPluginManager = new PluginManager({
-            name: 'build_system::walk_tree',
+            name: Builder.managerName.walkTree,
             root: 'late_init.json',
             runner: this.$treeWalkPluginRunner,
             lateInit: true,
@@ -127,7 +138,7 @@ export class Builder {
         // C > Build Contents
         this.$buildContentsPluginRunner = new BuildContentsPluginRunner()
         this.$buildContentsPluginManager = new PluginManager({
-            name: 'build_system::build_contents',
+            name: Builder.managerName.buildContents,
             root: 'late_init.json',
             runner: this.$buildContentsPluginRunner,
             lateInit: true,
