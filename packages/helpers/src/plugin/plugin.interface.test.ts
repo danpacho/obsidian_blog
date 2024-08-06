@@ -90,6 +90,12 @@ describe('PluginInterface', () => {
                 return {
                     name: 'TestPlugin',
                     description: 'A test plugin',
+                    dynamicConfigSchema: {
+                        someConfig: {
+                            type: 'string',
+                            description: 'Some config',
+                        },
+                    },
                 }
             }
 
@@ -109,7 +115,6 @@ describe('PluginInterface', () => {
                 stringValue: string
                 numberValue: number
                 booleanValue: boolean
-                nullValue: null
                 functionValue: (x: number, y: number) => number
                 objectValue: {
                     nestedString: string
@@ -135,6 +140,46 @@ describe('PluginInterface', () => {
                 return {
                     name: 'TestPlugin',
                     description: 'A test plugin',
+                    dynamicConfigSchema: {
+                        stringValue: {
+                            type: 'string',
+                            description: 'A string value',
+                        },
+                        numberValue: {
+                            type: 'number',
+                            description: 'A number value',
+                        },
+                        booleanValue: {
+                            type: 'boolean',
+                            description: 'A boolean value',
+                        },
+                        functionValue: {
+                            type: 'Function',
+                            description: 'A function value',
+                            typeDescription: '(x: number, y: number) => number',
+                        },
+                        objectValue: {
+                            type: {
+                                nestedString: {
+                                    type: 'string',
+                                    description: 'A nested string',
+                                },
+                                nestedArray: {
+                                    type: 'Array',
+                                    description: 'A nested array',
+                                    typeDescription:
+                                        'Array<string | number | boolean>',
+                                },
+                                k: {
+                                    type: 'Array',
+                                    description: 'A nested object',
+                                    typeDescription:
+                                        'Array<{ a: string; b: number; c: Array<{ d: boolean; e: { f: Array<string>; g: { h: Array<number> } } }> }>',
+                                },
+                            },
+                            description: 'An object value',
+                        },
+                    },
                 }
             }
 
@@ -146,7 +191,6 @@ describe('PluginInterface', () => {
             stringValue: 'hello',
             numberValue: 42,
             booleanValue: true,
-            nullValue: null,
             functionValue: (x: number, y: number) => x + y,
             objectValue: {
                 nestedString: 'world',
@@ -176,18 +220,45 @@ describe('PluginInterface', () => {
         expect(plugin.staticConfig).toStrictEqual({
             name: 'TestPlugin',
             description: 'A test plugin',
-            dynamicConfigDescriptions: [
-                { property: 'stringValue', type: 'string' },
-                { property: 'numberValue', type: 'number' },
-                { property: 'booleanValue', type: 'boolean' },
-                { property: 'nullValue', type: 'null' },
-                { property: 'functionValue', type: '(x, y) => unknown' },
-                {
-                    property: 'objectValue',
-                    type: '{ nestedString: string; nestedArray: readonly [number, string, boolean]; k: Array<{ a: string; b: number; c: Array<{ d: boolean; e: { f: Array<string>; g: { h: Array<number> } } }> }> }',
+            dynamicConfigSchema: {
+                stringValue: {
+                    type: 'string',
+                    description: 'A string value',
                 },
-                { property: 'arrayValue', type: 'Array<number>' },
-            ],
+                numberValue: {
+                    type: 'number',
+                    description: 'A number value',
+                },
+                booleanValue: {
+                    type: 'boolean',
+                    description: 'A boolean value',
+                },
+                functionValue: {
+                    type: 'Function',
+                    description: 'A function value',
+                    typeDescription: '(x: number, y: number) => number',
+                },
+                objectValue: {
+                    type: {
+                        nestedString: {
+                            type: 'string',
+                            description: 'A nested string',
+                        },
+                        nestedArray: {
+                            type: 'Array',
+                            description: 'A nested array',
+                            typeDescription: 'Array<string | number | boolean>',
+                        },
+                        k: {
+                            type: 'Array',
+                            description: 'A nested object',
+                            typeDescription:
+                                'Array<{ a: string; b: number; c: Array<{ d: boolean; e: { f: Array<string>; g: { h: Array<number> } } }> }>',
+                        },
+                    },
+                    description: 'An object value',
+                },
+            },
         })
     })
 })

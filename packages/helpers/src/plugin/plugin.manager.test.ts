@@ -70,7 +70,12 @@ describe('PluginManager', () => {
     })
 
     it('should [add -> run] plugins', async () => {
-        class Plugin extends PluginInterface {
+        class Plugin extends PluginInterface<
+            PluginInterfaceStaticConfig,
+            {
+                arr: number[]
+            }
+        > {
             constructor(id?: number) {
                 super()
                 this.staticConfig.name = `plugin-${id}`
@@ -80,6 +85,12 @@ describe('PluginManager', () => {
                 return {
                     name: 'plugin',
                     description: 'Plugin description',
+                    dynamicConfigSchema: {
+                        arr: {
+                            type: 'Array<number>',
+                            description: 'Array of numbers',
+                        },
+                    },
                 }
             }
             public async execute(): Promise<PluginExecutionResponse> {
@@ -111,7 +122,9 @@ describe('PluginManager', () => {
             },
             {
                 name: 'plugin-3',
-                dynamicConfig: null,
+                dynamicConfig: {
+                    arr: [1, 2],
+                },
             },
         ])
         // Run

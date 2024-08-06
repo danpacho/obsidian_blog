@@ -5,16 +5,16 @@ export class BlogBuilder extends BuildScriptPlugin {
         return {
             name: 'blog-build-script-runner',
             description: 'Run blog build scripts',
-            dynamicConfigDescriptions: [
-                {
-                    property: 'cwd',
-                    type: 'string',
-                },
-                {
-                    property: 'command',
+            dynamicConfigSchema: {
+                command: {
                     type: 'Array<string>',
+                    description: 'The build script command',
                 },
-            ],
+                cwd: {
+                    type: 'string',
+                    description: 'The current working directory',
+                },
+            },
         }
     }
 

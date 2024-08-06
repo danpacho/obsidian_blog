@@ -19,28 +19,28 @@ export class GithubRepository extends RepositoryPlugin<
         return {
             name: 'github',
             description: 'Github repository commit and push automation plugin',
-            dynamicConfigDescriptions: [
-                {
-                    property: 'cwd',
+            dynamicConfigSchema: {
+                cwd: {
                     type: 'string',
+                    description: 'The current working directory',
                 },
-                {
-                    property: 'branch',
+                branch: {
                     type: 'string',
+                    description: 'The branch to push to',
                 },
-                {
-                    property: 'commitPrefix',
+                commitMessage: {
                     type: 'string',
+                    description: 'The commit message',
                 },
-                {
-                    property: 'commitMessage',
+                commitPrefix: {
                     type: 'string',
+                    description: 'The commit prefix',
                 },
-                {
-                    property: 'gitPath',
+                gitPath: {
                     type: 'string',
+                    description: 'The path to git',
                 },
-            ],
+            },
         }
     }
 

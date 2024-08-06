@@ -54,26 +54,34 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
             name: 'category-description-generator',
             description:
                 'Generate category description from {{description}}.md',
-            dynamicConfigDescriptions: [
-                {
-                    property: 'categoryMeta',
-                    type: `
-                    {
-                        parser: (meta: unknown) => PolymorphicMeta
-                        generator: (meta: unknown) => PolymorphicMeta
-                    }
-                    `,
+            dynamicConfigSchema: {
+                categoryMeta: {
+                    type: {
+                        parser: {
+                            type: 'Function',
+                            description: 'Parser function for the meta',
+                            typeDescription:
+                                '(meta: unknown): Record<string, unknown>',
+                        },
+                        generator: {
+                            type: 'Function',
+                            description: 'Generator function for the meta',
+                            typeDescription:
+                                '(meta: unknown): Record<string, unknown>',
+                        },
+                    },
+                    description: 'Category meta parser and generator',
                 },
-                {
-                    property: 'path',
+                path: {
                     type: 'string',
+                    description: 'The path to write the generated file',
                 },
-                {
-                    property: 'descriptionFileName',
+                descriptionFileName: {
                     type: 'string',
-                    example: 'description.md',
+                    description: 'The file name of the description file',
+                    defaultValue: 'description.md',
                 },
-            ],
+            },
         }
     }
 

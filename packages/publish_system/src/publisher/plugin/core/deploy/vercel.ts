@@ -12,16 +12,16 @@ export class VercelDeploy extends DeployPlugin {
         return {
             name: 'vercel',
             description: 'Deploy to Vercel',
-            dynamicConfigDescriptions: [
-                {
-                    property: 'cwd',
+            dynamicConfigSchema: {
+                cwd: {
                     type: 'string',
+                    description: 'The current working directory',
                 },
-                {
-                    property: 'someConfig',
+                someConfig: {
                     type: 'string',
+                    description: 'Some config',
                 },
-            ],
+            },
         }
     }
 

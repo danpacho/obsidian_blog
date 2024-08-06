@@ -5,6 +5,11 @@ import {
     JobManagerConstructor,
     JobRegistrationShape,
 } from '../job'
+import {
+    DynamicConfigParser,
+    type PluginDynamicConfigSchema,
+} from './arg_parser'
+import { PrimitiveType, TypeOf } from './arg_parser/primitives'
 
 /**
  * Plugin base static configuration interface
@@ -17,37 +22,48 @@ export interface PluginInterfaceStaticConfig {
     /**
      * Description of the plugin.
      */
-    description?: string
+    description: string
+    /**
+     * Dynamic config schema for plugin,
+     * **will be rendered at `obsidian` plugin.**
+     * @example
+     * ```ts
+     * const schema: PluginDynamicConfigSchema = {
+     *     name: {
+     *         type: 'Array<string>',
+     *         description: 'Names',
+     *         defaultValue: ['John Doe'],
+     *     },
+     *     func: {
+     *         type: 'Function',
+     *         description: 'Add two number',
+     *         defaultValue: (a, b) => a + b,
+     *         typeDescription: '(a: number, b: number): number'
+     *     }
+     * }
+     * ```
+     * @example
+     * ```bash
+     * // Rendered as
+     * -------------------------------------
+     * [Name]:
+     *  ▶️ type: Array<string>
+     *  ▶️ description: Names
+     *  ▶️ input: [ 'John Doe' <default> ]
+     * -------------------------------------
+     * [Func]:
+     *  ▶️ type: Function
+     *  ▶️ typeDescription: (a: number, b: number): number
+     *  ▶️ description: Add two number
+     *  ▶️ input: [ '(a, b) => a + b' <default> ]
+     * -------------------------------------
+     * ```
+     */
+    dynamicConfigSchema?: PluginDynamicConfigSchema
     /**
      * Job manager option.
      */
-    jobManager?: JobManagerConstructor
-    /**
-     * Dynamic config description for the plugin.
-     * @example
-     * ```json
-     * [{
-     *      property: "script",
-     *      type: "Array<string>"
-     * }]
-     * ```
-     * **will be used at `obsidian` plugin.**
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dynamicConfigDescriptions?: Array<{
-        /**
-         * Dynamic config property name.
-         */
-        property: string
-        /**
-         * Type of the dynamic config property.
-         */
-        type: string
-        /**
-         * Example of the dynamic config property.
-         */
-        example?: string
-    }>
+    jobManagerConfig?: JobManagerConstructor
 }
 
 type MappedJob<JobResponses extends readonly [...unknown[]]> =
@@ -80,32 +96,21 @@ class PluginInterfaceError extends SyntaxError {
     }
 }
 
-type FunctionType =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((...args: Array<any>) => any) | ((...args: Array<any>) => Promise<any>)
 /**
- * Base shape of dynamic config
+ * Plugin dynamic configuration
  */
-type DynamicConfigValuePrimitive =
-    | string
-    | number
-    | boolean
-    | null
-    | RegExp
-    | FunctionType
-    | PluginInterfaceDynamicConfigShape
-    | Array<PluginInterfaceDynamicConfigShape>
-
-export interface PluginInterfaceDynamicConfigShape {
-    [key: string]:
-        | DynamicConfigValuePrimitive
-        | Array<DynamicConfigValuePrimitive>
+export interface PluginInterfaceDynamicConfig {
+    [key: string]: TypeOf<PrimitiveType> | PluginInterfaceDynamicConfig
 }
-export interface PluginInterfaceDynamicConfig
-    extends PluginInterfaceDynamicConfigShape {}
 
+/**
+ * Plugin run-time dependencies
+ */
 export interface PluginInterfaceDependencies {}
 
+/**
+ * Shape of the plugin
+ */
 export type PluginShape = PluginInterface<
     PluginInterfaceStaticConfig,
     PluginInterfaceDynamicConfig | null,
@@ -157,6 +162,8 @@ export abstract class PluginInterface<
     Dependencies extends PluginInterfaceDependencies | null = null,
 > implements JobRegistrationShape
 {
+    protected static readonly $dynamicConfigParser: DynamicConfigParser =
+        new DynamicConfigParser()
     protected readonly $jobManager: JobManager
     /**
      * Gets the runtime dependencies of the plugin.
@@ -231,71 +238,6 @@ export abstract class PluginInterface<
         return this._dynamicConfig
     }
 
-    private createDynamicConfigDescription(
-        dynamicConfig: DynamicConfig
-    ): Array<{ property: string; type: string }> {
-        if (!dynamicConfig) return []
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function getTypeDescription(value: any): string {
-            if (value === null) {
-                return 'null'
-            } else if (Array.isArray(value)) {
-                return getArrayTypeDescription(value)
-            } else if (typeof value === 'object') {
-                return getObjectTypeDescription(value)
-            } else if (typeof value === 'function') {
-                return getFunctionTypeDescription(value)
-            } else {
-                return typeof value
-            }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function getArrayTypeDescription(array: any[]): string {
-            const types = array.map(getTypeDescription)
-            const uniqueTypes = Array.from(new Set(types))
-
-            if (uniqueTypes.length === 1) {
-                return `Array<${uniqueTypes[0]}>`
-            } else {
-                return `readonly [${types.join(', ')}]`
-            }
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function getObjectTypeDescription(obj: any): string {
-            const entries = Object.entries(obj).map(
-                ([key, value]) => `${key}: ${getTypeDescription(value)}`
-            )
-            return `{ ${entries.join('; ')} }`
-        }
-
-        function getFunctionTypeDescription(func: FunctionType): string {
-            const funcString = func.toString()
-            const argsMatch = funcString.match(/\(([^)]*)\)/)
-            if (!argsMatch?.[1]) return `() => 'unknown'`
-            const args = argsMatch
-                ? argsMatch[1]
-                      .split(',')
-                      .map((arg) => {
-                          const name = arg.trim()
-                          return name
-                      })
-                      .join(', ')
-                : ''
-            const returnType = 'unknown' // In a real-world scenario, you might want to use type inference tools or decorators to get the actual return type.
-            return `(${args}) => ${returnType}`
-        }
-
-        return Object.entries(dynamicConfig).map(([key, value]) => {
-            return {
-                property: key,
-                type: getTypeDescription(value),
-            }
-        })
-    }
-
     /**
      * Gets the name of the plugin.
      */
@@ -315,11 +257,20 @@ export abstract class PluginInterface<
         const config = this.getMergedDynamicConfig(dynamicConfig)
         if (!config) return
 
-        this._staticConfig.dynamicConfigDescriptions =
-            this._staticConfig.dynamicConfigDescriptions ??
-            this.createDynamicConfigDescription(config)
-
-        this._dynamicConfig = config
+        if (!this.staticConfig.dynamicConfigSchema) {
+            throw new PluginInterfaceError(
+                'Dynamic config schema is not defined. Please define the dynamic config schema in the static config.',
+                this.staticConfig.dynamicConfigSchema
+            )
+        }
+        const parsed = PluginInterface.$dynamicConfigParser.parse<
+            Exclude<DynamicConfig, null>
+        >(this.staticConfig.dynamicConfigSchema, config)
+        if (parsed.success) {
+            this._dynamicConfig = parsed.data
+        } else {
+            throw parsed.error
+        }
     }
 
     /**
@@ -440,7 +391,9 @@ export abstract class PluginInterface<
             this.validateConfig(mergedConfig)
 
             this._staticConfig = mergedConfig
-            this.$jobManager = new JobManager(this.staticConfig.jobManager)
+            this.$jobManager = new JobManager(
+                this.staticConfig.jobManagerConfig
+            )
         } catch (e) {
             throw new SyntaxError(
                 e instanceof Error ? e.message : JSON.stringify(e)
