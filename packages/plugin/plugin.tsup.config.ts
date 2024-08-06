@@ -36,6 +36,7 @@ export default defineConfig((options) => ({
     noExternal: [
         '@obsidian_blogger/helpers/queue',
         '@obsidian_blogger/helpers/shell',
+        '@obsidian_blogger/helpers/arg_parser',
         'tailwindest',
         'react',
         'react-dom',
