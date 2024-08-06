@@ -12,6 +12,7 @@ export default defineConfig((options) => ({
         plugin: 'src/plugin/index.ts',
         storage: 'src/storage/index.ts',
         job: 'src/job/index.ts',
+        arg_parser: 'src/plugin/arg_parser/index.ts',
     },
     watch: options.watch ? ['src/**/*'] : false,
     clean: false,
