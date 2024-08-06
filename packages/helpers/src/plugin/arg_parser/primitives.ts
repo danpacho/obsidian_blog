@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { ArgTypeError } from './type.error'
 
 /**
@@ -9,6 +10,7 @@ export type Primitives =
     | 'number'
     | 'string'
     | 'boolean'
+    | `Literal<${string}>`
     | 'Function'
     | 'RegExp'
 
@@ -20,12 +22,16 @@ type ParseType<T extends Primitives> = T extends 'number'
         ? string
         : T extends 'boolean'
           ? boolean
-          : T extends 'Function'
-            ? /* eslint-disable @typescript-eslint/no-explicit-any */
-              (...args: any[]) => any | Promise<any>
-            : T extends 'RegExp'
-              ? RegExp
-              : never
+          : T extends `Literal<${infer U}>`
+            ? U extends string
+                ? U
+                : never
+            : T extends 'Function'
+              ? /* eslint-disable @typescript-eslint/no-explicit-any */
+                (...args: any[]) => any | Promise<any>
+              : T extends 'RegExp'
+                ? RegExp
+                : never
 
 /**
  * Parse the type name to the actual type
@@ -141,6 +147,25 @@ export class PrimitiveSchema {
                         .slice(5)
                         .replaceAll(/[<>]/g, '') as Primitives
                     this.AssertArrayStrict(innerType, value)
+                } else if (type.startsWith('Literal')) {
+                    const literalName = type
+                        .slice(8)
+                        .replaceAll(/[<>]/g, '') as string
+                    const literal = Number.isNaN(Number(literalName))
+                        ? String(literalName)
+                        : Number(literalName)
+
+                    if (
+                        typeof literal === 'number' &&
+                        Number(value) !== literal
+                    ) {
+                        throw new ArgTypeError(literalName, value)
+                    } else if (
+                        typeof literal === 'string' &&
+                        String(value) !== literal
+                    ) {
+                        throw new ArgTypeError(literalName, value)
+                    }
                 } else {
                     throw new ArgTypeError('unknown', value)
                 }
