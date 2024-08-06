@@ -1,0 +1,65 @@
+{
+    "meta-validator": {
+        "staticConfig": {
+            "name": "meta-validator",
+            "description": "Validate meta information for the content"
+        },
+        "dynamicConfig": null
+    },
+    "meta-builder": {
+        "staticConfig": {
+            "name": "meta-builder",
+            "description": "Generate meta information for the content"
+        },
+        "dynamicConfig": null
+    },
+    "static-param-builder": {
+        "staticConfig": {
+            "name": "static-param-builder",
+            "description": "Inject static params to the content"
+        },
+        "dynamicConfig": null
+    },
+    "pagination-builder": {
+        "staticConfig": {
+            "name": "pagination-builder",
+            "description": "Generate pagination meta information for the content"
+        },
+        "dynamicConfig": null
+    },
+    "series-info-generator": {
+        "staticConfig": {
+            "name": "series-info-generator",
+            "description": "Generate series info for the content"
+        },
+        "dynamicConfig": null
+    },
+    "category-description-generator": {
+        "staticConfig": {
+            "name": "category-description-generator",
+            "description": "Generate category description from {{description}}.md",
+            "dynamicConfigDescriptions": [
+                {
+                    "property": "categoryMeta",
+                    "type": "\n                    {\n                        parser: (meta: unknown) => PolymorphicMeta\n                        generator: (meta: unknown) => PolymorphicMeta\n                    }\n                    "
+                },
+                {
+                    "property": "path",
+                    "type": "string"
+                },
+                {
+                    "property": "descriptionFileName",
+                    "type": "string",
+                    "example": "description.md"
+                }
+            ]
+        },
+        "dynamicConfig": {
+            "categoryMeta": {
+                "parser": "__FUNCTION__:(input) => {\n  if (!IsCategoryMeta(input)) {\n    throw new TypeError(\n      `content meta error: invalid input, check ${prettyPrint(input)}`\n    );\n  }\n  const { title, description, postCollection } = input;\n  return {\n    title,\n    description,\n    postCollection\n  };\n}",
+                "generator": "__FUNCTION__:(meta) => ({\n  ...__vite_ssr_import_0__.ContentMetaDefaultValueInjector(),\n  ...meta\n})"
+            },
+            "descriptionFileName": "description.md"
+        }
+    }
+}

@@ -1,0 +1,161 @@
+{
+    "build_system::internal": [
+        {
+            "jobName": "sync-build-store",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.115Z",
+            "endedAt": "2024-07-23T06:22:10.120Z",
+            "response": [
+                {
+                    "jobName": "build:internal",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.115Z",
+                    "endedAt": "2024-07-23T06:22:10.119Z",
+                    "execTime": 4
+                }
+            ],
+            "execTime": 5
+        },
+        {
+            "jobName": "duplicate-obsidian-vault-into-source",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.120Z",
+            "endedAt": "2024-07-23T06:22:10.120Z",
+            "response": [
+                {
+                    "jobName": "build:internal",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.120Z",
+                    "endedAt": "2024-07-23T06:22:10.120Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "inject-build-info-to-generated-tree",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.121Z",
+            "endedAt": "2024-07-23T06:22:10.121Z",
+            "response": [
+                {
+                    "jobName": "build:internal",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.121Z",
+                    "endedAt": "2024-07-23T06:22:10.121Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        }
+    ],
+    "build_system::build_tree": [],
+    "build_system::walk_tree": [
+        {
+            "jobName": "meta-validator",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.122Z",
+            "endedAt": "2024-07-23T06:22:10.122Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.122Z",
+                    "endedAt": "2024-07-23T06:22:10.122Z",
+                    "execTime": 2
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "meta-builder",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.123Z",
+            "endedAt": "2024-07-23T06:22:10.123Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.123Z",
+                    "endedAt": "2024-07-23T06:22:10.123Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "static-param-builder",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.123Z",
+            "endedAt": "2024-07-23T06:22:10.123Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.123Z",
+                    "endedAt": "2024-07-23T06:22:10.123Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "pagination-builder",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.123Z",
+            "endedAt": "2024-07-23T06:22:10.123Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.123Z",
+                    "endedAt": "2024-07-23T06:22:10.123Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "series-info-generator",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.124Z",
+            "endedAt": "2024-07-23T06:22:10.124Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.124Z",
+                    "endedAt": "2024-07-23T06:22:10.124Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        },
+        {
+            "jobName": "category-description-generator",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.124Z",
+            "endedAt": "2024-07-23T06:22:10.124Z",
+            "response": [
+                {
+                    "jobName": "walk:tree",
+                    "status": "success",
+                    "startedAt": "2024-07-23T06:22:10.124Z",
+                    "endedAt": "2024-07-23T06:22:10.124Z",
+                    "execTime": 0
+                }
+            ],
+            "execTime": 0
+        }
+    ],
+    "build_system::build_contents": [
+        {
+            "jobName": "obsidian-reference",
+            "status": "success",
+            "startedAt": "2024-07-23T06:22:10.124Z",
+            "endedAt": "2024-07-23T06:22:10.125Z",
+            "response": [],
+            "execTime": 1
+        }
+    ]
+}

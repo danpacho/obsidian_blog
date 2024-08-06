@@ -1,0 +1,9 @@
+{
+    "obsidian-reference": {
+        "staticConfig": {
+            "name": "obsidian-reference",
+            "description": "convert obsidian image and audio reference to html tag and update link tag"
+        },
+        "dynamicConfig": null
+    }
+}
