@@ -131,6 +131,9 @@ importers:
 
   packages/build_system:
     dependencies:
+      '@obsidian_blogger/constants':
+        specifier: workspace:^
+        version: link:../constants
       '@obsidian_blogger/helpers':
         specifier: workspace:^
         version: link:../helpers
@@ -216,6 +219,18 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
 
+  packages/constants:
+    dependencies:
+      '@obsidian_blogger/helpers':
+        specifier: workspace:^
+        version: link:../helpers
+      boxen:
+        specifier: ^7.1.1
+        version: 7.1.1
+      chalk:
+        specifier: ^5.3.0
+        version: 5.3.0
+
   packages/helpers:
     dependencies:
       boxen:
@@ -227,6 +242,9 @@ importers:
 
   packages/plugin:
     dependencies:
+      '@obsidian_blogger/constants':
+        specifier: workspace:^
+        version: link:../constants
       '@obsidian_blogger/helpers':
         specifier: workspace:^
         version: link:../helpers
@@ -261,6 +279,9 @@ importers:
 
   packages/publish_system:
     dependencies:
+      '@obsidian_blogger/constants':
+        specifier: workspace:^
+        version: link:../constants
       '@obsidian_blogger/helpers':
         specifier: workspace:^
         version: link:../helpers
