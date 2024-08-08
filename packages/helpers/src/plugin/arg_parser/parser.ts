@@ -2,6 +2,11 @@ import { type Stateful } from '../../promisify'
 import { PrimitiveSchema, type PrimitiveType, type TypeOf } from './primitives'
 import { ArgTypeError } from './type.error'
 
+/**
+ * Plugin dynamic config primitive type
+ */
+export type PluginDynamicConfigPrimitiveType = TypeOf<PrimitiveType>
+
 interface PluginDynamicSchemaInfo {
     /**
      * The type of the argument
@@ -33,7 +38,7 @@ interface PluginDynamicSchemaInfo {
      * The default value of the argument
      * @optional Optional value
      */
-    defaultValue?: TypeOf<PrimitiveType>
+    defaultValue?: PluginDynamicConfigPrimitiveType
 }
 
 /**
