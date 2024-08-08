@@ -192,13 +192,26 @@ export class LoadConfigBridgeStore {
         const extractLoadInformation = (
             pluginManager: PluginManager<PluginShape, PluginRunner>
         ): PluginLoadInformation => {
-            const res = Object.entries(pluginManager.$config.store).map(
-                ([key, value]) => ({
-                    name: key,
-                    dynamicConfig: value.dynamicConfig ?? null,
-                })
-            )
-            return res
+            const loadingTargets = Object.entries(
+                pluginManager.$config.store
+            ).filter(([, config]) => {
+                // $$load_status$$ is already recorded. so dynamicConfig is not null at this time
+                if (!config?.dynamicConfig) return false
+
+                if ('$$load_status$$' in config.dynamicConfig) {
+                    const shouldLoad: boolean =
+                        config.dynamicConfig['$$load_status$$'] === 'include'
+                    return shouldLoad
+                }
+
+                // exceptional case
+                return false
+            })
+            const loadInformation = loadingTargets.map(([key, value]) => ({
+                name: key,
+                dynamicConfig: value.dynamicConfig ?? null,
+            }))
+            return loadInformation
         }
 
         return extractLoadInformation(this.getManager(name))
@@ -229,8 +242,11 @@ export class LoadConfigBridgeStore {
             pluginManager: PluginManager<PluginShape, PluginRunner>,
             pipes: Array<PluginShape>
         ) => {
+            await pluginManager.$config.load()
             for (const pipe of pipes) {
-                const { name, staticConfig, dynamicConfig } = pipe
+                const { name, staticConfig } = pipe
+                const dynamicConfig =
+                    pluginManager.$config.getConfig(name)?.dynamicConfig ?? null
                 await pluginManager.$config.updateConfig(name, {
                     staticConfig,
                     dynamicConfig,
