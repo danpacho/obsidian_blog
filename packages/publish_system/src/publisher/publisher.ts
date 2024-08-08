@@ -1,3 +1,4 @@
+import { Bridge } from '@obsidian_blogger/constants'
 import type { IO } from '@obsidian_blogger/helpers/io'
 import type { Logger } from '@obsidian_blogger/helpers/logger'
 import {
@@ -55,11 +56,7 @@ export class Publisher {
      * Get plugin manager names
      * @description for bridging, it is required information
      */
-    public static readonly managerName = {
-        buildScript: 'publish_system::build_script',
-        repository: 'publish_system::repository',
-        deploy: 'publish_system::deploy',
-    } as const
+    public static readonly managerName = Bridge.MANAGER_NAME.publishSystem
 
     public constructor(public readonly options: PublisherConstructor) {
         // A > Build Script

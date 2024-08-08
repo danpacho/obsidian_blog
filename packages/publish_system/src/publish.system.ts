@@ -1,3 +1,4 @@
+import { Bridge as BridgeConstant } from '@obsidian_blogger/constants'
 import { IO } from '@obsidian_blogger/helpers/io'
 import {
     Logger,
@@ -27,7 +28,7 @@ export class PublishSystem {
     public readonly $configBridgeStore: Bridge.LoadConfigBridgeStore
     private readonly $historyBridgeStore: Bridge.HistoryBridgeStorage
 
-    public static storagePrefix = '.store/publish' as const
+    public static storagePrefix = BridgeConstant.STORE_PREFIX.buildSystem
 
     public constructor(public readonly options: PublishSystemConstructor) {
         this.$logger = new Logger({

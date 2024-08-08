@@ -11,7 +11,7 @@ export default defineConfig((options) => ({
     clean: false,
     dts: true,
     outDir: 'dist',
-    // noExternal: [],
+    noExternal: ['packages/constants'],
     target: 'esnext',
     format: ['cjs', 'esm'],
     sourcemap: false,
