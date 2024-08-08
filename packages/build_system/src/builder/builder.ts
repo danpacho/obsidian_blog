@@ -1,3 +1,4 @@
+import { Bridge } from '@obsidian_blogger/constants'
 import { Logger } from '@obsidian_blogger/helpers/logger'
 import {
     type PluginLoadInformation,
@@ -86,10 +87,8 @@ export class Builder {
      * @description for bridging, it is required information
      */
     public static readonly managerName = {
+        ...Bridge.MANAGER_NAME.buildSystem,
         internal: 'build_system::internal',
-        buildTree: 'build_system::build_tree',
-        walkTree: 'build_system::walk_tree',
-        buildContents: 'build_system::build_contents',
     } as const
 
     public constructor(private readonly options: BuilderConstructor) {

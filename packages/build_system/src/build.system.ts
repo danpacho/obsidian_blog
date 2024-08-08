@@ -1,9 +1,9 @@
+import { Bridge as BridgeConstant } from '@obsidian_blogger/constants'
 import { IO, Logger } from '@obsidian_blogger/helpers'
 import { Bridge } from '@obsidian_blogger/helpers/plugin'
 import { Builder, type BuilderConstructor } from './builder'
 import type { BuildSystemPluginAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
-
 //TODO: refactor, divide constructor <-> config options
 type ClassInstance = 'io' | 'logger' | 'parser'
 
@@ -27,7 +27,7 @@ export class BuildSystem {
     private readonly $configBridgeStore: Bridge.LoadConfigBridgeStore
     public readonly $historyBridgeStore: Bridge.HistoryBridgeStorage
 
-    public static bridgeStorePrefix = '.store/build' as const
+    public static bridgeStorePrefix = BridgeConstant.STORE_PREFIX.buildSystem
 
     private readonly $logger: Logger
     private readonly $io: IO
