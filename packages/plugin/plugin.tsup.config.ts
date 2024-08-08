@@ -34,8 +34,10 @@ export default defineConfig((options) => ({
         ...builtins,
     ],
     noExternal: [
+        '@obsidian_blogger/constants',
         '@obsidian_blogger/helpers/queue',
         '@obsidian_blogger/helpers/shell',
+        '@obsidian_blogger/helpers/storage',
         '@obsidian_blogger/helpers/arg_parser',
         'tailwindest',
         'react',
