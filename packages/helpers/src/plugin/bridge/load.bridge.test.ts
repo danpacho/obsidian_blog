@@ -118,7 +118,38 @@ describe('PluginPipelineBridge', async () => {
         pluginManager3.$loader.use(plugins)
     })
 
-    it('should load plugin information', async () => {
+    it('should mark as $$load_status$$: "include" for loading, <simulated>', async () => {
+        const loadAndUpdate = async (
+            manager: PluginManager<PluginShape, Runner>
+        ): Promise<void> => {
+            await manager.$config.load()
+
+            const names = manager.$loader.getPluginNames()
+
+            for (const name of names) {
+                const prevConfig = manager.$config.getConfig(name)
+                const newDynamicConfig = {
+                    ...(prevConfig?.dynamicConfig ?? {}),
+                    $$load_status$$: 'include',
+                }
+
+                await manager.$config.updateDynamicConfig(
+                    name,
+                    newDynamicConfig
+                )
+            }
+        }
+
+        await configBridge.loadInformation(pluginManager.options.name)
+        await configBridge.loadInformation(pluginManager2.options.name)
+        await configBridge.loadInformation(pluginManager3.options.name)
+
+        await loadAndUpdate(pluginManager)
+        await loadAndUpdate(pluginManager2)
+        await loadAndUpdate(pluginManager3)
+    })
+
+    it('should load plugin information correctly', async () => {
         const loaded = await configBridge.loadInformation(
             pluginManager.options.name
         )
