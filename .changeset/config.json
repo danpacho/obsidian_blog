@@ -4,7 +4,7 @@
     "commit": false,
     "fixed": [],
     "linked": [],
-    "ignore": ["@obsidian_blogger/astro_blog"],
+    "ignore": ["@obsidian_blogger/astro_blog", "@obsidian_blogger/constants"],
     "access": "restricted",
     "baseBranch": "main",
     "updateInternalDependencies": "patch"
