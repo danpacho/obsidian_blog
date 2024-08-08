@@ -7,9 +7,9 @@ import {
 } from '../job'
 import {
     DynamicConfigParser,
+    type PluginDynamicConfigPrimitiveType,
     type PluginDynamicConfigSchema,
 } from './arg_parser'
-import { PrimitiveType, TypeOf } from './arg_parser/primitives'
 
 /**
  * Plugin base static configuration interface
@@ -100,7 +100,9 @@ class PluginInterfaceError extends SyntaxError {
  * Plugin dynamic configuration
  */
 export interface PluginInterfaceDynamicConfig {
-    [key: string]: TypeOf<PrimitiveType> | PluginInterfaceDynamicConfig
+    [key: string]:
+        | PluginDynamicConfigPrimitiveType
+        | PluginInterfaceDynamicConfig
 }
 
 /**
@@ -342,7 +344,7 @@ export abstract class PluginInterface<
         if (!this?.baseDynamicConfigSchema) return staticConfig
 
         const res = this.baseDynamicConfigSchema?.()
-        const mergedConfig = this.deepMergeRecord(
+        const mergedConfig = PluginInterface.deepMergeRecord(
             {
                 dynamicConfigSchema: res,
             },
@@ -407,12 +409,19 @@ export abstract class PluginInterface<
         return parseDynamicConfig(this.staticConfig.dynamicConfigSchema)
     }
 
-    private isObject(value: unknown): value is Record<string, unknown> {
+    private static isObject(value: unknown): value is Record<string, unknown> {
         return (
             value !== null && typeof value === 'object' && !Array.isArray(value)
         )
     }
-    private deepMergeRecord(
+
+    /**
+     * Merge two records deeply
+     * @param base base record
+     * @param after override record
+     * @returns deeply merged record, based on `base` <-- `after`
+     */
+    public static deepMergeRecord(
         base: Record<string, unknown>,
         after: Record<string, unknown>
     ): Record<string, unknown> {
@@ -423,8 +432,14 @@ export abstract class PluginInterface<
                 const baseValue = base[key]
                 const afterValue = after[key]
 
-                if (this.isObject(baseValue) && this.isObject(afterValue)) {
-                    result[key] = this.deepMergeRecord(baseValue, afterValue)
+                if (
+                    PluginInterface.isObject(baseValue) &&
+                    PluginInterface.isObject(afterValue)
+                ) {
+                    result[key] = PluginInterface.deepMergeRecord(
+                        baseValue,
+                        afterValue
+                    )
                 } else {
                     result[key] = afterValue
                 }
@@ -442,7 +457,7 @@ export abstract class PluginInterface<
         if (this.defaultDynamicConfig === null) return dynamicConfig
         if (!dynamicConfig) return this.defaultDynamicConfig as DynamicConfig
 
-        const mergedArgs = this.deepMergeRecord(
+        const mergedArgs = PluginInterface.deepMergeRecord(
             this.defaultDynamicConfig,
             dynamicConfig
         ) as DynamicConfig
