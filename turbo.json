@@ -2,12 +2,18 @@
     "$schema": "https://turbo.build/schema.json",
     "ui": "tui",
     "tasks": {
+        "@obsidian_blogger/constants#build": {
+            "dependsOn": []
+        },
         "@obsidian_blogger/helpers#build": {
-            "dependsOn": ["^build"]
+            "dependsOn": ["@obsidian_blogger/constants#build"]
         },
         "build": {
             "persistent": true,
-            "dependsOn": ["@obsidian_blogger/helpers#build"]
+            "dependsOn": [
+                "@obsidian_blogger/constants#build",
+                "@obsidian_blogger/helpers#build"
+            ]
         },
         "test": {
             "dependsOn": ["^test"],
