@@ -1,16 +1,14 @@
+/* eslint-disable no-console */
 import { FileChangeInfo, watch } from 'fs/promises'
 import { type Job } from '@obsidian_blogger/helpers/job'
-import { Logger } from '@obsidian_blogger/helpers/logger'
-import { PluginConfig } from '@obsidian_blogger/helpers/plugin'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
-
+import { PluginConfigStorage } from './plugin.config.storage'
 /**
  * Class representing the storage for BuildBridge configurations and job history.
  * @template Keys - The type of the keys used in the configuration storage.
  */
 export class BuildBridgeStorage<Keys extends readonly string[]> {
-    private readonly $logger: Logger
-    private readonly $config: Map<Keys[number], JsonStorage<PluginConfig>>
+    private readonly $config: Map<Keys[number], PluginConfigStorage>
     private readonly $history: JsonStorage<Job<Array<Job>>>
     private static $instance: BuildBridgeStorage<readonly string[]>
 
@@ -20,13 +18,10 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         public readonly options: {
             bridgeRoot: string
             storePrefix: string
-            configStorage: Map<Keys[number], JsonStorage<PluginConfig>>
+            configStorage: Map<Keys[number], PluginConfigStorage>
             historyStorage: JsonStorage<Job<Array<Job>>>
         }
     ) {
-        this.$logger = new Logger({
-            name: 'bridge_storage',
-        })
         this.$config = options.configStorage
         this.$history = options.historyStorage
     }
@@ -35,7 +30,7 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      * Retrieves the configuration storage for a given name.
      * @param name - The name of the configuration.
      */
-    public config(name: Keys[number]): JsonStorage<PluginConfig> {
+    public config(name: Keys[number]): PluginConfigStorage {
         return this.$config.get(name)!
     }
 
@@ -77,13 +72,13 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         if (!BuildBridgeStorage.$instance) {
             const configStorageMap = new Map<
                 Keys[number],
-                JsonStorage<PluginConfig>
+                PluginConfigStorage
             >()
 
             for (const name of options.configNames) {
                 configStorageMap.set(
                     name,
-                    new JsonStorage<PluginConfig>({
+                    new PluginConfigStorage({
                         name,
                         root: `${options.bridgeRoot}/${options.storePrefix}/${name}.json`,
                     })
@@ -134,7 +129,7 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
                 }
             }
         } catch (err) {
-            this.$logger.error(
+            console.error(
                 `Stopped watching ${this.$history.options.root}\n${JSON.stringify(err, null, 4)}`
             )
             this.stopWatchingHistory()
@@ -146,13 +141,13 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      */
     public stopWatchingHistory() {
         if (!this._watcher) {
-            this.$logger.info(`Watcher is not active`)
+            console.info(`Watcher is not active`)
             return
         }
 
         this._watcherController.abort()
         this._watcher = null
-        this.$logger.info(`Stopped watching ${this.$history.options.root}`)
+        console.info(`Stopped watching ${this.$history.options.root}`)
     }
 
     /**
@@ -160,7 +155,7 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      */
     public async load(): Promise<void> {
         if (this._initialized) {
-            this.$logger.info(`Already initialized`)
+            console.info(`Already initialized`)
             return
         }
 
