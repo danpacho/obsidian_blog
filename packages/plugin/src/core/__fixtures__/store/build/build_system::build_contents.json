@@ -1,9 +1,19 @@
 {
     "obsidian-reference": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                }
+            },
             "name": "obsidian-reference",
             "description": "convert obsidian image and audio reference to html tag and update link tag"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false
+        }
     }
 }

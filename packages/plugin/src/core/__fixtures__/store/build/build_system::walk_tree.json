@@ -1,60 +1,261 @@
 {
     "meta-validator": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                },
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
+                },
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                }
+            },
             "name": "meta-validator",
             "description": "Validate meta information for the content"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true,
+            "$$load_status$$": "include"
+        }
     },
     "meta-builder": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                },
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
+                },
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                }
+            },
             "name": "meta-builder",
             "description": "Generate meta information for the content"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true,
+            "$$load_status$$": "exclude"
+        }
     },
     "static-param-builder": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                },
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
+                },
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                }
+            },
             "name": "static-param-builder",
             "description": "Inject static params to the content"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true
+        }
     },
     "pagination-builder": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                },
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
+                },
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                }
+            },
             "name": "pagination-builder",
             "description": "Generate pagination meta information for the content"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true
+        }
     },
     "series-info-generator": {
         "staticConfig": {
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
+                },
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
+                },
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                }
+            },
             "name": "series-info-generator",
             "description": "Generate series info for the content"
         },
-        "dynamicConfig": null
+        "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true
+        }
     },
     "category-description-generator": {
         "staticConfig": {
-            "name": "category-description-generator",
-            "description": "Generate category description from {{description}}.md",
-            "dynamicConfigDescriptions": [
-                {
-                    "property": "categoryMeta",
-                    "type": "\n                    {\n                        parser: (meta: unknown) => PolymorphicMeta\n                        generator: (meta: unknown) => PolymorphicMeta\n                    }\n                    "
+            "dynamicConfigSchema": {
+                "disableCache": {
+                    "type": "boolean",
+                    "description": "Whether to disable caching for the plugin",
+                    "defaultValue": false,
+                    "optional": true
                 },
-                {
-                    "property": "path",
-                    "type": "string"
+                "exclude": {
+                    "type": "Array",
+                    "description": "Files or folders to exclude from the tree walk",
+                    "optional": true
                 },
-                {
-                    "property": "descriptionFileName",
+                "skipFolderNode": {
+                    "type": "boolean",
+                    "description": "Whether to skip folder nodes during the tree walk",
+                    "defaultValue": true,
+                    "optional": true
+                },
+                "walkType": {
+                    "type": [
+                        "Literal<BFS>",
+                        "Literal<DFS>"
+                    ],
+                    "description": "The type of tree walk to perform",
+                    "defaultValue": "DFS",
+                    "optional": true
+                },
+                "categoryMeta": {
+                    "type": {
+                        "parser": {
+                            "type": "Function",
+                            "description": "Parser function for the meta",
+                            "typeDescription": "(meta: unknown): Record<string, unknown>",
+                            "defaultValue": "__FUNCTION__:(input) => {\n  if (!IsCategoryMeta(input)) {\n    throw new TypeError(\n      `content meta error: invalid input, check ${prettyPrint(input)}`\n    );\n  }\n  const { title, description, postCollection } = input;\n  return {\n    title,\n    description,\n    postCollection\n  };\n}"
+                        },
+                        "generator": {
+                            "type": "Function",
+                            "description": "Generator function for the meta",
+                            "typeDescription": "(meta: unknown): Record<string, unknown>",
+                            "defaultValue": "__FUNCTION__:(meta) => ({\n  ...__vite_ssr_import_0__.ContentMetaDefaultValueInjector(),\n  ...meta\n})"
+                        }
+                    },
+                    "description": "Category meta parser and generator",
+                    "optional": true
+                },
+                "path": {
                     "type": "string",
-                    "example": "description.md"
+                    "description": "The path to write the generated file",
+                    "optional": true
+                },
+                "descriptionFileName": {
+                    "type": "string",
+                    "description": "The file name of the description file",
+                    "defaultValue": "description.md",
+                    "optional": true
                 }
-            ]
+            },
+            "name": "category-description-generator",
+            "description": "Generate category description from {{description}}.md"
         },
         "dynamicConfig": {
+            "disableCache": false,
+            "skipFolderNode": true,
             "categoryMeta": {
                 "parser": "__FUNCTION__:(input) => {\n  if (!IsCategoryMeta(input)) {\n    throw new TypeError(\n      `content meta error: invalid input, check ${prettyPrint(input)}`\n    );\n  }\n  const { title, description, postCollection } = input;\n  return {\n    title,\n    description,\n    postCollection\n  };\n}",
                 "generator": "__FUNCTION__:(meta) => ({\n  ...__vite_ssr_import_0__.ContentMetaDefaultValueInjector(),\n  ...meta\n})"
