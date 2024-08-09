@@ -48,7 +48,8 @@ export class FileWriter {
 
         const targetFolder = filePath.split('/').slice(0, -1).join('/')
         try {
-            await this.createFolder(targetFolder)
+            const targetFolderExists = await this.checkFileExists(targetFolder)
+            if (!targetFolderExists) await this.createFolder(targetFolder)
 
             await writeFile(filePath, data, {
                 encoding: 'utf-8',
@@ -115,7 +116,8 @@ export class FileWriter {
 
         const targetFolder = filePath.split('/').slice(0, -1).join('/')
         try {
-            await this.createFolder(targetFolder)
+            const targetFolderExists = await this.checkFileExists(targetFolder)
+            if (!targetFolderExists) await this.createFolder(targetFolder)
 
             const writeStream: WriteStream = this.writeStreamPure({
                 filePath,
