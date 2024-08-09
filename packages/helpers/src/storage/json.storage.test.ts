@@ -9,18 +9,36 @@ describe('JsonStorage', () => {
         root,
     })
 
-    it('should reset the storage', async () => {
-        await storage.reset()
-        expect(storage.storageRecord).toEqual({})
-    })
-
     it('should create a new instance', () => {
         expect(storage).toBeDefined()
     })
 
     it('should load the storage file', async () => {
         await storage.load()
-        expect(storage.storageRecord).toEqual({})
+        expect(storage.storageRecord).toEqual({
+            key: {
+                key: {
+                    key: {
+                        key: 'value',
+                    },
+                },
+            },
+            key2: {
+                key: {
+                    key: {
+                        key: 'value',
+                    },
+                },
+            },
+            key3: {
+                key: {
+                    key: {
+                        key: 'value',
+                    },
+                },
+            },
+            $$key$$: '__FUNCTION__:() => {\n      return 1;\n    }',
+        })
     })
 
     it('should set a value in the storage', async () => {

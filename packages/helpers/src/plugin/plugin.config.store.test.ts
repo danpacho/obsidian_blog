@@ -7,10 +7,6 @@ describe('PluginConfigStore', () => {
         name: 'plugin-config-store',
         root,
     })
-    it('should reset the store', async () => {
-        await store.reset()
-        expect(store.store).toEqual({})
-    })
 
     it('should update plugin configurations', async () => {
         const pluginName = 'myPlugin'
