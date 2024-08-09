@@ -2,48 +2,22 @@
 import { CorePlugins, PublishSystem } from '@obsidian_blogger/publish_system'
 
 const Publisher = new PublishSystem({
-    name: 'pub_system',
-    cwd: '{{blog_root}}',
-})
-
-const BlogBuilder = new CorePlugins.BlogBuilder({
-    name: 'blog_builder',
-    cwd: '{{blog_root}}',
-})
-
-const GithubRepository = new CorePlugins.GithubRepository({
-    name: 'github_repository',
-    cwd: '{{blog_root}}',
-    gitPath: '{{git_root}}',
+    bridgeRoot: '{{bridge_root}}',
 })
 
 const publish = async () => {
     Publisher.use({
-        buildScript: [BlogBuilder],
-        repository: [GithubRepository],
-    })
-
-    // Publish
-    const publishResult = await Publisher.publish<{
-        buildScript: readonly [CorePlugins.BlogBuildConfig]
-        repository: readonly [CorePlugins.GithubSaveConfig]
-        deploy?: readonly [Record<string, unknown>]
-    }>({
         buildScript: [
-            {
-                buildScript: ['{{build_script}}'],
-            },
+            // CorePlugins. you can remove it and modify the plugins
+            new CorePlugins.BlogBuilder(),
         ],
         repository: [
-            {
-                branch: '{{commit_branch}}',
-                commitPrefix: '{{commit_prefix}}',
-                commitMessage: '{{commit_message}}',
-            },
+            // CorePlugins. you can remove it and modify the plugins
+            new CorePlugins.GithubRepository(),
         ],
     })
 
-    return publishResult
+    await Publisher.publish()
 }
 
 publish()

@@ -5,7 +5,7 @@ import {
     type Node,
 } from '@obsidian_blogger/build_system'
 
-const PathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
+const contentsPathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
     const analyzeFileName = (
         folderName?: string
     ): {
@@ -80,16 +80,15 @@ const PathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
 }
 
 const Builder = new BuildSystem({
+    bridgeRoot: '{{obsidian_vault_root}}',
     builder: {
         buildPath: {
             contents: '{{blog_contents_root}}',
             assets: '{{blog_assets_root}}',
         },
         pathGenerator: {
-            contents: async (node) => {
-                const rootPath = '{{obsidian_vault_root}}'
-                return PathGenerator(node, rootPath)
-            },
+            contents: async (node, { bridgeRoot }) =>
+                contentsPathGenerator(node, bridgeRoot),
             assets: async () => '',
         },
     },
@@ -128,10 +127,13 @@ const build = async () => {
             new CorePlugins.SeriesInfoGeneratorPlugin(),
             new CorePlugins.CategoryDescriptionGeneratorPlugin(),
         ],
-        'build:contents': [new CorePlugins.ObsidianReferencePlugin()],
+        'build:contents': [
+            // CorePlugins. you can remove it and modify the plugins
+            new CorePlugins.ObsidianReferencePlugin(),
+        ],
     })
-    const buildResult = await Builder.build()
-    return buildResult
+
+    await Builder.build()
 }
 
 build()
