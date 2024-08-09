@@ -129,7 +129,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public get(key: string): Schema | undefined {
         try {
-            const founded = this._storage.get(key)
+            const founded = this.storage.get(key)
             return founded
         } catch (error) {
             throw new StorageError(
@@ -149,7 +149,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async set(key: string, value: Schema): Promise<void> {
         try {
-            this._storage.set(key, value)
+            this.storage.set(key, value)
             await this.save()
         } catch (error) {
             throw new StorageError(
@@ -168,7 +168,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async remove(key: string): Promise<void> {
         try {
-            this._storage.delete(key)
+            this.storage.delete(key)
             await this.save()
         } catch (error) {
             throw new StorageError(
@@ -186,7 +186,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      */
     public async reset(): Promise<void> {
         try {
-            this._storage.clear()
+            this.storage.clear()
             await this.save()
         } catch (error) {
             throw new StorageError(
