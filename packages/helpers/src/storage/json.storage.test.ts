@@ -42,11 +42,12 @@ describe('JsonStorage', () => {
     })
 
     it('should set a value in the storage', async () => {
+        await storage.reset()
         await storage.set('key', 'value')
     })
 
     it('should get a value from the storage', async () => {
-        const value = await storage.get('key')
+        const value = storage.get('key')
         expect(value).toEqual('value')
     })
 
