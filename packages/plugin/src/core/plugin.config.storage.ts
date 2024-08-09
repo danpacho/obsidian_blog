@@ -20,7 +20,7 @@ import { JsonStorage } from '@obsidian_blogger/helpers/storage'
  */
 export type UserPluginConfig = Record<string, Bridge.USER_PLUGIN_LOAD_INPUT>
 
-export class PluginConfigStore extends JsonStorage<PluginConfig> {
+export class PluginConfigStorage extends JsonStorage<PluginConfig> {
     public constructor(options: { name: string; root: string }) {
         super(options)
     }
@@ -42,10 +42,10 @@ export class PluginConfigStore extends JsonStorage<PluginConfig> {
                 const afterValue = after[key]
 
                 if (
-                    PluginConfigStore.isObject(baseValue) &&
-                    PluginConfigStore.isObject(afterValue)
+                    PluginConfigStorage.isObject(baseValue) &&
+                    PluginConfigStorage.isObject(afterValue)
                 ) {
-                    result[key] = PluginConfigStore.deepMergeRecord(
+                    result[key] = PluginConfigStorage.deepMergeRecord(
                         baseValue,
                         afterValue
                     )
@@ -83,7 +83,7 @@ export class PluginConfigStore extends JsonStorage<PluginConfig> {
                 if (!prevConfig) return
 
                 const mergedConfig: PluginConfig =
-                    PluginConfigStore.deepMergeRecord(prevConfig, {
+                    PluginConfigStorage.deepMergeRecord(prevConfig, {
                         dynamicConfig,
                     }) as PluginConfig
 
