@@ -1,3 +1,3 @@
-export * from './cli'
-export * from './repo'
-export * from './pkg_manager'
+export * from './cli.js'
+export * from './repo.js'
+export * from './pkg_manager.js'
