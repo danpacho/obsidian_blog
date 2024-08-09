@@ -13,7 +13,8 @@
             "description": "convert obsidian image and audio reference to html tag and update link tag"
         },
         "dynamicConfig": {
-            "disableCache": false
+            "disableCache": false,
+            "$$load_status$$": "include"
         }
     }
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { BuildBridgeStorage } from './bridge.storage'
-
 describe('BridgeStorage', () => {
     const storage = BuildBridgeStorage.create({
         bridgeRoot: `${process.cwd()}/packages/plugin/src/core/__fixtures__`,
@@ -21,16 +20,37 @@ describe('BridgeStorage', () => {
         expect(storage).toBeDefined()
     })
 
+    it('should modify the dynamic config for include, exclude', async () => {
+        const config = storage.config('build_system::build_contents')
+        await config.updateAllDynamicConfigByUserConfig({
+            'obsidian-reference': {
+                $$load_status$$: 'include',
+            },
+        })
+    })
+
     it('should inquire configs', () => {
         const res = storage.config('build_system::build_contents').storageRecord
         expect(res).toEqual({
             'obsidian-reference': {
                 staticConfig: {
+                    dynamicConfigSchema: {
+                        disableCache: {
+                            type: 'boolean',
+                            description:
+                                'Whether to disable caching for the plugin',
+                            defaultValue: false,
+                            optional: true,
+                        },
+                    },
                     name: 'obsidian-reference',
                     description:
                         'convert obsidian image and audio reference to html tag and update link tag',
                 },
-                dynamicConfig: null,
+                dynamicConfig: {
+                    $$load_status$$: 'include',
+                    disableCache: false,
+                },
             },
         })
     })
