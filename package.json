@@ -15,7 +15,7 @@
     "type": "module",
     "scripts": {
         "dev": "turbo run build && turbo run dev",
-        "build": "turbo run build",
+        "build": "pnpm reset:dist && turbo run build",
         "start": "turbo run start",
         "clean": "turbo run clean",
         "blog": "pnpm run --filter=@obsidian_blogger/astro-blog",
@@ -32,6 +32,7 @@
         "ts:typecheck": "tsc --noEmit --allowImportingTsExtensions --skipLibCheck --jsx react-jsx",
         "ts:performance": "rimraf ts-perf && tsc --noEmit --generateTrace ts-perf",
         "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules dist && rimraf node_modules dist",
+        "reset:dist": "pnpm -r --parallel exec rimraf dist",
         "prepublish": "pnpm test:ci && pnpm bench",
         "prettier": "prettier 'packages/**/*.{ts,js,astro}' --check",
         "prettier:fix": "prettier 'packages/**/*.{ts,js,astro}' --write",
