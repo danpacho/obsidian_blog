@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { describe, expect, it } from 'vitest'
-import { PluginConfigStore } from './plugin.config.store'
+import { PluginConfigStorage } from './plugin.config.storage'
 import {
     PluginExecutionResponse,
     PluginInterface,
@@ -46,7 +46,7 @@ describe('PluginManager', () => {
 
     it('should have a PluginConfigStore instance', () => {
         expect(pluginManager.$config).toBeDefined()
-        expect(pluginManager.$config).toBeInstanceOf(PluginConfigStore)
+        expect(pluginManager.$config).toBeInstanceOf(PluginConfigStorage)
     })
 
     it('should have a PluginLoader instance', () => {
@@ -56,7 +56,7 @@ describe('PluginManager', () => {
 
     it('should accept options for configuring the plugin manager', () => {
         expect(pluginManager.$config).toBeDefined()
-        expect(pluginManager.$config).toBeInstanceOf(PluginConfigStore)
+        expect(pluginManager.$config).toBeInstanceOf(PluginConfigStorage)
 
         expect(pluginManager.$loader).toBeDefined()
         expect(pluginManager.$loader).toBeInstanceOf(PluginLoader)

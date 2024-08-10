@@ -1,8 +1,8 @@
 import { type JobManagerConstructor } from '../job'
 import {
-    PluginConfigStore,
+    PluginConfigStorage,
     type PluginConfigStoreConstructor,
-} from './plugin.config.store'
+} from './plugin.config.storage'
 import type {
     PluginInterfaceDependencies,
     PluginShape,
@@ -29,7 +29,7 @@ export class PluginManager<
     /**
      * The configuration store for the plugins.
      */
-    public readonly $config: PluginConfigStore
+    public readonly $config: PluginConfigStorage
     /**
      * The plugin loader for loading plugins.
      */
@@ -48,7 +48,7 @@ export class PluginManager<
     public constructor(
         public readonly options: PluginManagerConstructor<Runner>
     ) {
-        this.$config = new PluginConfigStore(options)
+        this.$config = new PluginConfigStorage(options)
         this.$loader = new PluginLoader(options)
     }
 
