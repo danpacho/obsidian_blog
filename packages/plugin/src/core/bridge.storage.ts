@@ -159,9 +159,10 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
             return
         }
 
-        await Promise.all(
-            Array.from(this.$config.values()).map((config) => config.load())
-        )
+        const configs = Array.from(this.$config.values())
+        for (const config of configs) {
+            await config.load()
+        }
         await this.$history.load()
         this._initialized = true
     }
