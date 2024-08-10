@@ -5,7 +5,9 @@
             "description": "value2"
         },
         "dynamicConfig": {
-            "key": "value"
+            "key": "value",
+            "add": "__FUNCTION__:(a, b) => a + b",
+            "regex": "__REGEXP__:/test/"
         }
     }
 }

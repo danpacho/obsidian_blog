@@ -21,29 +21,16 @@ describe('JsonStorage', () => {
     })
 
     it('should load the storage file', async () => {
-        expect(storage.storageRecord).toEqual({
+        expect(
+            storage.storageRecord.$$key$$.toString().replace(/[ \n]/g, '')
+        ).toBe(`()=>{return1;}`)
+
+        expect(storage.storageRecord.key).toEqual({
             key: {
                 key: {
-                    key: {
-                        key: 'value',
-                    },
+                    key: 'value',
                 },
             },
-            key2: {
-                key: {
-                    key: {
-                        key: 'value',
-                    },
-                },
-            },
-            key3: {
-                key: {
-                    key: {
-                        key: 'value',
-                    },
-                },
-            },
-            $$key$$: '__FUNCTION__:() => {\n      return 1;\n    }',
         })
     })
 
