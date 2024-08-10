@@ -5,19 +5,19 @@ import { CorePlugins, PublishSystem } from '../src'
 const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
 
 const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
-    const roots = publisher.$configBridgeStore.configStoreRoot
+    const roots = publisher.$configBridgeStorage.configStoreRoot
 
-    const bridgeForBuildScript = new Config.PluginConfigStore({
+    const bridgeForBuildScript = new Config.PluginConfigStorage({
         name: 'bridge',
-        root: roots[0].root,
+        root: roots[0]!.root as string,
     })
-    const bridgeForRepository = new Config.PluginConfigStore({
+    const bridgeForRepository = new Config.PluginConfigStorage({
         name: 'bridge',
-        root: roots[1].root,
+        root: roots[1]!.root as string,
     })
-    const bridgeForDeploy = new Config.PluginConfigStore({
+    const bridgeForDeploy = new Config.PluginConfigStorage({
         name: 'bridge',
-        root: roots[2].root,
+        root: roots[2]!.root as string,
     })
 
     const shell = new ShellExecutor()

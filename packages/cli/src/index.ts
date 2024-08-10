@@ -18,12 +18,7 @@ interface InstallConfigRecord {
         blog_contents_root: string
     }
     publish: {
-        blog_root: string
-        git_root?: string
-        build_script?: string
-        commit_branch?: string
-        commit_prefix?: string
-        commit_message?: string
+        obsidian_vault_root: string
     }
 }
 
@@ -95,17 +90,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
     private async installBridgePkg({
         bridge_install_root,
         // bridge
-        // 1. build
         obsidian_vault_root,
         blog_assets_root,
         blog_contents_root,
-        // 2. publish
-        blog_root,
-        git_root,
-        build_script = 'build',
-        commit_branch = 'main',
-        commit_message = 'automatically published by obsidian_blogger',
-        commit_prefix = 'publish',
     }: InstallConfig): Promise<void> {
         const { ts, js } = this.programOptions
         const isTs = ts || !js
@@ -156,20 +143,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                     blog_contents_root,
                 },
                 publish: {
-                    blog_root,
-                    git_root:
-                        git_root ??
-                        (
-                            await this.$shell.exec$(
-                                ['win32'].includes(this.$shell.platform)
-                                    ? 'where git'
-                                    : 'which git'
-                            )
-                        ).stdout,
-                    build_script,
-                    commit_branch,
-                    commit_prefix,
-                    commit_message,
+                    obsidian_vault_root,
                 },
             } as const satisfies Omit<InstallConfigRecord, 'install'>
 
@@ -344,6 +318,17 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         })
     }
 
+    /**
+     * Initialize the bridge database
+     * @example
+     * ```ts
+     * |-- {bridge_install_root}
+     *    |-- .obsidian-blog
+     *       |-- bridge.db
+     * ```
+     */
+    private async initializeBridgeDB(): Promise<void> {}
+
     private registerCommands(): void {
         // CREATE COMMAND
         this.addCommand({
@@ -368,6 +353,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                     config.install_pkg === 'false' || config.install_pkg === 'f'
                 if (skipInstall) return
                 await this.runPackageInstallation(config.bridge_install_root)
+                await this.initializeBridgeDB()
             },
         })
 

@@ -14,7 +14,7 @@ export interface RepoInfo {
  * Represents a GitHub repository.
  */
 export class GithubRepository {
-    private baseUrl: string = 'https://api.github.com'
+    private baseUrl = 'https://api.github.com' as const
 
     /**
      * Checks if a given URL is valid by sending a HEAD request.
