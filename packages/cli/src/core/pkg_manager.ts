@@ -52,20 +52,19 @@ export class PkgManager {
     }
 
     /**
-     * @param pkgManager The package manager to use.
+     * Runs a command using the package manager.
+     * @param pkgManager - The package manager to use.
+     * @param commands - The commands to run.
+     * @param options - The options to use when running the command.
      */
-    public async install(
+    public async run(
         pkgManager: PkgManagerName,
+        commands: Array<string>,
         options?: {
-            install?: string
             spawn?: Parameters<ShellExecutor['spawn$']>[2]
         }
     ): Promise<void> {
-        const installCommands: string[] = options?.install
-            ? ['install', options.install]
-            : ['install']
-
-        await this.$shell.spawn$(pkgManager, installCommands, {
+        await this.$shell.spawn$(pkgManager, commands, {
             stdio: 'inherit',
             ...options?.spawn,
             env: {
@@ -77,6 +76,27 @@ export class PkgManager {
                 NODE_ENV: 'development',
                 DISABLE_OPENCOLLECTIVE: '1',
             },
+        })
+    }
+
+    /**
+     * Installs the dependencies using the package manager.
+     * @param pkgManager - The package manager to use.
+     * @param options - The options to use when running the command.
+     */
+    public async install(
+        pkgManager: PkgManagerName,
+        options?: {
+            commands?: string
+            spawn?: Parameters<ShellExecutor['spawn$']>[2]
+        }
+    ): Promise<void> {
+        const installCommands: string[] = options?.commands
+            ? ['install', options.commands]
+            : ['install']
+
+        await this.run(pkgManager, installCommands, {
+            spawn: options?.spawn,
         })
     }
 }
