@@ -7,6 +7,16 @@ export default defineConfig({
     plugins: [tsconfigPaths()],
     test: {
         root: 'packages',
+        coverage: {
+            reporter: ['html', 'text'],
+            provider: 'v8',
+            include: [
+                'publish_system/src/**',
+                'build_system/src/**',
+                'helpers/src/**',
+                'cli/src/**',
+            ],
+        },
     },
     resolve: {},
 })
