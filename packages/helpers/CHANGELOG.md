@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.2.0
+
+### Minor Changes
+
+-   consolidate @obsidian_blogger packages modules and logics
+
 ## 0.1.2
 
 ### Patch Changes

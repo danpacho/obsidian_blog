@@ -1,4 +1,4 @@
-# create-obsidian-blogger
+# @obsidian_blogger/constants
 
 ## 0.2.0
 
@@ -6,8 +6,7 @@
 
 -   consolidate @obsidian_blogger packages modules and logics
 
-## 0.1.1
-
 ### Patch Changes
 
--   Update build template related components
+-   Updated dependencies
+    -   @obsidian_blogger/helpers@0.2.0
