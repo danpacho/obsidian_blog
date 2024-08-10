@@ -1,2 +1,2 @@
-export * from './history.store'
-export * from './load.config.store'
+export * from './history.storage'
+export * from './load.config.bridge.storage'

@@ -11,7 +11,7 @@ const button = tw.rotary({
         fontSize: 'text-sm',
         fontWeight: 'font-light',
         paddingX: 'px-3',
-        paddingY: 'py-2',
+        paddingY: 'py-1.5',
 
         display: 'flex',
         flexDirection: 'flex-row',
