@@ -15,15 +15,16 @@
     "scripts": {
         "build": "tsup",
         "run:build": "node dist/build.cjs",
-        "run:publish": "node dist/publish.cjs"
+        "run:publish": "node dist/publish.cjs",
+        "run:init": "node dist/init.cjs"
     },
     "devDependencies": {
         "@types/node": "^20.11.20",
         "@obsidian_blogger/build_system": "latest",
         "@obsidian_blogger/publish_system": "latest",
         "@obsidian_blogger/helpers": "latest",
-        "tsup": "^8.1.0",
-        "typescript": "^5.3.3"
+        "tsup": "^8.2.4",
+        "typescript": "latest"
     },
     "engines": {
         "node": ">=18.17.0"
