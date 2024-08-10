@@ -122,7 +122,8 @@ export class PublishSystem {
      * })
      * ```
      */
-    public use(plugins: PublishSystemPluginAdapter) {
+    public use(plugins: PublishSystemPluginAdapter): this {
         this.$publisher.use(plugins)
+        return this
     }
 }

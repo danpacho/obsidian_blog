@@ -130,7 +130,8 @@ export class BuildSystem {
      * })
      * ```
      */
-    public use(plugins: BuildSystemPluginAdapter) {
+    public use(plugins: BuildSystemPluginAdapter): this {
         this.$builder.use(plugins)
+        return this
     }
 }
