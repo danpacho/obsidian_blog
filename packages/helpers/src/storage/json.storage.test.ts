@@ -13,8 +13,14 @@ describe('JsonStorage', () => {
         expect(storage).toBeDefined()
     })
 
+    it('should migrate(updateRoot)', async () => {
+        await storage.updateRoot(
+            `${process.cwd()}/packages/helpers/src/storage/__fixtures__/storage2.json`,
+            true
+        )
+    })
+
     it('should load the storage file', async () => {
-        await storage.load()
         expect(storage.storageRecord).toEqual({
             key: {
                 key: {
