@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { PluginConfigStore } from './plugin.config.store'
+import { PluginConfigStorage } from './plugin.config.storage'
 
 describe('PluginConfigStore', () => {
     const root = `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/storage.json`
-    const store = new PluginConfigStore({
+    const store = new PluginConfigStorage({
         name: 'plugin-config-store',
         root,
     })
@@ -16,7 +16,7 @@ describe('PluginConfigStore', () => {
         await store.addConfig(pluginName, { staticConfig: initialConfig })
         await store.updateConfig(pluginName, { staticConfig: updatedConfig })
 
-        expect(store.getConfig(pluginName)).toEqual({
+        expect(store.get(pluginName)).toEqual({
             staticConfig: updatedConfig,
             dynamicConfig: null,
         })
@@ -29,7 +29,7 @@ describe('PluginConfigStore', () => {
         await store.addConfig(pluginName, { staticConfig: config })
         await store.addConfig(pluginName, { staticConfig: config })
 
-        expect(Object.values(store.store).length).toBe(1)
+        expect([...store.storage.keys()]).toStrictEqual([pluginName])
     })
 
     it('should inquire existing plugin configurations with args', async () => {
@@ -42,7 +42,7 @@ describe('PluginConfigStore', () => {
             // @ts-ignore
             dynamicConfig: args,
         })
-        expect(store.getConfig(pluginName)).toStrictEqual({
+        expect(store.get(pluginName)).toStrictEqual({
             staticConfig: {
                 name: 'value1',
                 description: 'value2',
@@ -54,7 +54,7 @@ describe('PluginConfigStore', () => {
     it('should inquire existing plugin configurations', () => {
         const pluginName = 'myPlugin'
 
-        expect(store.getConfig(pluginName)).toStrictEqual({
+        expect(store.get(pluginName)).toStrictEqual({
             staticConfig: {
                 name: 'value1',
                 description: 'value2',
@@ -63,5 +63,29 @@ describe('PluginConfigStore', () => {
                 key: 'value',
             },
         })
+    })
+
+    it('should add function and regex correctly', async () => {
+        const pluginName = 'myPlugin'
+        const args = { key: 'value' }
+        const add = (a: number, b: number) => a + b
+        const regex = /test/
+
+        await store.updateConfig(pluginName, {
+            staticConfig: { name: 'value1', description: 'value2' },
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            dynamicConfig: { ...args, add, regex },
+        })
+
+        expect(store.get(pluginName)).toStrictEqual({
+            staticConfig: {
+                name: 'value1',
+                description: 'value2',
+            },
+            dynamicConfig: { key: 'value', add, regex },
+        })
+
+        expect(store.storageJson).toContain('add')
     })
 })
