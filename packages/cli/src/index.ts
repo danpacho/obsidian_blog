@@ -132,8 +132,8 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             }
 
             const injectionTargetFiles = {
-                build: `${bridge_install_root}/src/build.ts`,
-                publish: `${bridge_install_root}/src/publish.ts`,
+                build: `${bridge_install_root}/src/build_core.ts`,
+                publish: `${bridge_install_root}/src/publish_core.ts`,
             } as const
 
             const injectionTemplate = {
