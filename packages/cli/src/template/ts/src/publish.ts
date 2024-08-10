@@ -17,6 +17,7 @@ const publish = async () => {
         ],
     })
 
+    await Publisher.init()
     await Publisher.publish()
 }
 

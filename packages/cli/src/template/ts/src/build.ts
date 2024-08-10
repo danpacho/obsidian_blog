@@ -133,6 +133,7 @@ const build = async () => {
         ],
     })
 
+    await Builder.init()
     await Builder.build()
 }
 
