@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.2.1
+
+### Patch Changes
+
+-   Fix publish system incorrect prefix
+
 ## 0.2.0
 
 ### Minor Changes
