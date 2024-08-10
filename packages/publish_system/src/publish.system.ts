@@ -28,7 +28,7 @@ export class PublishSystem {
     private readonly $logger: Logger
     private readonly $shell: ShellExecutor
 
-    public static storagePrefix = BridgeConstant.STORE_PREFIX.buildSystem
+    public static storagePrefix = BridgeConstant.STORE_PREFIX.publishSystem
 
     private _initialized: boolean = false
 
