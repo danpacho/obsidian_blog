@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { StorageError } from './error'
+import { json } from './json'
 import { StorageConstructor, StorageInterface } from './storage.interface'
 
 export interface JsonStorageConstructor extends StorageConstructor {
@@ -43,14 +44,11 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
     }
 
     public get serializer(): (data: Record<string, Schema>) => string {
-        return (
-            this.options.serializer ??
-            ((value: Record<string, Schema>) => JSON.stringify(value, null, 4))
-        )
+        return this.options.serializer ?? json.serialize
     }
 
     public get deserializer(): (json: string) => Record<string, Schema> {
-        return this.options.deserializer ?? JSON.parse
+        return this.options.deserializer ?? json.deserialize
     }
 
     /**
