@@ -8,9 +8,9 @@ import {
 } from '../plugin.interface'
 import { PluginManager } from '../plugin.manager'
 import { PluginRunner } from '../plugin.runner'
-import { LoadConfigBridgeStore } from './load.config.store'
+import { LoadConfigBridgeStorage } from './load.config.bridge.storage'
 
-describe('PluginPipelineBridge', async () => {
+describe('LoadConfigBridgeStorage', async () => {
     class Runner extends PluginRunner {
         public async run(pipes: Array<PluginShape>): Promise<this['history']> {
             for (const plugin of pipes) {
@@ -37,21 +37,18 @@ describe('PluginPipelineBridge', async () => {
     const pluginManager = new PluginManager({
         name: 'plugin-manager',
         root: 'bulk.json',
-        lateInit: true,
         runner: new Runner(),
     })
 
     const pluginManager2 = new PluginManager({
         name: 'plugin-manager2',
         root: 'bulk.json',
-        lateInit: true,
         runner: new Runner(),
     })
 
     const pluginManager3 = new PluginManager({
         name: 'plugin-manager3',
         root: 'bulk.json',
-        lateInit: true,
         runner: new Runner(),
     })
 
@@ -101,7 +98,7 @@ describe('PluginPipelineBridge', async () => {
         }
     }
 
-    const configBridge = new LoadConfigBridgeStore({
+    const configBridge = new LoadConfigBridgeStorage({
         storePrefix: '.store',
         bridgeRoot: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__`,
         managers: [pluginManager, pluginManager2, pluginManager3],

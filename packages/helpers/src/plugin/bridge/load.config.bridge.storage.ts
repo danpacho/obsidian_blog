@@ -2,7 +2,7 @@ import { type PluginLoadInformation, PluginManager, type PluginShape } from '..'
 import { Logger, type LoggerConstructor } from '../../logger'
 import type { PluginRunner } from '../plugin.runner'
 
-export interface LoadConfigBridgeStoreConstructor {
+export interface LoadConfigBridgeStorageConstructor {
     /**
      * The root path of the bridge system
      */
@@ -24,7 +24,7 @@ export interface LoadConfigBridgeStoreConstructor {
 /**
  * Represents a bridge store for loading configuration.
  */
-export class LoadConfigBridgeStore {
+export class LoadConfigBridgeStorage {
     private static $logger: Logger
     private readonly $managerMap: Map<
         string,
@@ -43,14 +43,14 @@ export class LoadConfigBridgeStore {
      * Creates an instance of LoadConfigBridgeStore.
      * @param options - The options for configuring the bridge store.
      */
-    public constructor(options: LoadConfigBridgeStoreConstructor) {
+    public constructor(options: LoadConfigBridgeStorageConstructor) {
         if (options.bridgeRoot.endsWith('/')) {
             options.bridgeRoot = options.bridgeRoot.slice(0, -1)
         }
         if (options.storePrefix.endsWith('/')) {
             options.storePrefix = options.storePrefix.slice(0, -1)
         }
-        LoadConfigBridgeStore.$logger = new Logger({
+        LoadConfigBridgeStorage.$logger = new Logger({
             name: 'plugin-config-bridge',
             ...options.logger,
         })
@@ -66,13 +66,16 @@ export class LoadConfigBridgeStore {
         )
     }
 
-    private updateConfigStoreRoot(
+    private async updateConfigStoreRoot(
         managers: Array<PluginManager<PluginShape, PluginRunner>>,
         storePath: string
     ) {
-        managers.forEach((manager) =>
-            manager.$config.updateRoot(
-                `${storePath}/${manager.options.name}.json`
+        await Promise.all(
+            managers.map(
+                async (manager) =>
+                    await manager.$config.updateRoot(
+                        `${storePath}/${manager.options.name}.json`
+                    )
             )
         )
     }
@@ -97,7 +100,7 @@ export class LoadConfigBridgeStore {
     ): void {
         const pipelineEntries = Object.entries(pluginPipelines)
 
-        LoadConfigBridgeStore.$logger.info('plugin pipelines info :\n')
+        LoadConfigBridgeStorage.$logger.info('plugin pipelines info :\n')
 
         const serialize = (obj: unknown): string => {
             const replacer = (_: string, value: unknown): unknown => {
@@ -110,29 +113,29 @@ export class LoadConfigBridgeStore {
 
         pipelineEntries.forEach(([key, plugins]) => {
             if (plugins.length === 0) return
-            LoadConfigBridgeStore.$logger.info(
-                `: ${LoadConfigBridgeStore.$logger.c.blue(key)}`
+            LoadConfigBridgeStorage.$logger.info(
+                `: ${LoadConfigBridgeStorage.$logger.c.blue(key)}`
             )
-            LoadConfigBridgeStore.$logger.box(
+            LoadConfigBridgeStorage.$logger.box(
                 plugins
                     ?.map((plugin, i) => {
                         const command = plugin.dynamicConfig
                         const loggingCommand =
                             command === null ? 'NULL' : serialize(command)
                         const title =
-                            LoadConfigBridgeStore.$logger.c.bgBlue.bold.italic(
+                            LoadConfigBridgeStorage.$logger.c.bgBlue.bold.italic(
                                 ` pipe ${i + 1} `
                             )
                         const pluginName =
-                            LoadConfigBridgeStore.$logger.c.blue.italic(
+                            LoadConfigBridgeStorage.$logger.c.blue.italic(
                                 ` › ${plugin.name} `
                             )
                         const dynamicConfigTitle =
-                            LoadConfigBridgeStore.$logger.c.cyanBright(
+                            LoadConfigBridgeStorage.$logger.c.cyanBright(
                                 `› dynamic configuration`
                             )
                         const dynamicConfig =
-                            LoadConfigBridgeStore.$logger.c.cyanBright(
+                            LoadConfigBridgeStorage.$logger.c.cyanBright(
                                 loggingCommand
                             )
 
@@ -153,10 +156,10 @@ export class LoadConfigBridgeStore {
         try {
             await manager.$config.load()
         } catch (e) {
-            LoadConfigBridgeStore.$logger.error(
+            LoadConfigBridgeStorage.$logger.error(
                 'Failed to load plugin configurations'
             )
-            LoadConfigBridgeStore.$logger.error(JSON.stringify(e, null, 4))
+            LoadConfigBridgeStorage.$logger.error(JSON.stringify(e, null, 4))
         }
 
         const registerPlugins = async (
