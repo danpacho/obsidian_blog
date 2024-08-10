@@ -76,19 +76,17 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
     public async updateAllDynamicConfigByUserConfig(
         userConfig: UserPluginConfig
     ): Promise<void> {
-        Object.entries(userConfig).forEach(
-            async ([pluginName, dynamicConfig]) => {
-                const prevConfig = this.get(pluginName)
-                // It is not possible, staticConfig is always defined
-                if (!prevConfig) return
+        for (const [pluginName, dynamicConfig] of Object.entries(userConfig)) {
+            const prevConfig = this.get(pluginName)
+            // It is not possible, staticConfig is always defined
+            if (!prevConfig) continue
 
-                const mergedConfig: PluginConfig =
-                    PluginConfigStorage.deepMergeRecord(prevConfig, {
-                        dynamicConfig,
-                    }) as PluginConfig
+            const mergedConfig: PluginConfig =
+                PluginConfigStorage.deepMergeRecord(prevConfig, {
+                    dynamicConfig,
+                }) as PluginConfig
 
-                await this.set(pluginName, mergedConfig)
-            }
-        )
+            await this.set(pluginName, mergedConfig)
+        }
     }
 }
