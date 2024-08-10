@@ -115,6 +115,10 @@ describe('LoadConfigBridgeStorage', async () => {
         pluginManager3.$loader.use(plugins)
     })
 
+    it('should loaded first time', async () => {
+        await configBridge.load()
+    })
+
     it('should mark as $$load_status$$: "include" for loading, <simulated>', async () => {
         const loadAndUpdate = async (
             manager: PluginManager<PluginShape, Runner>
@@ -122,12 +126,12 @@ describe('LoadConfigBridgeStorage', async () => {
             await manager.$config.load()
 
             const names = manager.$loader.getPluginNames()
-
             for (const name of names) {
-                const prevConfig = manager.$config.getConfig(name)
+                const prevConfig = manager.$config.get(name)
                 const newDynamicConfig = {
                     ...(prevConfig?.dynamicConfig ?? {}),
-                    $$load_status$$: 'include',
+                    $$load_status$$: name.includes('0') ? 'include' : 'exclude',
+                    add: (a: number, b: number) => a + b,
                 }
 
                 await manager.$config.updateDynamicConfig(
@@ -136,10 +140,6 @@ describe('LoadConfigBridgeStorage', async () => {
                 )
             }
         }
-
-        await configBridge.loadInformation(pluginManager.options.name)
-        await configBridge.loadInformation(pluginManager2.options.name)
-        await configBridge.loadInformation(pluginManager3.options.name)
 
         await loadAndUpdate(pluginManager)
         await loadAndUpdate(pluginManager2)
@@ -156,20 +156,50 @@ describe('LoadConfigBridgeStorage', async () => {
         const loaded3 = await configBridge.loadInformation(
             pluginManager3.options.name
         )
-        expect(loaded.map((e) => e.name)).toStrictEqual([
-            'example-plugin-0',
-            'example-plugin-1',
-            'example-plugin-2',
-        ])
-        expect(loaded2.map((e) => e.name)).toStrictEqual([
-            'example-plugin-0',
-            'example-plugin-1',
-            'example-plugin-2',
-        ])
-        expect(loaded3.map((e) => e.name)).toStrictEqual([
-            'example-plugin-0',
-            'example-plugin-1',
-            'example-plugin-2',
-        ])
+        expect(loaded.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
+        expect(loaded2.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
+        expect(loaded3.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
+    })
+
+    it('should mark as $$load_status$$: "include" for loading, <simulated>', async () => {
+        const loadAndUpdate = async (
+            manager: PluginManager<PluginShape, Runner>
+        ): Promise<void> => {
+            await manager.$config.load()
+
+            const names = manager.$loader.getPluginNames()
+            for (const name of names) {
+                const prevConfig = manager.$config.get(name)
+                const newDynamicConfig = {
+                    ...(prevConfig?.dynamicConfig ?? {}),
+                    $$load_status$$: name.includes('1') ? 'include' : 'exclude',
+                    add: (a: number, b: number) => a + b + a * 2 + b * 2,
+                }
+
+                await manager.$config.updateDynamicConfig(
+                    name,
+                    newDynamicConfig
+                )
+            }
+        }
+
+        await loadAndUpdate(pluginManager)
+        await loadAndUpdate(pluginManager2)
+        await loadAndUpdate(pluginManager3)
+    })
+
+    it('should load plugin information correctly', async () => {
+        const loaded = await configBridge.loadInformation(
+            pluginManager.options.name
+        )
+        const loaded2 = await configBridge.loadInformation(
+            pluginManager2.options.name
+        )
+        const loaded3 = await configBridge.loadInformation(
+            pluginManager3.options.name
+        )
+        expect(loaded.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
+        expect(loaded2.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
+        expect(loaded3.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
     })
 })
