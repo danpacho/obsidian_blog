@@ -35,7 +35,8 @@
         "dynamicConfig": {
             "disableCache": false,
             "skipFolderNode": true,
-            "$$load_status$$": "include"
+            "$$load_status$$": "include",
+            "newConfig": "__FUNCTION__:(a, b) => a + b"
         }
     },
     "meta-builder": {
