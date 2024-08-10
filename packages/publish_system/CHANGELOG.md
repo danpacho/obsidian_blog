@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.2.2
+
+### Patch Changes
+
+-   Fix dist package result
+
 ## 0.2.1
 
 ### Patch Changes

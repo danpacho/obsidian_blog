@@ -41,8 +41,8 @@
         "pre-commit": "lint-staged",
         "prepare": "husky install",
         "pkg:init": "pnpm test:ci && changeset",
-        "pkg:publish": "changeset publish",
-        "pkg:version": "changeset version"
+        "pkg:version": "changeset version",
+        "pkg:publish": "changeset publish"
     },
     "devDependencies": {
         "@changesets/cli": "^2.27.7",
