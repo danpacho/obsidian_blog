@@ -65,7 +65,6 @@ export class Publisher {
             name: Publisher.managerName.buildScript,
             root: 'late_init.json',
             runner: this.$buildScriptPluginRunner,
-            lateInit: true,
         })
         // B > Repository
         this.$repositoryPluginRunner = new PublishPluginRunner()
@@ -73,7 +72,6 @@ export class Publisher {
             name: Publisher.managerName.repository,
             root: 'late_init.json',
             runner: this.$repositoryPluginRunner,
-            lateInit: true,
         })
         // C > Deploy
         this.$deployPluginRunner = new PublishPluginRunner()
@@ -81,7 +79,6 @@ export class Publisher {
             name: Publisher.managerName.deploy,
             root: 'late_init.json',
             runner: this.$deployPluginRunner,
-            lateInit: true,
         })
     }
 

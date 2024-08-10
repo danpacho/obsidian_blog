@@ -113,7 +113,6 @@ export class Builder {
             name: Builder.managerName.internal,
             root: 'late_init.json',
             runner: this.$builderInternalPluginRunner,
-            lateInit: true,
         })
         this.setupInternalPlugins()
 
@@ -124,7 +123,6 @@ export class Builder {
             name: Builder.managerName.buildTree,
             root: 'late_init.json',
             runner: this.$treeBuildPluginRunner,
-            lateInit: true,
         })
         // B > Tree Walk
         this.$treeWalkPluginRunner = new WalkTreePluginRunner()
@@ -132,7 +130,6 @@ export class Builder {
             name: Builder.managerName.walkTree,
             root: 'late_init.json',
             runner: this.$treeWalkPluginRunner,
-            lateInit: true,
         })
         // C > Build Contents
         this.$buildContentsPluginRunner = new BuildContentsPluginRunner()
@@ -140,7 +137,6 @@ export class Builder {
             name: Builder.managerName.buildContents,
             root: 'late_init.json',
             runner: this.$buildContentsPluginRunner,
-            lateInit: true,
         })
     }
 
