@@ -28,7 +28,7 @@
         "test": "vitest",
         "test:watch": "vitest --watch -u",
         "test:coverage": "vitest run --coverage",
-        "test:ci": "pnpm test:coverage && pnpm prettier && pnpm ts:typecheck && pnpm build",
+        "test:ci": "pnpm build --no-cache --force && pnpm prettier && pnpm ts:typecheck && pnpm test:coverage",
         "ts:typecheck": "tsc --noEmit --allowImportingTsExtensions --skipLibCheck --jsx react-jsx",
         "ts:performance": "rimraf ts-perf && tsc --noEmit --generateTrace ts-perf",
         "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules dist && rimraf node_modules dist",
