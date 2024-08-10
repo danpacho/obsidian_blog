@@ -15,7 +15,7 @@
     "type": "module",
     "scripts": {
         "dev": "turbo run build && turbo run dev",
-        "build": "pnpm reset:dist && turbo run build",
+        "build": "pnpm reset:dist && turbo run build --no-cache --force",
         "start": "turbo run start",
         "clean": "turbo run clean",
         "blog": "pnpm run --filter=@obsidian_blogger/astro-blog",
@@ -28,7 +28,7 @@
         "test": "vitest",
         "test:watch": "vitest --watch -u",
         "test:coverage": "vitest run --coverage",
-        "test:ci": "pnpm build --no-cache --force && pnpm prettier && pnpm ts:typecheck && pnpm test:coverage",
+        "test:ci": "pnpm build && pnpm prettier && pnpm ts:typecheck && pnpm test:coverage",
         "ts:typecheck": "tsc --noEmit --allowImportingTsExtensions --skipLibCheck --jsx react-jsx",
         "ts:performance": "rimraf ts-perf && tsc --noEmit --generateTrace ts-perf",
         "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules dist && rimraf node_modules dist",
