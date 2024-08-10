@@ -24,13 +24,14 @@ export interface BuildSystemConstructor {
 export class BuildSystem {
     private readonly $parser: FileTreeParser
     private readonly $builder: Builder
-    private readonly $configBridgeStore: Bridge.LoadConfigBridgeStore
-    public readonly $historyBridgeStore: Bridge.HistoryBridgeStorage
+    public readonly $configBridgeStorage: Bridge.LoadConfigBridgeStorage
+    public readonly $historyBridgeStorage: Bridge.HistoryBridgeStorage
 
-    public static bridgeStorePrefix = BridgeConstant.STORE_PREFIX.buildSystem
-
+    private _initialized: boolean = false
     private readonly $logger: Logger
     private readonly $io: IO
+
+    public static bridgeStorePrefix = BridgeConstant.STORE_PREFIX.buildSystem
 
     public constructor(options: BuildSystemConstructor) {
         this.$io = new IO()
@@ -49,7 +50,7 @@ export class BuildSystem {
             storagePrefix: BuildSystem.bridgeStorePrefix,
             bridgeRoot: options.bridgeRoot,
         })
-        this.$configBridgeStore = new Bridge.LoadConfigBridgeStore({
+        this.$configBridgeStorage = new Bridge.LoadConfigBridgeStorage({
             bridgeRoot: options.bridgeRoot,
             storePrefix: BuildSystem.bridgeStorePrefix,
             managers: [
@@ -58,7 +59,7 @@ export class BuildSystem {
                 this.$builder.$treeWalkPluginManager,
             ],
         })
-        this.$historyBridgeStore = new Bridge.HistoryBridgeStorage({
+        this.$historyBridgeStorage = new Bridge.HistoryBridgeStorage({
             bridgeRoot: options.bridgeRoot,
             storePrefix: BuildSystem.bridgeStorePrefix,
             managers: [
@@ -71,25 +72,34 @@ export class BuildSystem {
     }
 
     /**
+     * Initialize
+     */
+    public async init() {
+        await this.$configBridgeStorage.load()
+        await this.$historyBridgeStorage.init()
+    }
+
+    /**
      * Build
      */
     public async build() {
-        await this.$configBridgeStore.init()
-        await this.$historyBridgeStore.init()
+        if (!this._initialized) {
+            await this.init()
+        }
 
         const [buildTree, walkTree, buildContents] = await Promise.all([
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$builder.$treeBuildPluginManager.options.name
             ),
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$builder.$treeWalkPluginManager.options.name
             ),
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$builder.$buildContentsPluginManager.options.name
             ),
         ])
 
-        Bridge.LoadConfigBridgeStore.logPluginPipelineInfo({
+        Bridge.LoadConfigBridgeStorage.logPluginPipelineInfo({
             [this.$builder.$builderInternalPluginManager.options.name]:
                 this.$builder.$builderInternalPluginManager.$loader.pluginList,
             [this.$builder.$treeBuildPluginManager.options.name]:

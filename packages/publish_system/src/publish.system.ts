@@ -20,15 +20,17 @@ export interface PublishSystemConstructor {
     shell?: ShellExecutorConstructor
 }
 export class PublishSystem {
-    private readonly $logger: Logger
+    private readonly $publisher: Publisher
+    public readonly $configBridgeStorage: Bridge.LoadConfigBridgeStorage
+    public readonly $historyBridgeStorage: Bridge.HistoryBridgeStorage
+
     private readonly $io: IO
+    private readonly $logger: Logger
     private readonly $shell: ShellExecutor
 
-    private readonly $publisher: Publisher
-    public readonly $configBridgeStore: Bridge.LoadConfigBridgeStore
-    private readonly $historyBridgeStore: Bridge.HistoryBridgeStorage
-
     public static storagePrefix = BridgeConstant.STORE_PREFIX.buildSystem
+
+    private _initialized: boolean = false
 
     public constructor(public readonly options: PublishSystemConstructor) {
         this.$logger = new Logger({
@@ -43,7 +45,7 @@ export class PublishSystem {
             logger: this.$logger,
             bridgeRoot: options.bridgeRoot,
         })
-        this.$configBridgeStore = new Bridge.LoadConfigBridgeStore({
+        this.$configBridgeStorage = new Bridge.LoadConfigBridgeStorage({
             bridgeRoot: options.bridgeRoot,
             storePrefix: PublishSystem.storagePrefix,
             managers: [
@@ -52,7 +54,7 @@ export class PublishSystem {
                 this.$publisher.$deployPluginManager,
             ],
         })
-        this.$historyBridgeStore = new Bridge.HistoryBridgeStorage({
+        this.$historyBridgeStorage = new Bridge.HistoryBridgeStorage({
             bridgeRoot: options.bridgeRoot,
             storePrefix: PublishSystem.storagePrefix,
             managers: [
@@ -64,25 +66,34 @@ export class PublishSystem {
     }
 
     /**
+     * Initialize
+     */
+    public async init(): Promise<void> {
+        await this.$configBridgeStorage.load()
+        await this.$historyBridgeStorage.init()
+    }
+
+    /**
      * Publish
      */
     public async publish(): Promise<void> {
-        await this.$configBridgeStore.init()
-        await this.$historyBridgeStore.init()
+        if (!this._initialized) {
+            await this.init()
+        }
 
         const [buildScript, deploy, repository] = await Promise.all([
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$publisher.$buildScriptPluginManager.options.name
             ),
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$publisher.$deployPluginManager.options.name
             ),
-            this.$configBridgeStore.loadInformation(
+            this.$configBridgeStorage.loadInformation(
                 this.$publisher.$repositoryPluginManager.options.name
             ),
         ])
 
-        Bridge.LoadConfigBridgeStore.logPluginPipelineInfo({
+        Bridge.LoadConfigBridgeStorage.logPluginPipelineInfo({
             [this.$publisher.$buildScriptPluginManager.options.name]:
                 this.$publisher.$buildScriptPluginManager.$loader.pluginList,
             [this.$publisher.$repositoryPluginManager.options.name]:
