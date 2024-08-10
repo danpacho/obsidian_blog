@@ -38,12 +38,11 @@
         "prettier:fix": "prettier 'packages/**/*.{ts,js,astro}' --write",
         "eslint": "eslint 'packages/**/*.{ts,astro}'",
         "eslint:fix": "eslint --fix 'packages/**/*.{ts,astro}'",
-        "release": "pnpm build && changeset publish",
         "pre-commit": "lint-staged",
         "prepare": "husky install",
-        "changeset": "changeset",
-        "packages:publish": "changeset publish",
-        "packages:version": "changeset version"
+        "pkg:init": "pnpm test:ci && changeset",
+        "pkg:publish": "changeset publish",
+        "pkg:version": "changeset version"
     },
     "devDependencies": {
         "@changesets/cli": "^2.27.7",
