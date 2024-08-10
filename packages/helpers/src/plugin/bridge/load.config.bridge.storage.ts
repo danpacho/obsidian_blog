@@ -37,13 +37,17 @@ export class LoadConfigBridgeStorage {
 
         return this.$managerMap.get(name)!
     }
+
     private _initialized: boolean = false
+    public bridgeStorePrefix: string
 
     /**
      * Creates an instance of LoadConfigBridgeStore.
      * @param options - The options for configuring the bridge store.
      */
-    public constructor(options: LoadConfigBridgeStorageConstructor) {
+    public constructor(
+        public readonly options: LoadConfigBridgeStorageConstructor
+    ) {
         if (options.bridgeRoot.endsWith('/')) {
             options.bridgeRoot = options.bridgeRoot.slice(0, -1)
         }
@@ -60,24 +64,16 @@ export class LoadConfigBridgeStorage {
             PluginManager<PluginShape, PluginRunner>
         >(options.managers.map((manager) => [manager.options.name, manager]))
 
-        this.updateConfigStoreRoot(
-            options.managers,
-            `${options.bridgeRoot}/${options.storePrefix}`
-        )
+        this.bridgeStorePrefix = `${options.bridgeRoot}/${options.storePrefix}`
     }
 
-    private async updateConfigStoreRoot(
-        managers: Array<PluginManager<PluginShape, PluginRunner>>,
-        storePath: string
-    ) {
-        await Promise.all(
-            managers.map(
-                async (manager) =>
-                    await manager.$config.updateRoot(
-                        `${storePath}/${manager.options.name}.json`
-                    )
+    private async updateConfigStoreRoot() {
+        const managers = Array.from(this.$managerMap.values())
+        for (const manager of managers) {
+            await manager.$config.updateRoot(
+                `${this.bridgeStorePrefix}/${manager.options.name}.json`
             )
-        )
+        }
     }
 
     /**
@@ -196,7 +192,7 @@ export class LoadConfigBridgeStorage {
             pluginManager: PluginManager<PluginShape, PluginRunner>
         ): PluginLoadInformation => {
             const loadingTargets = Object.entries(
-                pluginManager.$config.store
+                pluginManager.$config.storageRecord
             ).filter(([, config]) => {
                 // $$load_status$$ is already recorded. so dynamicConfig is not null at this time
                 if (!config?.dynamicConfig) return false
@@ -210,6 +206,7 @@ export class LoadConfigBridgeStorage {
                 // exceptional case
                 return false
             })
+
             const loadInformation = loadingTargets.map(([key, value]) => ({
                 name: key,
                 dynamicConfig: value.dynamicConfig ?? null,
@@ -249,7 +246,7 @@ export class LoadConfigBridgeStorage {
             for (const pipe of pipes) {
                 const { name, staticConfig } = pipe
                 const dynamicConfig =
-                    pluginManager.$config.getConfig(name)?.dynamicConfig ?? null
+                    pluginManager.$config.get(name)?.dynamicConfig ?? null
                 await pluginManager.$config.updateConfig(name, {
                     staticConfig,
                     dynamicConfig,
@@ -260,17 +257,28 @@ export class LoadConfigBridgeStorage {
         await saveConfigs(this.getManager(name), pluginPipes)
     }
 
+    private async init(): Promise<void> {
+        if (this._initialized) return
+
+        await this.updateConfigStoreRoot()
+
+        this._initialized = true
+    }
     /**
      * Initializes the bridge store.
      * @returns A promise that resolves when the initialization is complete.
      */
-    public async init(): Promise<void> {
-        if (this._initialized) return
+    public async load(): Promise<void> {
+        if (!this._initialized) {
+            await this.init()
+        }
 
         for (const manager of this.$managerMap.values()) {
-            await manager.$config.init()
+            await this.saveUpdatedPluginConfigs({
+                name: manager.options.name,
+                pluginPipes: manager.$loader.pluginList,
+            })
         }
-        this._initialized = true
     }
 
     /**
@@ -280,7 +288,7 @@ export class LoadConfigBridgeStorage {
      */
     public async loadInformation(managerName: string) {
         if (!this._initialized) {
-            await this.init()
+            await this.load()
         }
         const { pluginPipes, loadInformation } =
             await this.loadPlugins(managerName)
