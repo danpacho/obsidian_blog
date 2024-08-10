@@ -2,7 +2,7 @@
 import { CorePlugins, PublishSystem } from '@obsidian_blogger/publish_system'
 
 export const Publisher = new PublishSystem({
-    bridgeRoot: '{{bridge_root}}',
+    bridgeRoot: '{{obsidian_vault_root}}',
 })
     //==============================================================================
     //                             Plugin Registration                            //
