@@ -86,10 +86,7 @@ export class Builder {
      * Get plugin manager names
      * @description for bridging, it is required information
      */
-    public static readonly managerName = {
-        ...Bridge.MANAGER_NAME.buildSystem,
-        internal: 'build_system::internal',
-    } as const
+    public static readonly managerName = Bridge.MANAGER_NAME.buildSystem
 
     public constructor(private readonly options: BuilderConstructor) {
         this.$store = new BuildStore({
