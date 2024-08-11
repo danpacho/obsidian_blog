@@ -91,7 +91,7 @@ export class Builder {
     public constructor(private readonly options: BuilderConstructor) {
         this.$store = new BuildStore({
             io: options.io,
-            root: `${options.bridgeRoot}/${options.storagePrefix}/cache.json`,
+            root: `${options.bridgeRoot}/cache.json`,
         })
         this.$cacheManager = new BuildCacheManager({
             ...options,
