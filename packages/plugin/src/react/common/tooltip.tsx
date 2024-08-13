@@ -4,11 +4,9 @@ import { tw } from '../tw'
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
-export interface TooltipProps {
+export interface TooltipProps extends ReturnType<typeof useTooltip> {
     content: string
-    position?: TooltipPosition
     children: React.ReactNode
-    delay?: number
 }
 
 const tooltip = tw.style({
@@ -73,33 +71,18 @@ const arrowStyles = tw.rotary({
     },
 })
 
-/**
- * Tooltip component that displays additional information when hovering over an element.
- * Now with smooth transition effects when appearing and disappearing, and an arrow indicating direction.
- *
- * @param {string} content - The content to display inside the tooltip.
- * @param {'top' | 'bottom' | 'left' | 'right'} [position='top'] - The position of the tooltip relative to the child element.
- * @param {React.ReactNode} children - The element that will trigger the tooltip on hover.
- *
- * @example
- * ```tsx
- * <Tooltip content="This is a tooltip" position="top">
- *   <button>Hover me</button>
- * </Tooltip>
- * ```
- */
-export const Tooltip = ({
-    content,
-    children,
-    position = 'top',
+export const useTooltip = ({
     delay = 750,
-}: TooltipProps) => {
+    position = 'top',
+}: {
+    delay: number
+    position: TooltipPosition
+}) => {
     const [active, setActive] = useState(false)
     const [visible, setVisible] = useState(false)
     const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({
         opacity: 0,
     })
-
     const tooltipRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLDivElement>(null)
 
@@ -123,6 +106,8 @@ export const Tooltip = ({
 
         const triggerRect = triggerRef.current.getBoundingClientRect()
         const tooltipRect = tooltipRef.current.getBoundingClientRect()
+
+        if (!triggerRect || !tooltipRect) return
 
         const PADDING = 12 as const
         let style: React.CSSProperties = {}
@@ -160,32 +145,63 @@ export const Tooltip = ({
         setTooltipStyle(style)
     }, [position])
 
+    return {
+        tooltipRef,
+        triggerRef,
+        active,
+        visible,
+        tooltipStyle,
+        setActive,
+        setVisible,
+        calculatePosition,
+        startTimer,
+        clearTimer,
+        position,
+    }
+}
+
+/**
+ * Tooltip component that displays additional information when hovering over an element.
+ * Now with smooth transition effects when appearing and disappearing, and an arrow indicating direction.
+ *
+ * @param {string} content - The content to display inside the tooltip.
+ * @param {'top' | 'bottom' | 'left' | 'right'} [position='top'] - The position of the tooltip relative to the child element.
+ * @param {React.ReactNode} children - The element that will trigger the tooltip on hover.
+ *
+ * @example
+ * ```tsx
+ * <Tooltip content="This is a tooltip" position="top">
+ *   <button>Hover me</button>
+ * </Tooltip>
+ * ```
+ */
+export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
     useEffect(() => {
-        if (active) calculatePosition()
-    }, [active])
+        controller.calculatePosition()
+    }, [controller.active, controller.calculatePosition])
 
     return (
         <div
             className="relative inline-block h-auto w-full"
-            ref={triggerRef}
+            ref={controller.triggerRef}
             onPointerEnter={() => {
-                setActive(true)
-                startTimer()
+                controller.setActive(true)
+                controller.startTimer()
             }}
             onPointerLeave={() => {
-                setActive(false)
-                clearTimer()
+                controller.setActive(false)
+                controller.clearTimer()
             }}
         >
             {children}
 
             <div
-                ref={tooltipRef}
-                className={`${tooltip.class} ${visibility.class(visible)}`}
-                style={tooltipStyle}
+                ref={controller.tooltipRef}
+                className={`${tooltip.class} ${visibility.class(controller.visible)}`}
+                style={controller.tooltipStyle}
             >
                 <span
-                    className={`absolute ${visibility.class(visible)} ${arrowStyles.class(position)}`}
+                    className={`absolute ${visibility.class(controller.visible)} ${arrowStyles.class(controller.position)}`}
                 />
                 <span className="min-w-24 text-pretty text-center">
                     {content}
