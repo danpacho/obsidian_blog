@@ -1,33 +1,30 @@
+import { App, Plugin, PluginManifest, WorkspaceLeaf } from 'obsidian'
 import {
-    App,
-    // Modal,
-    // Notice,
-    Plugin,
-    PluginManifest,
-    PluginSettingTab,
-    Setting,
-    WorkspaceLeaf,
-} from 'obsidian'
+    ObsidianBloggerSetting,
+    type ObsidianBloggerSettings,
+} from './settings'
 import { ReactView, VIEW_TYPE } from '~/react/react.mounter'
-
-interface BloggerSettings {
-    name: string
-}
-
-const DEFAULT_SETTINGS = {
-    name: 'default',
-} as const satisfies BloggerSettings
-
 export default class ObsidianBlogger extends Plugin {
-    public settings: BloggerSettings
-    private isViewOpen: boolean = false
-
     constructor(app: App, manifest: PluginManifest) {
         super(app, manifest)
-        this.settings = {
-            name: '',
-        }
+        const defaultObsidianVaultRoot = app.vault.getRoot().path
+        this._settings.obsidian_vault_root = defaultObsidianVaultRoot
     }
+
+    public get settings(): ObsidianBloggerSettings {
+        return this._settings
+    }
+    public set settings(value: ObsidianBloggerSettings) {
+        this._settings = value
+    }
+    private _settings: ObsidianBloggerSettings = {
+        obsidian_vault_root: '',
+        bridge_install_root: '',
+        blog_assets_root: '',
+        blog_contents_root: '',
+        node_bin: '',
+    }
+    private _isViewActive: boolean = false
 
     private async activateReactView() {
         const { workspace } = this.app
@@ -48,7 +45,7 @@ export default class ObsidianBlogger extends Plugin {
         // "Reveal" the leaf in case it is in a collapsed sidebar
         workspace.revealLeaf(leaf!)
 
-        this.isViewOpen = true
+        this._isViewActive = true
     }
 
     private async deactivateReactView() {
@@ -61,82 +58,80 @@ export default class ObsidianBlogger extends Plugin {
         await leaf.setViewState({ type: VIEW_TYPE, active: false })
         workspace.detachLeavesOfType(VIEW_TYPE)
         workspace.rightSplit.collapse()
-        this.isViewOpen = false
+        this._isViewActive = false
     }
 
     private registerCommands() {
         this.addCommand({
             id: 'open-obsidian-blogger',
-            name: 'Open Obsidian Blogger',
-            callback: () => {
-                this.activateReactView()
+            name: 'Open obsidian blogger',
+            callback: async () => {
+                await this.activateReactView()
             },
         })
     }
 
-    override async onload() {
-        await this.loadSettings()
-        this.registerView(VIEW_TYPE, (leaf) => new ReactView(leaf))
-        this.registerCommands()
-        const ribbonIconEl = this.addRibbonIcon(
-            'wrench',
-            'Obsidian blogger',
-            async (evt: MouseEvent) => {
-                console.log('Ribbon icon clicked', evt)
-                console.log('isViewOpen', this.isViewOpen)
-                if (!this.isViewOpen) await this.activateReactView()
-                else await this.deactivateReactView()
+    private registerOpenButton(): void {
+        this.addRibbonIcon('cpu', 'Obsidian blogger', async () => {
+            if (!this._isViewActive) {
+                await this.activateReactView()
+            } else {
+                await this.deactivateReactView()
             }
-        )
-        // Perform additional things with the ribbon
-        ribbonIconEl.addClass('my-plugin-ribbon-class')
+        })
+    }
 
+    private registerStatusBar(): void {
         const statusBar = this.addStatusBarItem()
-        statusBar.createEl('span', { text: '💡 updated' })
+        statusBar.createEl('span', {
+            text: 'Blogger',
+            cls: 'text-green-400 text-[10px] py-[2.5px] px-[2.5px] rounded-sm bg-green-400/15 hover:bg-green-400/25 cursor-pointer',
+        })
+        statusBar.onClickEvent(() => {
+            if (!this._isViewActive) {
+                this.activateReactView()
+            } else {
+                this.deactivateReactView()
+            }
+        })
+    }
 
+    private registerSettings() {
         this.addSettingTab(new ObsidianBloggerSetting(this.app, this))
     }
 
-    override onunload() {}
+    override async onload() {
+        await this.loadSettings()
+
+        this.registerView(
+            VIEW_TYPE,
+            (leaf) => new ReactView({ leaf, plugin: this })
+        )
+        this.registerCommands()
+        this.registerOpenButton()
+        this.registerStatusBar()
+        this.registerSettings()
+    }
+
+    public override onunload() {
+        // this.deactivateReactView()
+    }
 
     async loadSettings() {
-        this.settings = Object.assign(
+        const loaded = await this.loadData()
+        this._settings = Object.assign(
             {},
-            DEFAULT_SETTINGS,
-            await this.loadData()
+            {
+                obsidian_vault_root: this.app.vault.getRoot().path,
+                blog_assets_root: '',
+                blog_contents_root: '',
+                bridge_install_root: `${this.app.vault.getRoot().path}/.bridge`,
+            },
+            loaded
         )
     }
 
     async saveSettings() {
-        await this.saveData(this.settings)
-    }
-}
-
-class ObsidianBloggerSetting extends PluginSettingTab {
-    constructor(
-        app: App,
-        public readonly plugin: ObsidianBlogger
-    ) {
-        super(app, plugin)
-        this.plugin = plugin
-    }
-
-    display(): void {
-        const { containerEl } = this
-
-        containerEl.empty()
-
-        new Setting(containerEl)
-            .setName('Setting #1')
-            .setDesc("It's a secret")
-            .addText((text) =>
-                text
-                    .setPlaceholder('Enter your secret')
-                    .setValue(this.plugin.settings.name)
-                    .onChange(async (value) => {
-                        this.plugin.settings.name = value
-                        await this.plugin.saveSettings()
-                    })
-            )
+        await this.saveData(this._settings)
     }
 }
