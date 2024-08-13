@@ -19,7 +19,7 @@ const button = tw.rotary({
         alignItems: 'items-center',
         justifyContent: 'justify-center',
 
-        borderRadius: 'rounded-lg',
+        borderRadius: 'rounded-md',
         borderWidth: 'border',
         color: 'text-white',
 
