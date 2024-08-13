@@ -20,9 +20,15 @@ interface InstallConfigRecord {
     }
 }
 
-type InstallConfig = InstallConfigRecord['install'] &
-    InstallConfigRecord['build'] &
-    InstallConfigRecord['publish']
+type Prettify<T> = {
+    [K in keyof T]: T[K]
+    // eslint-disable-next-line @typescript-eslint/ban-types
+} & {}
+type InstallConfig = Prettify<
+    InstallConfigRecord['install'] &
+        InstallConfigRecord['build'] &
+        InstallConfigRecord['publish']
+>
 
 type BloggerCLIOptions = {
     /**
