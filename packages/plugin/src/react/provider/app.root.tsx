@@ -1,8 +1,8 @@
-import { App } from 'obsidian'
 import { createContext, useContext } from 'react'
+import ObsidianBlogger from '~/plugin/main'
 
-export const AppContext = createContext<App | undefined>(undefined)
+export const AppContext = createContext<ObsidianBlogger | undefined>(undefined)
 
-export const useApp = (): App | undefined => {
+export const useApp = (): ObsidianBlogger | undefined => {
     return useContext(AppContext)
 }
