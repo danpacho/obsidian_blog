@@ -1,8 +1,9 @@
-import { GetVariants, TailwindCustom, tw } from '../tw'
+import { GetVariants, tw } from '../tw'
+import type { TailwindComponent } from './tailwind.component'
 
-interface ButtonProps extends TailwindCustom {
+interface ButtonProps extends TailwindComponent {
     type?: GetVariants<typeof button>
-    onClick?: () => void
+    onClick?: () => void | Promise<void>
     ariaLabel?: string
 }
 
@@ -50,14 +51,13 @@ export const Button = ({
     type = 'normal',
     onClick,
     ariaLabel,
-    ...twProps
+    style,
 }: React.PropsWithChildren<ButtonProps>) => {
+    const className = style
+        ? tw.mergeProps(button.style(type), style)
+        : button.class(type)
     return (
-        <div
-            className={tw.mergeProps(button.style(type), twProps)}
-            onClick={onClick}
-            aria-label={ariaLabel}
-        >
+        <div className={className} onClick={onClick} aria-label={ariaLabel}>
             {children}
         </div>
     )

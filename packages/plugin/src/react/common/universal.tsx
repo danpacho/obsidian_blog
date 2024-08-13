@@ -1,10 +1,11 @@
-import { type TailwindCustom, tw } from '../tw'
+import { tw } from '../tw'
+import { TailwindComponent } from './tailwind.component'
 
 type UniversalProps<T extends React.ElementType> = {
     as?: T
     children?: React.ReactNode
-    tw?: TailwindCustom
-} & React.ComponentPropsWithoutRef<T>
+} & React.ComponentPropsWithoutRef<T> &
+    TailwindComponent
 
 export const Universal = <T extends React.ElementType = 'div'>({
     children,
@@ -13,8 +14,9 @@ export const Universal = <T extends React.ElementType = 'div'>({
     ...props
 }: UniversalProps<T>) => {
     const Element = as || 'div'
+    const className = style ? tw.style(style).class : undefined
     return (
-        <Element className={tw.style(style ?? {}).class} {...props}>
+        <Element className={className} {...props}>
             {children}
         </Element>
     )

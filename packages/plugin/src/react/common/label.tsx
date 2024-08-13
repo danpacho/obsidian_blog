@@ -1,4 +1,5 @@
 import { GetVariants, tw } from '../tw'
+import type { TailwindComponent } from './tailwind.component'
 
 const label = tw.variants({
     base: {
@@ -65,13 +66,20 @@ const label = tw.variants({
     },
 })
 
-export interface LabelProps extends GetVariants<typeof label> {
+export interface LabelProps
+    extends GetVariants<typeof label>,
+        TailwindComponent {
     children: string
 }
 export const Label = ({
     children,
     color = 'blue',
     size = 'md',
+    style,
 }: LabelProps) => {
-    return <span className={label.class({ color, size })}>{children}</span>
+    const className = style
+        ? tw.mergeProps(label.style({ color, size }), style)
+        : label.class({ color, size })
+
+    return <span className={className}>{children}</span>
 }

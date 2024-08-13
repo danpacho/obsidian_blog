@@ -1,4 +1,5 @@
-import { type TailwindCustom, tw } from '../tw'
+import { tw } from '../tw'
+import { TailwindComponent } from './tailwind.component'
 
 const loadingSpinner = tw.style({
     size: 'size-6',
@@ -13,10 +14,13 @@ const loadingSpinner = tw.style({
     justifyContent: 'justify-center',
 })
 
-interface LoaderProps extends TailwindCustom {}
-export const Loader = ({ ...twProps }: LoaderProps) => {
+interface LoaderProps extends TailwindComponent {}
+export const Loader = ({ style }: LoaderProps) => {
+    const className = style
+        ? tw.mergeProps(loadingSpinner.style, style)
+        : loadingSpinner.class
     return (
-        <div className={tw.mergeProps(loadingSpinner.style, twProps)}>
+        <div className={className}>
             <div className="size-[2.5px] animate-ping rounded-full bg-blue-400"></div>
         </div>
     )
