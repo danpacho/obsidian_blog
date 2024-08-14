@@ -120,7 +120,7 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
                         }
                     }
 
-                    return target.map(({ writePath }) => writePath)
+                    return buildedContents
                 },
                 cleanup: async (job) => {
                     await plugin.cleanup?.(job)
