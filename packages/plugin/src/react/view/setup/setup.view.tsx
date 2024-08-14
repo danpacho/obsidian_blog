@@ -10,6 +10,7 @@ import {
 } from '~/react/common'
 import { useInput, useObsidianSetting, useTimer } from '~/react/hooks'
 import { useApp } from '~/react/provider/app.root'
+import { Routing } from '~/react/routing'
 import { io, shell } from '~/utils'
 
 interface InstallConfig {
@@ -101,7 +102,7 @@ const ConfigInput = ({
                     }
                 />
                 <Button
-                    style={{ fontSize: 'text-xs' }}
+                    tw={{ fontSize: 'text-xs' }}
                     type={isError ? 'error' : isValid ? 'success' : 'normal'}
                     onClick={async () => {
                         if (!app) return
@@ -262,20 +263,16 @@ export function SetupView() {
     const [installProgress, setInstallProgress] =
         useState<InstallProgress>('idle')
 
+    const { setRoute } = Routing.useRoute()
+
     useEffect(() => {
         tooltipController.calculatePosition()
     }, [installProgress, installStatus])
 
-    const { startTimer } = useTimer(
+    const { startTimer: moveToBuildView } = useTimer(
         {
             start: () => {
-                getInstallStatus()
-                    .then((status) => {
-                        setInstallStatus(status)
-                    })
-                    .then(() => {
-                        setInstallProgress('idle')
-                    })
+                setRoute?.('build')
             },
             clear: () => {},
         },
@@ -373,9 +370,11 @@ export function SetupView() {
     return (
         <div className="flex size-full flex-col gap-y-4 divide-y divide-stone-700">
             <ConfigView />
-            <div className="py-5">
+
+            <div className="flex w-full flex-col gap-y-2 py-5">
                 <Tooltip content={tooltipContent()} {...tooltipController}>
                     <Button
+                        tw={{ width: 'w-full' }}
                         type={buttonType()}
                         disabled={
                             installStatus === 'invalid' ||
@@ -414,13 +413,28 @@ export function SetupView() {
                                 setInstallProgress('install_failed')
                             } else {
                                 setInstallProgress('install_success')
-                                startTimer()
+                                moveToBuildView()
                             }
                         }}
                     >
                         {buttonText()}
                     </Button>
                 </Tooltip>
+
+                {installStatus === 'reinstall' && (
+                    <Routing.Link
+                        to="build"
+                        className="w-full"
+                        disabled={installProgress === 'installing'}
+                    >
+                        <Button
+                            disabled={installProgress === 'installing'}
+                            tw={{ width: 'w-full' }}
+                        >
+                            → Back to build view
+                        </Button>
+                    </Routing.Link>
+                )}
             </div>
         </div>
     )
