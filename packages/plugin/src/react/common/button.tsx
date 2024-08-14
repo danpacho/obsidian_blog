@@ -10,6 +10,7 @@ interface ButtonProps extends TailwindComponent {
 
 const button = tw.rotary({
     base: {
+        width: 'w-fit',
         fontSize: 'text-sm',
         fontWeight: 'font-light',
         paddingX: 'px-3',
@@ -72,7 +73,7 @@ export const Button = ({
     disabled,
     onClick,
     ariaLabel,
-    style,
+    tw: style,
 }: React.PropsWithChildren<ButtonProps>) => {
     const className = style
         ? tw.mergeProps(button.style(type), style)
