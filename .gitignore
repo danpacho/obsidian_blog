@@ -21,6 +21,7 @@ coverage
 ts-perf
 tsconfig.tsbuildinfo
 __snapshots__
+large.*
 
 # Logs
 npm-debug.log*
