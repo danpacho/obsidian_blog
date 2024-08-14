@@ -42,8 +42,9 @@ export interface BuilderConstructor
         BuildInfoGeneratorConstructor {
     readonly parser: FileTreeParser
     readonly logger: Logger
-    bridgeRoot: string
-    storagePrefix: string
+    readonly vaultRoot: string
+    readonly bridgeRoot: string
+    readonly storagePrefix: string
 }
 
 export class Builder {
