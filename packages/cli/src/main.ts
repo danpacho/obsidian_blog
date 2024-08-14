@@ -11,12 +11,13 @@ interface InstallConfigRecord {
         install_pkg?: string
     }
     build: {
+        bridge_install_root: string
         obsidian_vault_root: string
         blog_assets_root: string
         blog_contents_root: string
     }
     publish: {
-        obsidian_vault_root: string
+        bridge_install_root: string
     }
 }
 
@@ -142,12 +143,14 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
             const injectionTemplate = {
                 build: {
+                    bridge_install_root,
+                    // build path gen properties
                     obsidian_vault_root,
                     blog_assets_root,
                     blog_contents_root,
                 },
                 publish: {
-                    obsidian_vault_root,
+                    bridge_install_root,
                 },
             } as const satisfies Omit<InstallConfigRecord, 'install'>
 
