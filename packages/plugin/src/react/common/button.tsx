@@ -83,7 +83,7 @@ export const Button = ({
         <div
             className={className}
             onClick={async () => {
-                if (disabled) return
+                if (disabled || type === 'disabled') return
                 await onClick?.()
             }}
             aria-label={ariaLabel}
