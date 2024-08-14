@@ -2,7 +2,7 @@ import { tw } from '../tw'
 import { TailwindComponent } from './tailwind.component'
 
 const loadingSpinner = tw.style({
-    size: 'size-6',
+    size: 'size-4',
     animation: 'animate-spin',
     borderRadius: 'rounded-full',
     borderWidth: 'border-[1.25px]',
@@ -15,7 +15,7 @@ const loadingSpinner = tw.style({
 })
 
 interface LoaderProps extends TailwindComponent {}
-export const Loader = ({ style }: LoaderProps) => {
+export const Loader = ({ tw: style }: LoaderProps) => {
     const className = style
         ? tw.mergeProps(loadingSpinner.style, style)
         : loadingSpinner.class
