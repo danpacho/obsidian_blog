@@ -428,7 +428,11 @@ export function SetupView() {
                         disabled={installProgress === 'installing'}
                     >
                         <Button
-                            disabled={installProgress === 'installing'}
+                            type={
+                                installProgress === 'installing'
+                                    ? 'disabled'
+                                    : 'normal'
+                            }
                             tw={{ width: 'w-full' }}
                         >
                             → Back to build view
