@@ -10,17 +10,27 @@ current_dir=$(pwd)
 random_root=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
 
 # Construct the full path
-bridge_i_root="$current_dir/.test_cli_gen/${random_root}"
-obsidian_valut_root="$current_dir/.test_cli_gen/${random_root}/obsidian-vault"
-blog_root="$current_dir/.test_cli_gen/${random_root}/blog"
+bridge_i_root="${current_dir}/.test_cli_gen/${random_root}/.bridge"
+obsidian_valut_root="${current_dir}/.test_cli_gen/${random_root}/.obsidian_vault"
+blog_root="${current_dir}/.test_cli_gen/${random_root}/.blog"
 
+echo "| BridgeInstall root: ${bridge_i_root}"
+echo "| Obsidian vault root: ${obsidian_valut_root}"
+echo "| Blog root: ${blog_root}"
+
+# Run help command
 node dist/index.cjs -h
 
 # Run create command
-node dist/index.cjs create "${bridge_i_root}" "${obsidian_valut_root}" "${blog_root}" "${blog_root}/static/assets" "${blog_root}/static/md"
+node dist/index.cjs create "${bridge_i_root}" "${obsidian_valut_root}" "${blog_root}/static/contents" "${blog_root}/static/assets"
 
 # Run install command
 # node dist/index.cjs install "${bridge_i_root}"
+
+# Create obsidian vault and blog directories
+mkdir "${obsidian_valut_root}"
+mkdir "${blog_root}/static/contents"
+mkdir "${blog_root}/static/assets"
 
 # Run plugin generate command
 # 1. Generate build plugin
