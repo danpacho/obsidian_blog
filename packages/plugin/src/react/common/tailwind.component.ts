@@ -4,5 +4,5 @@ export interface TailwindComponent {
     /**
      * @property `tailwindcss`: Custom style to be applied to the component
      */
-    style?: TailwindCustom
+    tw?: TailwindCustom
 }
