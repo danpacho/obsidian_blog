@@ -7,22 +7,61 @@ import type { BuildInformation } from './store'
  *  A unique identifier for a node
  */
 export type NodeId = UUID
-
+/**
+ * A function that generates a build path for a node
+ * @param node The node to generate a path for
+ * @param buildTools The build tools
+ * @returns The target generated path
+ * @example
+ * ```ts
+ * const pathGenerator: PathGenerator = async (node, { vaultRoot }) => {
+ *     return `${node.fileName}`
+ * }
+ * // CurrentNode    -> "example.md"
+ * // Generated Path -> "{{vaultRoot}}/example.md`"
+ * ```
+ */
+export type PathGenerator = (
+    node: FileTreeNode,
+    buildTools: BuildPluginDependencies
+) => Promise<string>
 export interface BuildInfoGeneratorConstructor {
     readonly io: IO
+    /**
+     * Base build path for the `content` and `asset` nodes
+     */
     readonly buildPath: {
+        /**
+         * Base build path for the `content` node
+         */
         contents: string
+        /**
+         * Base build path for the `asset` node
+         */
         assets: string
     }
+    /**
+     * Generate a build path for the `content` and `asset` node
+     */
     readonly pathGenerator: {
-        assets: (
-            node: FileTreeNode,
-            buildTools: BuildPluginDependencies
-        ) => Promise<string>
-        contents: (
-            node: FileTreeNode,
-            buildTools: BuildPluginDependencies
-        ) => Promise<string>
+        /**
+         * A function that generates a build path for a content node
+         * @example
+         * ```ts
+         * // This will generate a path for a content node
+         * `${buildPath.contents}/${GEN_PATH}/${node.fileName}`
+         * ```
+         */
+        contents: PathGenerator
+        /**
+         * A function that generates a build path for an asset node
+         * @example
+         * ```ts
+         * // This will generate a path for an asset node
+         * `${buildPath.assets}/${prefix}/${id}_${GEN_PATH}.${node.fileExtension}`
+         * ```
+         */
+        assets?: PathGenerator
     }
 }
 export class BuildInfoGenerator {
@@ -123,9 +162,9 @@ export class BuildInfoGenerator {
         strict: boolean = false
     ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
         const ASSET_PREFIX = {
-            image: 'image',
-            audio: 'audio',
-            unknown: 'unknown',
+            image: 'images',
+            audio: 'audios',
+            unknown: 'unknowns',
         } as const
         const prefix =
             assetNode.category === 'IMAGE_FILE'
@@ -136,49 +175,39 @@ export class BuildInfoGenerator {
 
         const originPath = assetNode.absolutePath
 
+        let id: NodeId
         if (strict) {
             const raw = await this.$io.reader.readMedia(originPath)
-            if (!raw.success)
-                throw new Error(`failed to read file at ${originPath}`)
-
+            if (!raw.success) {
+                const buildBaseString = this.getBaseString(
+                    originPath,
+                    assetNode.category
+                )
+                id = this.encodeHashUUID(buildBaseString)
+            } else {
+                const buildBaseString = this.getBaseString(
+                    originPath,
+                    raw.data.toString()
+                )
+                id = this.encodeHashUUID(buildBaseString)
+            }
+        } else {
             const buildBaseString = this.getBaseString(
                 originPath,
-                raw.data.toString()
+                assetNode.category
             )
-            const id = this.encodeHashUUID(buildBaseString)
-
-            const generatedRoute = await this.options.pathGenerator.assets(
-                assetNode,
-                buildTools
-            )
-
-            const buildPath = this.getSafeRoutePath(
-                `${this.options.buildPath.assets}/${prefix}/${id}_${generatedRoute}.${assetNode.fileExtension}`
-            )
-            const path = {
-                build: buildPath,
-                origin: originPath,
-            }
-
-            return {
-                id,
-                build_path: path,
-            }
+            id = this.encodeHashUUID(buildBaseString)
         }
 
-        const buildBaseString = this.getBaseString(
-            originPath,
-            assetNode.category
-        )
-        const id = this.encodeHashUUID(buildBaseString)
+        const generatedRoute: string | undefined =
+            await this.options.pathGenerator.assets?.(assetNode, buildTools)
 
-        const generatedRoute = await this.options.pathGenerator.assets(
-            assetNode,
-            buildTools
-        )
+        const resultId: string = generatedRoute
+            ? `${id}_${generatedRoute}`
+            : `${id}_${FileReader.getPureFileName(assetNode.fileName)}`
 
-        const buildPath = this.getSafeRoutePath(
-            `${this.options.buildPath.assets}/${prefix}/${id}-${generatedRoute}.${assetNode.fileExtension}`
+        const buildPath: string = this.getSafeRoutePath(
+            `${this.options.buildPath.assets}/${prefix}/${resultId}.${assetNode.fileExtension}`
         )
         return {
             id,
