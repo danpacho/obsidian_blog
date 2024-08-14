@@ -182,7 +182,7 @@ export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
 
     return (
         <div
-            className="relative inline-block h-auto w-full"
+            className="relative inline-block h-auto w-[inherit]"
             ref={controller.triggerRef}
             onPointerEnter={() => {
                 controller.setActive(true)
@@ -203,7 +203,7 @@ export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
                 <span
                     className={`absolute ${visibility.class(controller.visible)} ${arrowStyles.class(controller.position)}`}
                 />
-                <span className="min-w-24 text-pretty text-center">
+                <span className="min-w-32 text-pretty text-center">
                     {content}
                 </span>
             </div>
