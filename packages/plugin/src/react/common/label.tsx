@@ -75,7 +75,7 @@ export const Label = ({
     children,
     color = 'blue',
     size = 'md',
-    style,
+    tw: style,
 }: LabelProps) => {
     const className = style
         ? tw.mergeProps(label.style({ color, size }), style)
