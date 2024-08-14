@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.2.4
+
+### Patch Changes
+
+-   Fix and stabilize api for build, publish system related modules
+
 ## 0.2.3
 
 ### Patch Changes
