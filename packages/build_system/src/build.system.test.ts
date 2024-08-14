@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { PathGenerator } from './builder/core'
 import { FileTreeNode } from './parser/node'
 import { BuildSystem, CorePlugins } from './index'
 
 describe('BuildSystem', async () => {
-    const pathGen = (node: FileTreeNode, rootPath: string) => {
+    const pathGen: PathGenerator = async (node, { vaultRoot }) => {
         const analyzeFileName = (
             folderName?: string
         ): {
@@ -73,45 +74,37 @@ describe('BuildSystem', async () => {
 
         return getBuildRouteInfo({
             node,
-            rootPath,
+            rootPath: vaultRoot,
         })
     }
 
     const system = new BuildSystem({
+        vaultRoot: `${process.cwd()}/packages/build_system/src/__tests__/__fixtures__/$$blog$$`,
         bridgeRoot: `${process.cwd()}/packages/build_system/src/__tests__/dist/bridge`,
-        builder: {
-            buildPath: {
-                contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
-                assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
-            },
-            pathGenerator: {
-                contents: async (node) => {
-                    const path =
-                        `${process.cwd()}/packages/build_system/src/__tests__/__fixtures__/$$blog$$` as const
-                    return pathGen(node, path)
-                },
-                assets: async () => '',
-            },
+        buildPath: {
+            contents: `${process.cwd()}/packages/build_system/src/__tests__/dist/contents`,
+            assets: `${process.cwd()}/packages/build_system/src/__tests__/dist/assets`,
         },
-        parser: {
-            rootFolder: '$$blog$$',
-            treeSyntax: {
-                fileNameMatcher: ({ name, depth }) => {
-                    if (depth >= 6) return false
-                    const validFileNames = /[a-zA-Z0-9-_]/
-                    return validFileNames.test(name)
-                },
-                folderNameMatcher: ({ name, depth }) => {
-                    const startsWithAt = name.startsWith('@')
-                    if (startsWithAt) return true
+        pathGenerator: {
+            contents: async (node, buildTools) =>
+                await pathGen(node, buildTools),
+        },
+        treeSyntax: {
+            fileNameMatcher: ({ name, depth }) => {
+                if (depth >= 6) return false
+                const validFileNames = /[a-zA-Z0-9-_]/
+                return validFileNames.test(name)
+            },
+            folderNameMatcher: ({ name, depth }) => {
+                const startsWithAt = name.startsWith('@')
+                if (startsWithAt) return true
 
-                    const first = name.at(0)
-                    const last = name.at(-1)
-                    if (first === '[' && last === ']') return depth < 3
-                    if (first === '{' && last === '}') return depth < 3
+                const first = name.at(0)
+                const last = name.at(-1)
+                if (first === '[' && last === ']') return depth < 3
+                if (first === '{' && last === '}') return depth < 3
 
-                    return true
-                },
+                return true
             },
         },
     })

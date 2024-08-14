@@ -1,13 +1,16 @@
-import { GetVariants, TailwindCustom, tw } from '../tw'
+import { GetVariants, tw } from '../tw'
+import type { TailwindComponent } from './tailwind.component'
 
-interface ButtonProps extends TailwindCustom {
+interface ButtonProps extends TailwindComponent {
     type?: GetVariants<typeof button>
-    onClick?: () => void
+    onClick?: () => void | Promise<void>
     ariaLabel?: string
+    disabled?: boolean
 }
 
 const button = tw.rotary({
     base: {
+        width: 'w-fit',
         fontSize: 'text-sm',
         fontWeight: 'font-light',
         paddingX: 'px-3',
@@ -19,9 +22,11 @@ const button = tw.rotary({
         alignItems: 'items-center',
         justifyContent: 'justify-center',
 
-        borderRadius: 'rounded-lg',
-        borderWidth: 'border',
         color: 'text-white',
+        borderWidth: 'border',
+        borderRadius: 'rounded-md',
+        transition: 'transition-colors ease-out',
+        cursor: 'cursor-pointer',
 
         $hover: {
             borderColor: 'hover:border-transparent',
@@ -32,8 +37,8 @@ const button = tw.rotary({
         },
     },
     warn: {
-        backgroundColor: 'bg-red-800',
-        borderColor: 'border-red-600',
+        backgroundColor: 'bg-yellow-800',
+        borderColor: 'border-yellow-600',
     },
     success: {
         backgroundColor: 'bg-green-700',
@@ -43,19 +48,44 @@ const button = tw.rotary({
         backgroundColor: 'bg-black',
         borderColor: 'border-stone-700',
     },
+    error: {
+        backgroundColor: 'bg-red-800',
+        borderColor: 'border-red-600',
+    },
+    disabled: {
+        backgroundColor: 'bg-stone-700',
+        borderColor: 'border-stone-700',
+        opacity: 'opacity-75',
+        cursor: 'cursor-not-allowed',
+        $hover: {
+            borderColor: 'hover:border-transparent',
+        },
+        $active: {
+            opacity: 'active:opacity-75',
+            transformTranslateY: 'active:translate-y-0',
+        },
+    },
 })
 
 export const Button = ({
     children,
     type = 'normal',
+    disabled,
     onClick,
     ariaLabel,
-    ...twProps
+    tw: style,
 }: React.PropsWithChildren<ButtonProps>) => {
+    const className = style
+        ? tw.mergeProps(button.style(type), style)
+        : button.class(type)
+
     return (
         <div
-            className={tw.mergeProps(button.style(type), twProps)}
-            onClick={onClick}
+            className={className}
+            onClick={async () => {
+                if (disabled || type === 'disabled') return
+                await onClick?.()
+            }}
             aria-label={ariaLabel}
         >
             {children}

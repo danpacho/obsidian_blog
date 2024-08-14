@@ -109,7 +109,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * @returns The value associated with the key, or undefined if the key does not exist.
      * @throws {StorageError} If there is an error retrieving the value.
      */
-    public _get(key: string): Schema | undefined {
+    protected _get(key: string): Schema | undefined {
         try {
             const founded = this.storage.get(key)
             return founded
@@ -129,7 +129,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * @param value - The value to set.
      * @throws {StorageError} If there is an error setting the value.
      */
-    public async _set(key: string, value: Schema): Promise<void> {
+    protected async _set(key: string, value: Schema): Promise<void> {
         try {
             this.storage.set(key, value)
             await this.save()
@@ -148,7 +148,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * @param key - The key to remove the value for.
      * @throws {StorageError} If there is an error removing the value.
      */
-    public async _remove(key: string): Promise<void> {
+    protected async _remove(key: string): Promise<void> {
         try {
             this.storage.delete(key)
             await this.save()
@@ -166,7 +166,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * Clears the storage by removing all keys and values.
      * @throws {StorageError} If there is an error clearing the storage.
      */
-    public async _reset(): Promise<void> {
+    protected async _reset(): Promise<void> {
         try {
             this.storage.clear()
             await this.save()
@@ -184,7 +184,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
      * Saves the data to the storage file.
      * @throws {StorageError} If there is an error saving the storage file.
      */
-    public async _save(): Promise<void> {
+    protected async _save(): Promise<void> {
         try {
             const result = await this.$io.writer.write({
                 filePath: this.options.root,

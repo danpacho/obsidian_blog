@@ -6,20 +6,23 @@ import type { BuildSystemPluginAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 //TODO: refactor, divide constructor <-> config options
 type ClassInstance = 'io' | 'logger' | 'parser'
+type AlreadyFulfilled = 'rootFolder' | 'storagePrefix'
+type ExcludeProperties = ClassInstance | AlreadyFulfilled
 
-export interface BuildSystemConstructor {
+export { type PathGenerator } from './builder'
+export interface BuildSystemConstructor
+    extends Omit<BuilderConstructor, ExcludeProperties>,
+        Omit<FileTreeParserConstructor, ExcludeProperties> {
+    /**
+     * **Root path of the `bridge` package**
+     */
     bridgeRoot: string
     /**
-     * Tree parser required constructor options
+     * **Target `obsidian` vault root**
+     *
+     * Parser required constructor options
      */
-    parser: Omit<FileTreeParserConstructor, ClassInstance>
-    /**
-     * Builder required constructor options
-     */
-    builder: Omit<
-        BuilderConstructor,
-        ClassInstance | 'bridgeRoot' | 'storagePrefix'
-    >
+    vaultRoot: string
 }
 export class BuildSystem {
     private readonly $parser: FileTreeParser
@@ -39,16 +42,18 @@ export class BuildSystem {
             name: 'build_system',
         })
         this.$parser = new FileTreeParser({
+            ...options,
             io: this.$io,
-            ...options.parser,
+            rootFolder: options.vaultRoot,
         })
         this.$builder = new Builder({
-            ...options.builder,
+            ...options,
             io: this.$io,
             parser: this.$parser,
             logger: this.$logger,
             storagePrefix: BuildSystem.bridgeStorePrefix,
             bridgeRoot: options.bridgeRoot,
+            vaultRoot: options.vaultRoot,
         })
         this.$configBridgeStorage = new Bridge.LoadConfigBridgeStorage({
             bridgeRoot: options.bridgeRoot,

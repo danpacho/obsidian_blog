@@ -3,34 +3,41 @@ import {
     BuildSystem,
     CorePlugins,
     type Node,
+    PathGenerator,
 } from '@obsidian_blogger/build_system'
 
-const contentsPathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
+const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
     const analyzeFileName = (
         folderName?: string
     ): {
         type: 'route' | 'group' | 'series' | 'root'
         value: string
     } => {
+        // empty -> root
         if (!folderName) {
             return {
                 type: 'root',
                 value: '',
             }
         }
+        // [folderName] -> route
         if (folderName.match(/^\[(.*?)\]$/)) {
             const matchedValue = folderName.slice(1, -1)
             return {
                 type: 'route',
                 value: matchedValue,
             }
-        } else if (folderName.startsWith('@')) {
+        }
+        // @[folderName] -> series
+        else if (folderName.startsWith('@')) {
             const matchedValue = folderName.substring(1)
             return {
                 type: 'series',
                 value: matchedValue,
             }
-        } else {
+        }
+        // folderName -> group
+        else {
             return {
                 type: 'group',
                 value: folderName,
@@ -75,42 +82,37 @@ const contentsPathGenerator = (node: Node.FileTreeNode, rootPath: string) => {
 
     return getBuildRouteInfo({
         node,
-        rootPath,
+        rootPath: buildTools.vaultRoot,
     })
 }
 
 export const Builder = new BuildSystem({
-    bridgeRoot: '{{obsidian_vault_root}}',
-    builder: {
-        buildPath: {
-            contents: '{{blog_contents_root}}',
-            assets: '{{blog_assets_root}}',
-        },
-        pathGenerator: {
-            contents: async (node, { bridgeRoot }) =>
-                contentsPathGenerator(node, bridgeRoot),
-            assets: async () => '',
-        },
+    bridgeRoot: '{{bridge_install_root}}',
+    vaultRoot: '{{obsidian_vault_root}}',
+    buildPath: {
+        contents: '{{blog_contents_root}}',
+        assets: '{{blog_assets_root}}',
     },
-    parser: {
-        rootFolder: '{{obsidian_vault_root}}',
-        treeSyntax: {
-            fileNameMatcher: ({ name, depth }) => {
-                if (depth >= 6) return false
-                const validFileNames = /[a-zA-Z0-9-_]/
-                return validFileNames.test(name)
-            },
-            folderNameMatcher: ({ name, depth }) => {
-                const startsWithAt = name.startsWith('@')
-                if (startsWithAt) return true
+    pathGenerator: {
+        contents: async (node, buildTools) =>
+            await contentsPathGenerator(node, buildTools),
+    },
+    treeSyntax: {
+        fileNameMatcher: ({ name, depth }) => {
+            if (depth >= 6) return false
+            const validFileNames = /[a-zA-Z0-9-_]/
+            return validFileNames.test(name)
+        },
+        folderNameMatcher: ({ name, depth }) => {
+            const startsWithAt = name.startsWith('@')
+            if (startsWithAt) return true
 
-                const first = name.at(0)
-                const last = name.at(-1)
-                if (first === '[' && last === ']') return depth < 3
-                if (first === '{' && last === '}') return depth < 3
+            const first = name.at(0)
+            const last = name.at(-1)
+            if (first === '[' && last === ']') return depth < 3
+            if (first === '{' && last === '}') return depth < 3
 
-                return true
-            },
+            return true
         },
     },
 })

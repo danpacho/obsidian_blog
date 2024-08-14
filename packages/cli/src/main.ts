@@ -20,9 +20,15 @@ interface InstallConfigRecord {
     }
 }
 
-type InstallConfig = InstallConfigRecord['install'] &
-    InstallConfigRecord['build'] &
-    InstallConfigRecord['publish']
+type Prettify<T> = {
+    [K in keyof T]: T[K]
+    // eslint-disable-next-line @typescript-eslint/ban-types
+} & {}
+type InstallConfig = Prettify<
+    InstallConfigRecord['install'] &
+        InstallConfigRecord['build'] &
+        InstallConfigRecord['publish']
+>
 
 type BloggerCLIOptions = {
     /**
@@ -339,14 +345,8 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             argFlag: [
                 '<bridge_install_root>',
                 '<obsidian_vault_root>',
-                '<blog_root>',
                 '<blog_assets_root>',
                 '<blog_contents_root>',
-                '[build_script]',
-                '[git_path]',
-                '[commit_branch]',
-                '[commit_prefix]',
-                '[commit_message]',
                 '[install_pkg]',
             ],
             cmdDescription: 'Create a obsidian-blog bridge package',

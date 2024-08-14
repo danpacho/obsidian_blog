@@ -12,6 +12,7 @@ const PREFIX = {
  */
 export const MANAGER_NAME = {
     buildSystem: {
+        internal: `${PREFIX.buildSystem}internal`,
         buildTree: `${PREFIX.buildSystem}build_tree`,
         walkTree: `${PREFIX.buildSystem}walk_tree`,
         buildContents: `${PREFIX.buildSystem}build_contents`,
@@ -24,6 +25,9 @@ export const MANAGER_NAME = {
 } as const
 
 const STORE_FOLDER = '.store' as const
+/**
+ * Store prefixes
+ */
 export const STORE_PREFIX = {
     buildSystem: `${STORE_FOLDER}/build`,
     publishSystem: `${STORE_FOLDER}/publish`,
