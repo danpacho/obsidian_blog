@@ -1,10 +1,62 @@
-export interface InputProps {
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { tw } from '../tw'
+import { TailwindComponent } from './tailwind.component'
+
+const inputStyle = tw.style({
+    //@ts-ignore
+    width: '!w-full',
+    //@ts-ignore
+    fontFamily: '!font-mono',
+    fontSize: 'text-sm',
+    fontWeight: 'font-normal',
+    //@ts-ignore
+    color: '!text-stone-300',
+    $placeholder: {
+        //@ts-ignore
+        color: 'placeholder:!text-stone-500',
+    },
+    //@ts-ignore
+    boxShadow: '!shadow-none',
+    //@ts-ignore
+    backgroundColor: '!bg-stone-800',
+    //@ts-ignore
+    borderColor: '!border-stone-700',
+    //@ts-ignore
+    caretColor: '!caret-stone-300',
+    //@ts-ignore
+    accentColor: '!accent-stone-300',
+    transition: 'transition-colors ease-in-out',
+    transitionDuration: 'duration-200',
+    $checked: {
+        //@ts-ignore
+        caretColor: 'checked:!accent-stone-300',
+        //@ts-ignore
+        accentColor: 'checked:!accent-stone-300',
+        //@ts-ignore
+        backgroundColor: 'checked:!bg-stone-800',
+        $after: {
+            //@ts-ignore
+            backgroundColor: 'checked:after:!bg-stone-300',
+        },
+    },
+    $hover: {
+        //@ts-ignore
+        backgroundColor: 'hover:!bg-stone-500/10',
+        //@ts-ignore
+        color: 'hover:!text-stone-300',
+    },
+})
+export interface InputProps
+    extends React.DetailedHTMLProps<
+            React.InputHTMLAttributes<HTMLInputElement>,
+            HTMLInputElement
+        >,
+        TailwindComponent {
     title: string
     description?: string | React.ReactNode
     placeholder?: string
     input: string
     setInput: (input: string) => void
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 export const Input = ({
     children,
@@ -14,40 +66,29 @@ export const Input = ({
     input,
     setInput,
     onChange,
+    tw: style,
+    ...inputProps
 }: React.PropsWithChildren<InputProps>) => {
     const isDescriptionString = typeof description === 'string'
-    return (
-        <div className="flex w-full flex-col items-start justify-between gap-y-1">
-            <div className="flex flex-row items-center justify-between gap-x-1">
-                <h1 className="ml-1 font-mono text-sm font-semibold text-stone-300">
-                    {title}
-                </h1>
-                {isDescriptionString && (
-                    <p className="ml-1 text-xs font-light text-stone-400">
-                        {description}
-                    </p>
-                )}
-                {!isDescriptionString && description && (
-                    <div className="ml-1">{description}</div>
-                )}
-            </div>
+    const className = style
+        ? tw.mergeProps(inputStyle.style, style)
+        : inputStyle.class
 
-            <input
-                className="!w-full !font-mono text-sm font-normal !text-stone-300 placeholder:!text-stone-500"
-                onChange={(e) => {
-                    setInput(e.target.value)
-                    onChange?.(e)
-                }}
-                placeholder={
-                    placeholder ?? (isDescriptionString ? description : title)
-                }
-                value={input}
-                type="text"
-                aria-label={title}
-                name={title}
-            >
-                {children}
-            </input>
-        </div>
+    return (
+        <input
+            className={className}
+            onChange={(e) => {
+                setInput(e.target.value)
+                onChange?.(e)
+            }}
+            placeholder={
+                placeholder ?? (isDescriptionString ? description : title)
+            }
+            value={input}
+            name={title}
+            {...inputProps}
+        >
+            {children}
+        </input>
     )
 }
