@@ -7,8 +7,9 @@ type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
 export interface TooltipProps
     extends ReturnType<typeof useTooltip>,
-        TailwindComponent {
-    content: React.ReactNode
+        TailwindComponent,
+        React.HTMLAttributes<HTMLDivElement> {
+    tooltipContent: React.ReactNode
     children: React.ReactNode
 }
 
@@ -165,21 +166,17 @@ export const useTooltip = ({
 
 /**
  * Tooltip component that displays additional information when hovering over an element.
- * Now with smooth transition effects when appearing and disappearing, and an arrow indicating direction.
- *
- * @param {string} content - The content to display inside the tooltip.
- * @param {'top' | 'bottom' | 'left' | 'right'} [position='top'] - The position of the tooltip relative to the child element.
- * @param {React.ReactNode} children - The element that will trigger the tooltip on hover.
- *
  * @example
  * ```tsx
- * <Tooltip content="This is a tooltip" position="top">
+ * const controller = useTooltip({ delay: 500, position: 'top' })
+ * //...
+ * <Tooltip {...controller} content="This is a tooltip">
  *   <button>Hover me</button>
  * </Tooltip>
  * ```
  */
 export const Tooltip = ({
-    content,
+    tooltipContent: content,
     children,
     tw: style,
     ...controller
@@ -194,7 +191,8 @@ export const Tooltip = ({
 
     return (
         <div
-            className={`relative inline-block h-auto w-[inherit]`}
+            {...controller}
+            className={`relative inline-block h-auto w-[inherit] ${controller.className}`}
             ref={controller.triggerRef}
             onPointerEnter={() => {
                 controller.setActive(true)
