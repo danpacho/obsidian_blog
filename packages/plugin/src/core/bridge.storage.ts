@@ -10,7 +10,6 @@ import { PluginConfigStorage } from './plugin.config.storage'
 export class BuildBridgeStorage<Keys extends readonly string[]> {
     private readonly $config: Map<Keys[number], PluginConfigStorage>
     private readonly $history: JsonStorage<Job<Array<Job>>>
-    private static $instance: BuildBridgeStorage<readonly string[]>
 
     private _initialized: boolean = false
 
@@ -69,34 +68,27 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         storePrefix: string
         configNames: Keys
     }): BuildBridgeStorage<Keys> {
-        if (!BuildBridgeStorage.$instance) {
-            const configStorageMap = new Map<
-                Keys[number],
-                PluginConfigStorage
-            >()
+        const configStorageMap = new Map<Keys[number], PluginConfigStorage>()
 
-            for (const name of options.configNames) {
-                configStorageMap.set(
+        for (const name of options.configNames) {
+            configStorageMap.set(
+                name,
+                new PluginConfigStorage({
                     name,
-                    new PluginConfigStorage({
-                        name,
-                        root: `${options.bridgeRoot}/${options.storePrefix}/${name}.json`,
-                    })
-                )
-            }
-
-            BuildBridgeStorage.$instance = new BuildBridgeStorage<Keys>({
-                bridgeRoot: options.bridgeRoot,
-                storePrefix: options.storePrefix,
-                configStorage: configStorageMap,
-                historyStorage: new JsonStorage<Job<Array<Job>>>({
-                    name: 'history',
-                    root: `${options.bridgeRoot}/${options.storePrefix}/history.json`,
-                }),
-            })
+                    root: `${options.bridgeRoot}/${options.storePrefix}/${name}.json`,
+                })
+            )
         }
 
-        return BuildBridgeStorage.$instance as BuildBridgeStorage<Keys>
+        return new BuildBridgeStorage<Keys>({
+            bridgeRoot: options.bridgeRoot,
+            storePrefix: options.storePrefix,
+            configStorage: configStorageMap,
+            historyStorage: new JsonStorage<Job<Array<Job>>>({
+                name: 'history',
+                root: `${options.bridgeRoot}/${options.storePrefix}/history.json`,
+            }),
+        })
     }
 
     /**
