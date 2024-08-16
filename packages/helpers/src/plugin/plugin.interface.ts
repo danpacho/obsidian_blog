@@ -521,4 +521,9 @@ export abstract class PluginInterface<
     public cleanup?(job: PluginExecutionResponse[number]): Promise<void>
 }
 
+export {
+    type PluginDynamicSchemaType,
+    type PluginDynamicConfigPrimitiveType,
+    type PluginDynamicConfigSchema,
+} from './arg_parser'
 export { type PluginLoadInformation } from './plugin.loader'
