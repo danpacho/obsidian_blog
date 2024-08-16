@@ -42,23 +42,30 @@ const label = tw.variants({
                     backgroundColor: 'hover:bg-purple-400/20',
                 },
             },
+            gray: {
+                backgroundColor: 'bg-stone-400/10',
+                color: 'text-stone-400',
+                $hover: {
+                    backgroundColor: 'hover:bg-stone-400/20',
+                },
+            },
         },
         size: {
             sm: {
                 fontSize: 'text-xs',
-                paddingX: 'px-0.5',
+                paddingX: 'px-1',
                 paddingY: 'py-[0.5px]',
                 borderRadius: 'rounded-sm',
             },
             md: {
                 fontSize: 'text-sm',
-                paddingX: 'px-1',
+                paddingX: 'px-1.5',
                 paddingY: 'py-0.5',
                 borderRadius: 'rounded',
             },
             lg: {
                 fontSize: 'text-lg',
-                paddingX: 'px-1.5',
+                paddingX: 'px-2',
                 paddingY: 'py-1',
                 borderRadius: 'rounded-lg',
             },
@@ -69,7 +76,7 @@ const label = tw.variants({
 export interface LabelProps
     extends GetVariants<typeof label>,
         TailwindComponent {
-    children: string
+    children: React.ReactNode
 }
 export const Label = ({
     children,
