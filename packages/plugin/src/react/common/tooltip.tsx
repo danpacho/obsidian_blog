@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTimer } from '../hooks'
 import { tw } from '../tw'
+import { TailwindComponent } from './tailwind.component'
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
-export interface TooltipProps extends ReturnType<typeof useTooltip> {
-    content: string
+export interface TooltipProps
+    extends ReturnType<typeof useTooltip>,
+        TailwindComponent {
+    content: React.ReactNode
     children: React.ReactNode
 }
 
@@ -129,14 +132,14 @@ export const useTooltip = ({
             case 'left':
                 style = {
                     left: -PADDING - tooltipRect.width,
-                    top: triggerRect.height / 2,
+                    top: triggerRef.current.scrollHeight / 2,
                     transform: 'translate(0, -50%)',
                 }
                 break
             case 'right':
                 style = {
                     left: triggerRect.width + PADDING,
-                    top: triggerRect.height / 2,
+                    top: triggerRef.current.scrollHeight / 2,
                     transform: 'translate(0, -50%)',
                 }
                 break
@@ -175,14 +178,23 @@ export const useTooltip = ({
  * </Tooltip>
  * ```
  */
-export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
+export const Tooltip = ({
+    content,
+    children,
+    tw: style,
+    ...controller
+}: TooltipProps) => {
     useEffect(() => {
         controller.calculatePosition()
     }, [controller.active, controller.calculatePosition])
 
+    const tooltipStyle = style
+        ? tooltip.compose(visibility.style(controller.visible), style).class
+        : tooltip.compose(visibility.style(controller.visible)).class
+
     return (
         <div
-            className="relative inline-block h-auto w-[inherit]"
+            className={`relative inline-block h-auto w-[inherit]`}
             ref={controller.triggerRef}
             onPointerEnter={() => {
                 controller.setActive(true)
@@ -197,7 +209,7 @@ export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
 
             <div
                 ref={controller.tooltipRef}
-                className={`${tooltip.class} ${visibility.class(controller.visible)}`}
+                className={tooltipStyle}
                 style={controller.tooltipStyle}
             >
                 <span
