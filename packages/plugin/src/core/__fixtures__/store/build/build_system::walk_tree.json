@@ -20,10 +20,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
@@ -60,10 +57,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
@@ -99,10 +93,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
@@ -137,10 +128,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
@@ -175,10 +163,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
@@ -213,10 +198,7 @@
                     "optional": true
                 },
                 "walkType": {
-                    "type": [
-                        "Literal<BFS>",
-                        "Literal<DFS>"
-                    ],
+                    "type": ["Literal<BFS>", "Literal<DFS>"],
                     "description": "The type of tree walk to perform",
                     "defaultValue": "DFS",
                     "optional": true
