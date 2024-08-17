@@ -1,7 +1,7 @@
 import { statSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 
-export const io = {
+export const Io = {
     fileExists: async (path: string): Promise<boolean> => {
         try {
             await stat(path)
