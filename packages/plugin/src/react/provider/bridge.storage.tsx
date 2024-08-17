@@ -3,10 +3,12 @@ import React, { useEffect, useRef, useState } from 'react'
 import { BuildBridgeStorage } from '../../core/bridge.storage'
 import { useObsidianSetting } from '../hooks/use.setting'
 
+export type BuildStorageKeys = (typeof BUILD_STORAGE_KEYS)[number]
 export const BUILD_STORAGE_KEYS = Object.values(
     Bridge.MANAGER_NAME.buildSystem
 ).filter((key) => key !== 'build_system::internal')
 
+export type PublishStorageKeys = (typeof PUBLISH_STORAGE_KEYS)[number]
 export const PUBLISH_STORAGE_KEYS = Object.values(
     Bridge.MANAGER_NAME.publishSystem
 )
