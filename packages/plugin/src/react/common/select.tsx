@@ -19,7 +19,6 @@ const selectStyle = tw.toggle({
         paddingX: 'px-2',
         borderWidth: 'border',
         borderStyle: 'border-solid',
-        cursor: 'cursor-pointer',
         //@ts-ignore
         boxShadow: '!shadow-none',
         //@ts-ignore
@@ -66,13 +65,14 @@ interface SelectProps extends TailwindComponent {
     options: Array<Options>
     input: string
     setInput: (input: string) => void
-    defaultValue?: string
+    defaultValue?: string | undefined
 }
 export const Select = ({
     title,
     options,
     input,
     setInput,
+    defaultValue,
     tw: style,
 }: SelectProps) => {
     const isActive = input !== ''
@@ -80,11 +80,12 @@ export const Select = ({
         ? tw.mergeProps(selectStyle.style(isActive), style)
         : selectStyle.class(isActive)
 
+    const selectedValue = input || defaultValue
     return (
         <select
             className={className}
             title={title}
-            value={input}
+            value={selectedValue}
             onChange={(e) => {
                 setInput(e.target.value)
             }}
