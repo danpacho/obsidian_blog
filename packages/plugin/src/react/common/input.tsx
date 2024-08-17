@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
+import type { InputType } from '../hooks'
 import { tw } from '../tw'
-import { TailwindComponent } from './tailwind.component'
+import type { TailwindComponent } from './tailwind.component'
 
 const inputStyle = tw.style({
     //@ts-ignore
@@ -46,7 +47,7 @@ const inputStyle = tw.style({
         color: 'hover:!text-stone-300',
     },
 })
-export interface InputProps
+export interface InputProps<InputT extends InputType = InputType>
     extends React.DetailedHTMLProps<
             React.InputHTMLAttributes<HTMLInputElement>,
             HTMLInputElement
@@ -55,10 +56,13 @@ export interface InputProps
     title: string
     description?: string | React.ReactNode
     placeholder?: string
-    input: string
-    setInput: (input: string) => void
+    input?: InputT
+    setInput: (
+        input: InputT,
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => void | Promise<void>
 }
-export const Input = ({
+export const Input = <InputT extends InputType = InputType>({
     children,
     title,
     placeholder,
@@ -68,7 +72,7 @@ export const Input = ({
     onChange,
     tw: style,
     ...inputProps
-}: React.PropsWithChildren<InputProps>) => {
+}: React.PropsWithChildren<InputProps<InputT>>) => {
     const isDescriptionString = typeof description === 'string'
     const className = style
         ? tw.mergeProps(inputStyle.style, style)
@@ -76,9 +80,10 @@ export const Input = ({
 
     return (
         <input
+            {...inputProps}
             className={className}
-            onChange={(e) => {
-                setInput(e.target.value)
+            onChange={async (e) => {
+                await setInput(e.target.value as InputT, e)
                 onChange?.(e)
             }}
             placeholder={
@@ -86,7 +91,7 @@ export const Input = ({
             }
             value={input}
             name={title}
-            {...inputProps}
+            checked={inputProps.checked ?? undefined}
         >
             {children}
         </input>
