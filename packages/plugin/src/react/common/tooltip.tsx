@@ -7,15 +7,13 @@ type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
 export interface TooltipProps
     extends ReturnType<typeof useTooltip>,
-        TailwindComponent,
-        React.HTMLAttributes<HTMLDivElement> {
+        TailwindComponent {
     tooltipContent: React.ReactNode
     children: React.ReactNode
 }
 
 const tooltip = tw.style({
     position: 'absolute',
-    zIndex: 'z-10',
     paddingY: 'py-2',
     paddingX: 'px-2.5',
     color: 'text-white',
@@ -133,14 +131,14 @@ export const useTooltip = ({
             case 'left':
                 style = {
                     left: -PADDING - tooltipRect.width,
-                    top: triggerRef.current.scrollHeight / 2,
+                    top: triggerRect.height / 2,
                     transform: 'translate(0, -50%)',
                 }
                 break
             case 'right':
                 style = {
                     left: triggerRect.width + PADDING,
-                    top: triggerRef.current.scrollHeight / 2,
+                    top: triggerRect.height / 2,
                     transform: 'translate(0, -50%)',
                 }
                 break
@@ -191,8 +189,7 @@ export const Tooltip = ({
 
     return (
         <div
-            {...controller}
-            className={`relative inline-block h-auto w-[inherit] ${controller.className}`}
+            className="relative z-50 inline-block h-auto w-[inherit]"
             ref={controller.triggerRef}
             onPointerEnter={() => {
                 controller.setActive(true)
