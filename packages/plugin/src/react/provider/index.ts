@@ -1,2 +1,2 @@
 export * from './app.root'
-export * from './bridge.store'
+export * from './bridge.storage'

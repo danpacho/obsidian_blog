@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { useObsidianSetting } from './hooks'
-import { StoreProvider } from './provider/bridge.store'
+import { StorageProvider } from './provider/bridge.storage'
 import { Routing } from './routing'
 import { BuildView } from './view/build/build.view'
 import { SetupView } from './view/setup/setup.view'
-import { io } from '~/utils'
+import { Io } from '~/utils'
 
 const Container = (props: React.PropsWithChildren) => {
     const containerRef = useRef<HTMLDivElement>(null)
@@ -27,7 +27,7 @@ const useSetupInitialRoute = (): void => {
     useEffect(() => {
         const setupRoute = async () => {
             if (!settings || !setRoute) return
-            const setupCompleted = await io.fileExists(
+            const setupCompleted = await Io.fileExists(
                 settings.bridge_install_root
             )
             if (setupCompleted) {
@@ -43,12 +43,12 @@ export function App() {
 
     return (
         <Container>
-            <StoreProvider>
+            <StorageProvider>
                 <Routing.Router initialRoute="setup">
                     <Routing.Route path="setup" view={<SetupView />} />
                     <Routing.Route path="build" view={<BuildView />} />
                 </Routing.Router>
-            </StoreProvider>
+            </StorageProvider>
         </Container>
     )
 }
