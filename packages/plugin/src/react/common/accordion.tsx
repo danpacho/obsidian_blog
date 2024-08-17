@@ -67,10 +67,12 @@ const Container = ({
 
 interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
     accordionId?: string
+    indicator?: (isActive: boolean) => React.ReactNode
 }
 const TitleActivator = ({
     children,
     accordionId,
+    indicator,
     ...activatorProps
 }: React.PropsWithChildren<TitleProps>) => {
     const [opened, setOpenedMap] = useAccordion()
@@ -94,6 +96,10 @@ const TitleActivator = ({
     return (
         <div
             {...activatorProps}
+            style={{
+                ...activatorProps.style,
+                cursor: 'pointer',
+            }}
             ref={ref}
             onClick={(e) => {
                 e.preventDefault()
@@ -112,11 +118,16 @@ const TitleActivator = ({
                 })
             }}
         >
-            <span
-                className={`self-center text-stone-600 ${isActive ? 'rotate-90' : 'rotate-0'} transition-transform duration-200 ease-in-out`}
-            >
-                ›
-            </span>
+            {indicator ? (
+                indicator(isActive ?? false)
+            ) : (
+                <span
+                    className={`self-center text-stone-600 ${isActive ? 'rotate-90' : 'rotate-0'} transition-transform duration-200 ease-in-out`}
+                >
+                    ›
+                </span>
+            )}
+
             {children}
         </div>
     )
@@ -124,10 +135,12 @@ const TitleActivator = ({
 
 interface ContentProps extends React.HTMLAttributes<HTMLDivElement> {
     accordionId?: string
+    disableAnimation?: boolean
 }
 const Content = ({
     children,
     accordionId,
+    disableAnimation = false,
     ...contentProps
 }: React.PropsWithChildren<ContentProps>) => {
     const [openedMap, setOpenedMap] = useAccordion()
@@ -152,11 +165,17 @@ const Content = ({
         <div
             {...contentProps}
             ref={ref}
-            style={{
-                height: state?.isActive ? 'auto' : 0,
-                minHeight: state?.isActive ? scrollHeight : 0,
-            }}
-            className={`${state?.isActive ? 'pointer-events-auto translate-x-0 opacity-100' : 'pointer-events-auto -translate-x-7 opacity-50'} origin-top transform-gpu overflow-hidden transition-all duration-100 ease-out ${contentProps.className}`}
+            style={
+                disableAnimation
+                    ? {
+                          display: state?.isActive ? 'block' : 'none',
+                      }
+                    : {
+                          height: state?.isActive ? 'auto' : 0,
+                          minHeight: state?.isActive ? scrollHeight : 0,
+                      }
+            }
+            className={`${state?.isActive ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-5 opacity-0'} origin-top transform-gpu overflow-visible transition-all duration-100 ease-in-out ${contentProps.className}`}
         >
             {children}
         </div>
