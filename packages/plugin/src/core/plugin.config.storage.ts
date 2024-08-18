@@ -36,7 +36,9 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
      */
     public async updateDynamicConfigByUserConfig(
         pluginName: string,
-        dynamicConfig: PluginInterfaceDynamicConfig
+        dynamicConfig:
+            | PluginInterfaceDynamicConfig
+            | Bridge.USER_PLUGIN_LOAD_INPUT
     ): Promise<void> {
         const prevConfig = this.get(pluginName)
         // It is not possible, staticConfig is always defined
