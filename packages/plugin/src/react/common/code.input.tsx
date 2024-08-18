@@ -4,15 +4,22 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { tw } from '../tw'
 import { Button } from './button'
 import { Label } from './label'
+import { Textarea } from './textarea'
 
 const activatedStyle = tw.toggle({
+    base: {
+        minHeight: 'min-h-32',
+        $hover: {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //@ts-ignore
+            backgroundColor: 'hover:!bg-stone-800',
+        },
+    },
     truthy: {
-        zIndex: 'z-10',
         opacity: 'opacity-100',
         pointerEvents: 'pointer-events-auto',
     },
     falsy: {
-        zIndex: 'z-0',
         opacity: 'opacity-0',
         pointerEvents: 'pointer-events-none',
     },
@@ -62,11 +69,10 @@ export const CodeInput = ({
         <>
             {mode === 'writer' && (
                 <div className="relative !size-full min-h-32">
-                    <textarea
-                        ref={textAreaRef}
-                        className={`${activatedStyle.class(
-                            mode === 'writer'
-                        )} !size-full min-h-32 resize-none !border-stone-700 !bg-stone-800 px-2 py-1 font-mono text-sm font-normal !text-stone-300 caret-stone-300 !shadow-none placeholder:text-stone-500`}
+                    <Textarea
+                        tw={activatedStyle.style(mode === 'writer')}
+                        setInput={setInput}
+                        input={input}
                         onChange={async (e) => {
                             const input = e.target.value
                             await setInput(input)
@@ -88,6 +94,7 @@ export const CodeInput = ({
                         aria-label={title}
                         name={title}
                         spellCheck={true}
+                        title={title}
                     />
                     <Button
                         type="normal"
