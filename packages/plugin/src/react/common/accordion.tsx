@@ -167,15 +167,14 @@ const Content = ({
             ref={ref}
             style={
                 disableAnimation
-                    ? {
-                          display: state?.isActive ? 'block' : 'none',
-                      }
+                    ? {}
                     : {
+                          visibility: state?.isActive ? 'visible' : 'hidden',
                           height: state?.isActive ? 'auto' : 0,
                           minHeight: state?.isActive ? scrollHeight : 0,
                       }
             }
-            className={`${state?.isActive ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-5 opacity-0'} origin-top transform-gpu overflow-visible transition-all duration-100 ease-in-out ${contentProps.className}`}
+            className={`${state?.isActive ? `pointer-events-auto translate-y-0 opacity-100 ${disableAnimation && 'visible'}` : `pointer-events-none -translate-y-5 opacity-0 ${disableAnimation && 'hidden'}`} origin-top transform-gpu overflow-visible transition-all duration-100 ease-in-out ${contentProps.className}`}
         >
             {children}
         </div>
