@@ -1,1 +1,1 @@
-export * from './config.viewer'
+export * from './dynamic.config.viewer'

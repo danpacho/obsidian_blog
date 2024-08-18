@@ -1,10 +1,13 @@
 import type {
+    PluginDynamicConfigPrimitiveType,
     PluginDynamicConfigSchema,
     PluginDynamicSchemaType,
     PluginInterfaceDynamicConfig,
     PluginInterfaceStaticConfig,
 } from '@obsidian_blogger/helpers/plugin'
 import { useEffect, useMemo, useState } from 'react'
+import { type UserPluginConfigSetter } from '../build.view'
+import { Decoder } from '../core'
 import { PluginConfigStorage } from '~/core'
 import {
     Accordion,
@@ -13,11 +16,66 @@ import {
     Label,
     Select,
     Text,
+    Textarea,
     Tooltip,
     useTooltip,
 } from '~/react/common'
 import { useMultipleInput } from '~/react/hooks'
 import { Is } from '~/utils'
+
+const GetInitialConfig = ({
+    schema,
+    initialConfig,
+}: {
+    schema: PluginDynamicConfigSchema | undefined
+    initialConfig: PluginInterfaceDynamicConfig | null
+}) => {
+    return Object.entries(schema ?? {}).reduce<
+        Record<string, PluginDynamicConfigPrimitiveType>
+    >((acc, [property, schema]) => {
+        const init = initialConfig?.[property]
+        const isValidInitialConfig =
+            init !== undefined && init !== null && !Is.record(init)
+
+        const isArray =
+            Is.array(init) ||
+            (typeof schema.type === 'string' && schema.type.includes('Array'))
+
+        if (isArray) {
+            if (
+                init === '' ||
+                init === undefined ||
+                init === null ||
+                Array.isArray(init) === false ||
+                (Array.isArray(init) === true && init.length === 0)
+            ) {
+                acc[property] = '[]'
+                return acc
+            }
+
+            const parsed = [...JSON.stringify(init)]
+                .map((e) =>
+                    e
+                        .replace(/"/g, "'")
+                        .replace(/[\n\t ]/, '')
+                        .trim()
+                )
+                .filter(Boolean)
+                .join('')
+
+            try {
+                const arrayLiteral = parsed
+                acc[property] = arrayLiteral
+                return acc
+            } catch (e) {
+                acc[property] = '[]'
+                return acc
+            }
+        }
+        acc[property] = isValidInitialConfig ? init : ''
+        return acc
+    }, {})
+}
 
 type PluginSchemaInfo = Exclude<
     PluginInterfaceStaticConfig['dynamicConfigSchema'],
@@ -26,6 +84,7 @@ type PluginSchemaInfo = Exclude<
 
 interface DynamicConfigViewerProps {
     pluginName: string
+    userPluginConfigSetter: UserPluginConfigSetter
     schema: PluginDynamicConfigSchema | undefined
     configStorage: PluginConfigStorage
     initialConfig: PluginInterfaceDynamicConfig | null
@@ -37,17 +96,17 @@ export const DynamicConfigViewer = ({
     configStorage,
     schema,
     initialConfig,
+    userPluginConfigSetter,
     depth = 0,
     accessingField = [],
 }: DynamicConfigViewerProps) => {
-    const [, { getInput, setInput }] = useMultipleInput(
-        Object.keys(schema ?? {}).reduce<Record<string, unknown>>(
-            (acc, property) => {
-                acc[property] = initialConfig?.[property]
-                return acc
-            },
-            {}
-        )
+    const [, { getInput, setInput }] = useMultipleInput<
+        Record<string, PluginDynamicConfigPrimitiveType>
+    >(
+        GetInitialConfig({
+            schema,
+            initialConfig,
+        })
     )
 
     if (!schema) return null
@@ -61,7 +120,21 @@ export const DynamicConfigViewer = ({
                         property={property}
                         inputManager={{
                             getter: () => getInput(property),
-                            setter: (input) => setInput(property, input),
+                            setter: (input) => {
+                                setInput(
+                                    property,
+                                    input as PluginDynamicConfigPrimitiveType
+                                )
+                                const configKey =
+                                    accessingField.length > 0
+                                        ? `${accessingField.join('.')}.${property}`
+                                        : property
+                                userPluginConfigSetter(configKey, {
+                                    value: input as PluginDynamicConfigPrimitiveType,
+                                    decoder: (value) =>
+                                        Decoder(schemaInfo, value),
+                                })
+                            },
                         }}
                         schemaInfo={schemaInfo}
                         viewerProps={{
@@ -71,6 +144,7 @@ export const DynamicConfigViewer = ({
                             depth,
                             accessingField,
                             configStorage,
+                            userPluginConfigSetter,
                         }}
                     />
                 )
@@ -82,7 +156,7 @@ export const DynamicConfigViewer = ({
 const InferInputType = (
     type: PluginSchemaInfo['type']
 ): {
-    component: 'Input' | 'CodeInput' | 'Union'
+    component: 'Input' | 'Textarea' | 'CodeInput' | 'Union'
     inputType: React.InputHTMLAttributes<HTMLInputElement>['type'] | 'textarea'
 } => {
     const isUnion = Is.array(type) && !Is.record(type)
@@ -126,30 +200,35 @@ const InferInputType = (
             }
         default:
             return {
-                component: 'Input',
+                component: 'Textarea',
                 inputType: 'text',
             }
     }
 }
 
-const DynamicInput = ({
-    property,
-    inputManager,
-    schemaInfo,
-    viewerProps,
-}: {
+interface DynamicInputProps {
     property: string
     inputManager: {
         getter: () => unknown
         setter: (input: unknown) => void | Promise<void>
     }
-    viewerProps: DynamicConfigViewerProps
     schemaInfo: PluginSchemaInfo
-}) => {
-    const { getter: inputGetter, setter: setInput } = inputManager
-
-    const { configStorage, initialConfig, pluginName, accessingField, depth } =
-        viewerProps
+    viewerProps: DynamicConfigViewerProps
+}
+const DynamicInput = ({
+    property,
+    inputManager,
+    schemaInfo,
+    viewerProps,
+}: DynamicInputProps) => {
+    const {
+        configStorage,
+        initialConfig,
+        pluginName,
+        accessingField,
+        depth,
+        userPluginConfigSetter,
+    } = viewerProps
 
     const { type, description, typeDescription, optional } = schemaInfo
 
@@ -182,18 +261,19 @@ const DynamicInput = ({
                         accessingField={newAccessingField}
                         initialConfig={innerInitialConfig}
                         configStorage={configStorage}
+                        userPluginConfigSetter={userPluginConfigSetter}
                     />
                 </DynamicDescription>
             </Accordion.Container>
         )
     }
 
-    const { component, inputType } = InferInputType(type)
+    const { component } = InferInputType(type)
 
     const typeString =
         Is.array(type) && !Is.record(type)
-            ? type.map((e) => extract(e)).join(' | ')
-            : extract(type as string)
+            ? type.map((e) => ExtractTypename(e)).join(' | ')
+            : ExtractTypename(type as string)
 
     return (
         <Accordion.Item
@@ -221,48 +301,97 @@ const DynamicInput = ({
                     />
                 )}
 
-                {component === 'Input' && inputType === 'checkbox' && (
-                    <Input
-                        title={property}
-                        description={description}
-                        placeholder={typeDescription ?? description}
-                        type="checkbox"
-                        setInput={(_, e) => {
-                            setInput(e.target.checked)
-                        }}
-                        checked={Boolean(inputGetter())}
-                        tw={{
-                            width: 'w-fit',
-                        }}
-                    />
-                )}
-
-                {component === 'Input' && inputType !== 'checkbox' && (
-                    <Input
-                        title={property}
-                        description={description}
-                        placeholder={typeDescription ?? description}
-                        type={inputType}
-                        input={inputGetter() as string}
-                        setInput={(input) => setInput(input)}
-                    />
-                )}
-
-                {component === 'CodeInput' && (
-                    <CodeInput
-                        title={property}
-                        input={(
-                            inputGetter() as
-                                | RegExp
-                                | ((...args: unknown[]) => unknown)
-                                | Array<unknown>
-                        ).toString()}
-                        setInput={(input) => setInput(input)}
-                        description={typeDescription ?? description}
-                    />
-                )}
+                <PrimitiveInput
+                    property={property}
+                    schemaInfo={{
+                        type: schemaInfo.type as PluginDynamicSchemaType['primitive'],
+                        description,
+                        typeDescription: typeDescription ?? description,
+                    }}
+                    inputManager={inputManager}
+                />
             </DynamicDescription>
         </Accordion.Item>
+    )
+}
+
+const PrimitiveInput = ({
+    property,
+    schemaInfo,
+    inputManager,
+}: {
+    property: string
+    schemaInfo: Omit<PluginSchemaInfo, 'type'> & {
+        type: PluginDynamicSchemaType['primitive']
+    }
+    inputManager: {
+        getter: () => unknown
+        setter: (input: unknown) => void | Promise<void>
+    }
+}) => {
+    const { type, description, typeDescription } = schemaInfo
+
+    const { component, inputType } = InferInputType(type)
+    const { getter: inputGetter, setter: setInput } = inputManager
+
+    return (
+        <>
+            {component === 'Input' && inputType === 'checkbox' && (
+                <Input
+                    title={property}
+                    description={description}
+                    placeholder={typeDescription ?? description}
+                    type="checkbox"
+                    setInput={(_, e) => {
+                        setInput(e.target.checked)
+                    }}
+                    checked={Boolean(inputGetter())}
+                    tw={{
+                        width: 'w-fit',
+                    }}
+                />
+            )}
+
+            {component === 'Input' && inputType !== 'checkbox' && (
+                <Input
+                    title={property}
+                    description={description}
+                    placeholder={typeDescription ?? description}
+                    type={inputType}
+                    input={inputGetter() as string}
+                    setInput={(input) => {
+                        setInput(input)
+                    }}
+                />
+            )}
+
+            {component === 'Textarea' && (
+                <Textarea
+                    title={property}
+                    description={description}
+                    placeholder={typeDescription ?? description}
+                    input={inputGetter() as string}
+                    setInput={(input) => {
+                        const parsed = input
+                        setInput(parsed)
+                    }}
+                />
+            )}
+
+            {component === 'CodeInput' && (
+                <CodeInput
+                    title={property}
+                    input={(
+                        inputGetter() as
+                            | RegExp
+                            | ((...args: unknown[]) => unknown)
+                            | Array<unknown>
+                    ).toString()}
+                    setInput={(input) => setInput(input)}
+                    description={typeDescription ?? description}
+                />
+            )}
+        </>
     )
 }
 
@@ -359,7 +488,7 @@ const DynamicDescription = ({
     )
 }
 
-const extract = (type: string) => {
+const ExtractTypename = (type: string) => {
     if (type.startsWith('Literal')) {
         return `${type.replaceAll(/[<>Literal]/g, '')}`
     }
@@ -388,7 +517,7 @@ const UnionInput = ({
 
     const options = useMemo(() => {
         return union.map((type) => {
-            const extractedSelect = extract(type)
+            const extractedSelect = ExtractTypename(type)
             return {
                 label: extractedSelect,
                 value: type,
@@ -431,9 +560,7 @@ const UnionInput = ({
         )
     }
 
-    const extracted = extract(selectedType)
     const isNormalInput = selectedType.startsWith('Literal') === false
-    const { component, inputType } = InferInputType(selectedType)
 
     return (
         <div className="flex w-full flex-col items-start justify-center gap-y-1">
@@ -447,57 +574,25 @@ const UnionInput = ({
                     )
                     const isLiteral = input.startsWith('Literal')
                     if (isLiteral) {
-                        setInput(extract(input))
+                        setInput(ExtractTypename(input))
                     }
                 }}
                 options={options}
             />
 
-            {isTypeSelected && (
-                <>
-                    {component === 'Input' && inputType === 'checkbox' && (
-                        <Input
-                            type="checkbox"
-                            title={property}
-                            description={description}
-                            placeholder={typeDescription ?? extracted}
-                            setInput={(_, e) => {
-                                setInput(e.target.checked)
-                            }}
-                            checked={Boolean(inputGetter())}
-                            tw={{
-                                width: 'w-fit',
-                            }}
-                        />
-                    )}
-
-                    {component === 'Input' &&
-                        inputType !== 'checkbox' &&
-                        isNormalInput && (
-                            <Input
-                                type={inputType}
-                                title={property}
-                                description={description}
-                                placeholder={typeDescription ?? extracted}
-                                input={inputGetter() as string}
-                                setInput={(input) => setInput(input)}
-                            />
-                        )}
-
-                    {component === 'CodeInput' && (
-                        <CodeInput
-                            title={property}
-                            description={typeDescription ?? description}
-                            input={(
-                                inputGetter() as
-                                    | RegExp
-                                    | ((...args: unknown[]) => unknown)
-                                    | Array<unknown>
-                            ).toString()}
-                            setInput={(input) => setInput(input)}
-                        />
-                    )}
-                </>
+            {isTypeSelected && isNormalInput && (
+                <PrimitiveInput
+                    property={property}
+                    schemaInfo={{
+                        type: selectedType,
+                        description,
+                        typeDescription: typeDescription ?? description,
+                    }}
+                    inputManager={{
+                        getter: inputGetter,
+                        setter: setInput,
+                    }}
+                />
             )}
         </div>
     )
