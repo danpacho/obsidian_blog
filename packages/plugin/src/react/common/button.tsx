@@ -1,8 +1,12 @@
 import { GetVariants, tw } from '../tw'
 import type { TailwindComponent } from './tailwind.component'
 
-interface ButtonProps extends TailwindComponent, GetVariants<typeof button> {
-    onClick?: () => void | Promise<void>
+export interface ButtonProps
+    extends TailwindComponent,
+        GetVariants<typeof button> {
+    onClick?: (
+        e: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => void | Promise<void>
     ariaLabel?: string
     disabled?: boolean
 }
@@ -112,9 +116,9 @@ export const Button = ({
     return (
         <div
             className={className}
-            onClick={async () => {
+            onClick={async (e) => {
                 if (disabled || type === 'disabled') return
-                await onClick?.()
+                await onClick?.(e)
             }}
             aria-label={ariaLabel}
         >
