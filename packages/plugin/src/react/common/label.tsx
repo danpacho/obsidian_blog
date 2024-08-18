@@ -10,43 +10,55 @@ const label = tw.variants({
             blue: {
                 backgroundColor: 'bg-blue-400/10',
                 color: 'text-blue-400',
+                borderColor: 'border-blue-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-blue-400/20',
+                    borderColor: 'hover:border-blue-400',
                 },
             },
             red: {
                 backgroundColor: 'bg-red-400/10',
                 color: 'text-red-400',
+                borderColor: 'border-red-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-red-400/20',
+                    borderColor: 'hover:border-red-400',
                 },
             },
             green: {
                 backgroundColor: 'bg-green-400/10',
                 color: 'text-green-400',
+                borderColor: 'border-green-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-green-400/20',
+                    borderColor: 'hover:border-green-400',
                 },
             },
             yellow: {
                 backgroundColor: 'bg-yellow-400/10',
                 color: 'text-yellow-400',
+                borderColor: 'border-yellow-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-yellow-400/20',
+                    borderColor: 'hover:border-yellow-400',
                 },
             },
             purple: {
                 backgroundColor: 'bg-purple-400/10',
                 color: 'text-purple-400',
+                borderColor: 'border-purple-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-purple-400/20',
+                    borderColor: 'hover:border-purple-400',
                 },
             },
             gray: {
                 backgroundColor: 'bg-stone-400/10',
                 color: 'text-stone-400',
+                borderColor: 'border-stone-400/50',
                 $hover: {
                     backgroundColor: 'hover:bg-stone-400/20',
+                    borderColor: 'hover:border-stone-400',
                 },
             },
         },
@@ -70,6 +82,15 @@ const label = tw.variants({
                 borderRadius: 'rounded-lg',
             },
         },
+        style: {
+            vanilla: {
+                borderColor: 'border-transparent',
+                borderWidth: 'border-0',
+            },
+            border: {
+                borderWidth: 'border',
+            },
+        },
     },
 })
 
@@ -82,11 +103,12 @@ export const Label = ({
     children,
     color = 'blue',
     size = 'md',
+    style: border = 'vanilla',
     tw: style,
 }: LabelProps) => {
     const className = style
-        ? tw.mergeProps(label.style({ color, size }), style)
-        : label.class({ color, size })
+        ? tw.mergeProps(label.style({ color, size, style: border }), style)
+        : label.class({ color, size, style: border })
 
     return <span className={className}>{children}</span>
 }
