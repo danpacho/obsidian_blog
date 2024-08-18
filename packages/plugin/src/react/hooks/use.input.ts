@@ -55,26 +55,34 @@ export const useMultipleInput = <
         onErrors?: Partial<Record<keyof InputRecord, ErrorHandler<unknown>>>
     }
 ): readonly [
-    Map<keyof InputRecord, unknown>,
+    Map<keyof InputRecord, InputRecord[keyof InputRecord]>,
     {
-        setInput: (key: keyof InputRecord, value: unknown) => void
-        getInput: (key: keyof InputRecord) => unknown
+        setInput: (
+            key: keyof InputRecord,
+            value: InputRecord[keyof InputRecord]
+        ) => void
+        getInput: (key: keyof InputRecord) => InputRecord[keyof InputRecord]
     },
 ] => {
-    const [inputs, setInputs] = useState<Map<keyof InputRecord, unknown>>(
+    const [inputs, setInputs] = useState<
+        Map<keyof InputRecord, InputRecord[keyof InputRecord]>
+    >(
         () =>
             new Map(
                 Object.entries(inputRecord).map(([key, value]) => [
                     key as keyof InputRecord,
-                    value ?? '',
+                    value as InputRecord[keyof InputRecord],
                 ])
             )
     )
 
-    const getInput = (key: keyof InputRecord): unknown =>
-        inputs.get(key) ?? 'NULL'
+    const getInput = (key: keyof InputRecord): InputRecord[keyof InputRecord] =>
+        inputs.get(key)!
 
-    const setInput = (key: keyof InputRecord, value: unknown) => {
+    const setInput = (
+        key: keyof InputRecord,
+        value: InputRecord[keyof InputRecord]
+    ) => {
         if (handler?.validators?.[key]) {
             const result = handler.validators[key]!(value)
             if (!result.isValid) {
