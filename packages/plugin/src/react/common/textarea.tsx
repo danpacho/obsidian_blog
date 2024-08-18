@@ -1,48 +1,106 @@
-import React from 'react'
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import type { InputType } from '../hooks'
+import { tw } from '../tw'
+import type { TailwindComponent } from './tailwind.component'
 
-export interface TextAreaProps {
+const textareaStyle = tw.style({
+    //@ts-ignore
+    width: '!w-full',
+    //@ts-ignore
+    fontFamily: '!font-mono',
+    //@ts-ignore
+    fontSize: '!text-sm',
+    paddingX: 'px-2',
+    paddingY: 'py-1.5',
+    fontWeight: 'font-normal',
+    //@ts-ignore
+    color: '!text-stone-300',
+    $placeholder: {
+        //@ts-ignore
+        color: 'placeholder:!text-stone-500',
+        //@ts-ignore
+        fontSize: 'placeholder:!text-sm',
+    },
+    //@ts-ignore
+    resize: '!resize-y',
+    minHeight: 'min-h-20',
+    //@ts-ignore
+    boxShadow: '!shadow-none',
+    //@ts-ignore
+    backgroundColor: '!bg-stone-800',
+    //@ts-ignore
+    borderColor: '!border-stone-700',
+    //@ts-ignore
+    caretColor: '!caret-stone-300',
+    //@ts-ignore
+    accentColor: '!accent-stone-300',
+    transition: 'transition-colors ease-in-out',
+    transitionDuration: 'duration-200',
+    $checked: {
+        //@ts-ignore
+        caretColor: 'checked:!accent-stone-300',
+        //@ts-ignore
+        accentColor: 'checked:!accent-stone-300',
+        //@ts-ignore
+        backgroundColor: 'checked:!bg-stone-800',
+        $after: {
+            //@ts-ignore
+            backgroundColor: 'checked:after:!bg-stone-300',
+        },
+    },
+    $hover: {
+        //@ts-ignore
+        backgroundColor: 'hover:!bg-stone-500/10',
+        //@ts-ignore
+        color: 'hover:!text-stone-300',
+    },
+})
+export interface TextareaProps<TextareaType extends InputType = InputType>
+    extends React.DetailedHTMLProps<
+            React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+            HTMLTextAreaElement
+        >,
+        TailwindComponent {
     title: string
     description?: string | React.ReactNode
-    input: string
-    setInput: (input: string) => void
-    onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+    placeholder?: string
+    input?: TextareaType
+    setInput: (
+        input: TextareaType,
+        e: React.ChangeEvent<HTMLTextAreaElement>
+    ) => void | Promise<void>
 }
-
-export const TextArea = ({
+export const Textarea = <TextareaType extends InputType = InputType>({
+    children,
+    title,
+    placeholder,
+    description,
     input,
     setInput,
-    title,
-    description,
     onChange,
-}: TextAreaProps) => {
+    tw: style,
+    ...textareaProps
+}: React.PropsWithChildren<TextareaProps<TextareaType>>) => {
     const isDescriptionString = typeof description === 'string'
-    return (
-        <div className="flex w-full flex-col items-start justify-between gap-y-1">
-            <div className="flex flex-row items-center justify-between gap-x-1">
-                <h1 className="ml-1 text-sm font-light text-stone-300">
-                    {title}
-                </h1>
-                {isDescriptionString && (
-                    <p className="ml-1 text-xs font-light text-stone-400">
-                        {description}
-                    </p>
-                )}
-                {!isDescriptionString && description && (
-                    <div className="ml-1">{description}</div>
-                )}
-            </div>
+    const className = style
+        ? tw.mergeProps(textareaStyle.style, style)
+        : textareaStyle.class
 
-            <textarea
-                className="!w-full px-2 py-1 text-sm font-normal !text-stone-300 placeholder:text-stone-500"
-                onChange={(e) => {
-                    setInput(e.target.value)
-                    onChange?.(e)
-                }}
-                placeholder={isDescriptionString ? description : title}
-                value={input}
-                aria-label={title}
-                name={title}
-            />
-        </div>
+    return (
+        <textarea
+            {...textareaProps}
+            className={className}
+            onChange={async (e) => {
+                await setInput(e.target.value as TextareaType, e)
+                onChange?.(e)
+            }}
+            placeholder={
+                placeholder ?? (isDescriptionString ? description : title)
+            }
+            value={input}
+            name={title}
+        >
+            {children}
+        </textarea>
     )
 }
