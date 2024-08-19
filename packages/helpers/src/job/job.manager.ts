@@ -279,23 +279,25 @@ export class JobManager<JobResponse = unknown> {
 
             const job = this.$jobQueue.dequeue()!
             const targetHistoryJob = this.$history.stack[this._jobStackIndex]!
+
+            await this.notifyJobProgress(targetHistoryJob)
             const preparedArgs = await job.prepare?.()
 
             this.jobStart(targetHistoryJob)
-
+            await this.notifyJobProgress(targetHistoryJob)
             try {
                 const jobResponse = await job.execute(
                     processController,
                     preparedArgs
                 )
                 this.jobSucceeded(targetHistoryJob, jobResponse)
+                await this.notifyJobProgress(targetHistoryJob)
             } catch (error) {
                 this.jobFailed(targetHistoryJob, error)
+                await this.notifyJobProgress(targetHistoryJob)
             } finally {
                 await job.cleanup?.(targetHistoryJob)
             }
-
-            await this.notifyJobProgress(targetHistoryJob)
 
             this._jobRemaining -= 1
             this._jobStackIndex += 1
