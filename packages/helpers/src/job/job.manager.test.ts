@@ -276,16 +276,21 @@ describe('JobManager', () => {
         jobManager.subscribeJobProgress(jobProgress)
         jobManager.subscribeJobProgress(logger)
 
+        const timer = async (interval: number) => {
+            return new Promise((resolve) => setTimeout(resolve, interval))
+        }
         jobManager.registerJobs([
             {
                 name: 'job1',
                 execute: async () => {
+                    await timer(100)
                     return 'Job 1 response'
                 },
             },
             {
                 name: 'job2',
                 execute: async () => {
+                    await timer(100)
                     return 'Job 2 response'
                 },
             },
@@ -293,7 +298,9 @@ describe('JobManager', () => {
 
         await jobManager.processJobs()
 
-        expect(jobProgress).toHaveBeenCalledTimes(2)
+        // Should be called when job status changed, :pending, :started, :success
+        const calledStatus = ['pending', 'started', 'success']
+        expect(jobProgress).toHaveBeenCalledTimes(2 * calledStatus.length)
     })
 
     it('should include job errors', async () => {
