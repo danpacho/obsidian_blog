@@ -44,6 +44,7 @@ export const ProgressButton = ({
     controller,
     startProgress,
     afterStatusChange,
+    disabled,
     idleRecoverTime = 1000,
     ...buttonProps
 }: ProgressButtonProps) => {
@@ -63,8 +64,10 @@ export const ProgressButton = ({
         <Button
             {...buttonProps}
             type={STATUS_BUTTON_TYPE[status]}
-            disabled={status !== 'idle'}
+            disabled={status !== 'idle' || (disabled ?? false)}
             onClick={async (e) => {
+                if (disabled) return
+
                 if (error.current) {
                     error.current = null
                 }
