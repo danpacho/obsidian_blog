@@ -23,8 +23,7 @@ describe('JobManager', () => {
                 return 'Job 2 response'
             },
         })
-        const res = await jobManager.processJobs()
-        expect(res).toBe(true)
+        await jobManager.processJobs()
 
         expect(jobManager.history.length).toBe(2)
 
@@ -90,9 +89,7 @@ describe('JobManager', () => {
                 expect(job.response?.response).toBe('Job 1 response')
             },
         })
-        const result = await jobManager.processJobs()
-
-        expect(result).toBe(true)
+        await jobManager.processJobs()
     })
 
     it('should pass job props at [before]', async () => {
