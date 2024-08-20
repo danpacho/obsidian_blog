@@ -3,7 +3,6 @@ import { PluginDynamicConfigSchema } from '../arg_parser'
 import {
     PluginInterface,
     PluginInterfaceStaticConfig,
-    PluginRunnerResponse,
     PluginShape,
 } from '../plugin.interface'
 import { PluginManager } from '../plugin.manager'
@@ -84,7 +83,7 @@ describe('LoadConfigBridgeStorage', async () => {
             })
         }
 
-        public async execute(): Promise<PluginRunnerResponse> {
+        public async execute() {
             this.$jobManager.registerJob({
                 name: this.staticConfig.name,
                 execute: async () => {
