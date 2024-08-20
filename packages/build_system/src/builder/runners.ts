@@ -26,7 +26,7 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<
         deps: BuildTreePluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     plugin.injectDependencies(deps)
@@ -41,7 +41,7 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
     }
@@ -59,7 +59,7 @@ export class WalkTreePluginRunner extends Runner.PluginRunner<
         deps: WalkTreePluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     plugin.injectDependencies(deps)
@@ -74,7 +74,7 @@ export class WalkTreePluginRunner extends Runner.PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
     }
@@ -92,7 +92,7 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
         deps: BuildContentsPluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     plugin.injectDependencies(deps)
@@ -120,7 +120,14 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
                         }
                     }
 
-                    return buildedContents
+                    return buildedContents.map((job) => {
+                        return {
+                            ...job,
+                            response: job.response?.map(
+                                (response) => response.writePath
+                            ),
+                        }
+                    })
                 },
                 cleanup: async (job) => {
                     await plugin.cleanup?.(job)
@@ -128,7 +135,7 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
     }

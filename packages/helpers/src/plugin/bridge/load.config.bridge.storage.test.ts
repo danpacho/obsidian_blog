@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { PluginDynamicConfigSchema } from '../arg_parser'
 import {
-    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
+    PluginRunnerResponse,
     PluginShape,
 } from '../plugin.interface'
 import { PluginManager } from '../plugin.manager'
@@ -14,7 +14,7 @@ describe('LoadConfigBridgeStorage', async () => {
     class Runner extends PluginRunner {
         public async run(pipes: Array<PluginShape>): Promise<this['history']> {
             for (const plugin of pipes) {
-                this.$jobManager.registerJob({
+                this.$pluginRunner.registerJob({
                     name: plugin.name,
                     prepare: async () => {
                         return await plugin.prepare?.()
@@ -28,7 +28,7 @@ describe('LoadConfigBridgeStorage', async () => {
                 })
             }
 
-            await this.$jobManager.processJobs()
+            await this.$pluginRunner.processJobs()
 
             return this.history
         }
@@ -84,7 +84,7 @@ describe('LoadConfigBridgeStorage', async () => {
             })
         }
 
-        public async execute(): Promise<PluginExecutionResponse> {
+        public async execute(): Promise<PluginRunnerResponse> {
             this.$jobManager.registerJob({
                 name: this.staticConfig.name,
                 execute: async () => {

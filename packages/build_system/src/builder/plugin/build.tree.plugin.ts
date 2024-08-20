@@ -1,4 +1,3 @@
-import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
 import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
 import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
@@ -139,7 +138,7 @@ export abstract class BuildTreePlugin<
     public async execute(
         _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['treeCachePipeline']
-    ): Promise<PluginExecutionResponse<void>> {
+    ) {
         this.$jobManager.registerJob({
             name: 'build:tree',
             prepare: async () => {
@@ -179,12 +178,11 @@ export abstract class BuildTreePlugin<
                           }
                         : defaultOptions
                 )
-                return
             },
         })
 
         await this.$jobManager.processJobs()
 
-        return this.$jobManager.history as PluginExecutionResponse<void>
+        return this.$jobManager.history
     }
 }

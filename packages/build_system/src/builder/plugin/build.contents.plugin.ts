@@ -1,4 +1,4 @@
-import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
+import type { Job } from '@obsidian_blogger/helpers/job'
 import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
 import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
@@ -9,7 +9,6 @@ import {
     type BuildPluginStaticConfig,
 } from './build.plugin'
 import type { PluginCachePipelines } from './cache.interface'
-
 export interface BuildContentsPluginStaticConfig
     extends BuildPluginStaticConfig {}
 export type BuildContentsDynamicConfig = BuildPluginDynamicConfig
@@ -88,14 +87,14 @@ export abstract class BuildContentsPlugin<
         _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['buildContentsCachePipeline']
     ): Promise<
-        PluginExecutionResponse<
-            [
-                Array<{
+        [
+            Job<
+                {
                     newContent: string
                     writePath: string
-                }>,
-            ]
-        >
+                }[]
+            >,
+        ]
     > {
         this.$jobManager.registerJob({
             name: 'build:contents',
@@ -122,13 +121,13 @@ export abstract class BuildContentsPlugin<
 
         await this.$jobManager.processJobs()
 
-        return this.$jobManager.history as PluginExecutionResponse<
-            [
-                Array<{
+        return this.$jobManager.history as [
+            Job<
+                {
                     newContent: string
                     writePath: string
-                }>,
-            ]
-        >
+                }[]
+            >,
+        ]
     }
 }
