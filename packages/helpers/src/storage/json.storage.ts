@@ -63,35 +63,39 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
             const fileExists = await this.$io.reader.fileExists(
                 this.options.root
             )
-            if (fileExists) {
-                const result = await this.$io.reader.readFile(this.options.root)
-                if (result.success) {
-                    if (result.data.trim() === '') {
-                        // If file is empty, initialize with an empty map
-                        this._storage = new Map<string, Schema>()
-                    } else {
-                        try {
-                            const parsedData = this.deserializer(result.data)
-                            this._storage = new Map(Object.entries(parsedData))
-                        } catch (parseError) {
-                            throw new StorageError(
-                                'load',
-                                'Failed to parse storage file',
-                                'Storage file should contain valid JSON',
-                                parseError instanceof Error
-                                    ? parseError.message
-                                    : undefined
-                            )
-                        }
-                    }
-                } else {
-                    throw new StorageError(
-                        'load',
-                        'Failed to read storage file',
-                        'Storage file should be readable',
-                        JSON.stringify(result.error, null, 2)
-                    )
-                }
+            if (!fileExists) {
+                await this.init()
+                return
+            }
+
+            const loaded = await this.$io.reader.readFile(this.options.root)
+
+            if (!loaded.success) {
+                throw new StorageError(
+                    'load',
+                    'Failed to read storage file',
+                    'Storage file should be readable',
+                    JSON.stringify(loaded.error, null, 2)
+                )
+            }
+
+            const isEmpty = loaded.data.trim() === ''
+            if (isEmpty) {
+                // If file is empty, initialize with an empty map
+                this._storage = new Map<string, Schema>()
+                return
+            }
+
+            try {
+                const parsedLoadedData = this.deserializer(loaded.data)
+                this._storage = new Map(Object.entries(parsedLoadedData))
+            } catch (parseError) {
+                throw new StorageError(
+                    'load',
+                    'Failed to parse storage file',
+                    'Storage file should contain valid JSON',
+                    parseError instanceof Error ? parseError.message : undefined
+                )
             }
         } catch (error) {
             throw new StorageError(
