@@ -414,24 +414,30 @@ export function SetupView() {
 
                             setInstallProgress('installing')
 
-                            const installResult = await createBloggerBridge(
-                                node_bin,
-                                {
-                                    bridge_install_root,
-                                    obsidian_vault_root,
-                                    blog_assets_root,
-                                    blog_contents_root,
-                                }
-                            )
-                            const isError =
-                                'error_code' in installResult &&
-                                installResult.stderr !== ''
+                            try {
+                                await Io.removeDir(bridge_install_root)
 
-                            if (isError) {
+                                const installResult = await createBloggerBridge(
+                                    node_bin,
+                                    {
+                                        bridge_install_root,
+                                        obsidian_vault_root,
+                                        blog_assets_root,
+                                        blog_contents_root,
+                                    }
+                                )
+                                const isError =
+                                    'error_code' in installResult &&
+                                    installResult.stderr !== ''
+
+                                if (isError) {
+                                    setInstallProgress('install_failed')
+                                } else {
+                                    setInstallProgress('install_success')
+                                    moveToBuildView()
+                                }
+                            } catch (e) {
                                 setInstallProgress('install_failed')
-                            } else {
-                                setInstallProgress('install_success')
-                                moveToBuildView()
                             }
                         }}
                     >
