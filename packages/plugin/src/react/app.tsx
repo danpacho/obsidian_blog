@@ -28,7 +28,7 @@ const useSetupInitialRoute = (): void => {
         const setupRoute = async () => {
             if (!settings || !setRoute) return
             const setupCompleted = await Io.fileExists(
-                settings.bridge_install_root
+                `${settings.bridge_install_root}/node_modules`
             )
             if (setupCompleted) {
                 setRoute('build')
