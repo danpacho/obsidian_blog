@@ -1,6 +1,6 @@
 #!/bin/env node
+import { io, lg } from 'utils'
 import Watcher from 'watcher'
-import { io, lg } from '../utils'
 import { generateManifest } from './generateManifest'
 
 generateManifest({
