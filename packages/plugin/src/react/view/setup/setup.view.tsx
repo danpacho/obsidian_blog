@@ -5,13 +5,14 @@ import {
     Input,
     Label,
     Loader,
+    Text,
     Tooltip,
     useTooltip,
 } from '~/react/common'
 import { useInput, useObsidianSetting, useTimer } from '~/react/hooks'
 import { useApp } from '~/react/provider/app.root'
 import { Routing } from '~/react/routing'
-import { io, shell } from '~/utils'
+import { Io, Shell } from '~/utils'
 
 interface InstallConfig {
     bridge_install_root: string
@@ -37,7 +38,7 @@ const createBloggerBridge = async (nodeBin: string, config: InstallConfig) => {
 
     const configValues = Object.values(config)
 
-    const installResponse = await shell.spawn$(
+    const installResponse = await Shell.spawn$(
         nodePath,
         [npxPath, 'create-obsidian-blogger', 'create', ...configValues],
         {
@@ -86,50 +87,64 @@ const ConfigInput = ({
 
     const message = isError ? 'Error' : isValid ? 'Saved' : 'Save'
     return (
-        <div key={id} className="px-1 pt-3">
-            <div className="flex flex-row items-end justify-between gap-2">
-                <Input
-                    input={input}
-                    setInput={(input) => setInput(input)}
-                    title={title}
-                    placeholder={isError ? error : description}
-                    description={
-                        <>
-                            <Label color={required ? 'yellow' : 'green'}>
-                                {required ? 'required' : 'optional'}
-                            </Label>
-                        </>
-                    }
-                />
-                <Button
-                    tw={{ fontSize: 'text-xs' }}
-                    type={isError ? 'error' : isValid ? 'success' : 'normal'}
-                    onClick={async () => {
-                        if (!app) return
-                        if (!isValidConfig(input)) {
-                            setIsValid(false)
-                            setErrorMessages([
-                                'Invalid path format. Please check the path',
-                                input,
-                            ])
-                            return
+        <div key={id} className="w-full px-1 pt-3">
+            <div className="flex w-full flex-col items-start justify-start gap-2">
+                <div className="flex w-full flex-row gap-x-2">
+                    <Text.Paragraph tw={{ fontFamily: 'font-mono' }}>
+                        {title}
+                    </Text.Paragraph>
+                    <Label color={required ? 'yellow' : 'green'}>
+                        {required ? 'required' : 'optional'}
+                    </Label>
+                </div>
+                <div className="flex w-full flex-row gap-x-2">
+                    <Input
+                        input={input}
+                        type="text"
+                        setInput={(input) => setInput(input)}
+                        title={title}
+                        placeholder={isError ? error : description}
+                        description={
+                            <>
+                                <Label color={required ? 'yellow' : 'green'}>
+                                    {required ? 'required' : 'optional'}
+                                </Label>
+                            </>
                         }
-                        try {
-                            setIsValid(true)
-                            setErrorMessages([])
-                            app.settings[id] = input ?? ''
-                            await app?.saveSettings()
-                        } catch (e) {
-                            setIsValid(false)
-                            if (e instanceof Error) {
-                                setErrorMessages([e.message, input])
+                    />
+                    <Button
+                        tw={{ fontSize: 'text-xs' }}
+                        type={
+                            isError ? 'error' : isValid ? 'success' : 'normal'
+                        }
+                        onClick={async () => {
+                            if (!app) return
+                            if (!isValidConfig(input)) {
+                                setIsValid(false)
+                                setErrorMessages([
+                                    'Invalid path format. Please check the path',
+                                    input,
+                                ])
+                                return
                             }
-                        }
-                    }}
-                >
-                    {message}
-                </Button>
+                            try {
+                                setIsValid(true)
+                                setErrorMessages([])
+                                app.settings[id] = input ?? ''
+                                await app?.saveSettings()
+                            } catch (e) {
+                                setIsValid(false)
+                                if (e instanceof Error) {
+                                    setErrorMessages([e.message, input])
+                                }
+                            }
+                        }}
+                    >
+                        {message}
+                    </Button>
+                </div>
             </div>
+
             {isError && <Label color="red">{error}</Label>}
         </div>
     )
@@ -292,7 +307,7 @@ export function SetupView() {
         )
         if (!valid) return 'invalid'
 
-        const alreadyInstalled = await io.fileExists(
+        const alreadyInstalled = await Io.fileExists(
             settings.bridge_install_root
         )
 
@@ -372,7 +387,10 @@ export function SetupView() {
             <ConfigView />
 
             <div className="flex w-full flex-col gap-y-2 py-5">
-                <Tooltip content={tooltipContent()} {...tooltipController}>
+                <Tooltip
+                    tooltipContent={tooltipContent()}
+                    {...tooltipController}
+                >
                     <Button
                         tw={{ width: 'w-full' }}
                         type={buttonType()}
@@ -396,24 +414,30 @@ export function SetupView() {
 
                             setInstallProgress('installing')
 
-                            const installResult = await createBloggerBridge(
-                                node_bin,
-                                {
-                                    bridge_install_root,
-                                    obsidian_vault_root,
-                                    blog_assets_root,
-                                    blog_contents_root,
-                                }
-                            )
-                            const isError =
-                                'error_code' in installResult &&
-                                installResult.stderr !== ''
+                            try {
+                                await Io.removeDir(bridge_install_root)
 
-                            if (isError) {
+                                const installResult = await createBloggerBridge(
+                                    node_bin,
+                                    {
+                                        bridge_install_root,
+                                        obsidian_vault_root,
+                                        blog_assets_root,
+                                        blog_contents_root,
+                                    }
+                                )
+                                const isError =
+                                    'error_code' in installResult &&
+                                    installResult.stderr !== ''
+
+                                if (isError) {
+                                    setInstallProgress('install_failed')
+                                } else {
+                                    setInstallProgress('install_success')
+                                    moveToBuildView()
+                                }
+                            } catch (e) {
                                 setInstallProgress('install_failed')
-                            } else {
-                                setInstallProgress('install_success')
-                                moveToBuildView()
                             }
                         }}
                     >

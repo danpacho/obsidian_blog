@@ -2,17 +2,24 @@
 import { loadPrism } from 'obsidian'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { tw } from '../tw'
+import { Button } from './button'
 import { Label } from './label'
+import { Textarea } from './textarea'
 
 const activatedStyle = tw.toggle({
-    base: {},
+    base: {
+        minHeight: 'min-h-32',
+        $hover: {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //@ts-ignore
+            backgroundColor: 'hover:!bg-stone-800',
+        },
+    },
     truthy: {
-        zIndex: 'z-10',
         opacity: 'opacity-100',
         pointerEvents: 'pointer-events-auto',
     },
     falsy: {
-        zIndex: 'z-0',
         opacity: 'opacity-0',
         pointerEvents: 'pointer-events-none',
     },
@@ -20,9 +27,9 @@ const activatedStyle = tw.toggle({
 
 export interface CodeInputProps {
     title: string
-    description?: string | React.ReactNode
+    description?: string
     input: string
-    setInput: (input: string) => void
+    setInput: (input: string) => void | Promise<void>
     onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 export const CodeInput = ({
@@ -37,7 +44,6 @@ export const CodeInput = ({
     const [mode, setMode] = useState<'viewer' | 'writer'>('writer')
     const textAreaRef = useRef<HTMLTextAreaElement>(null)
     const isDescriptionString = typeof description === 'string'
-
     useEffect(() => {
         const initializePrism = async () => {
             const Prism = await loadPrism()
@@ -60,50 +66,55 @@ export const CodeInput = ({
     )
 
     return (
-        <div className="flex h-auto w-full flex-col items-start justify-between gap-y-1">
-            <div className="flex flex-row items-center justify-between gap-x-1">
-                <h1 className="ml-1 text-sm font-light text-stone-300">
-                    {title}
-                </h1>
-                {isDescriptionString && (
-                    <p className="ml-1 text-xs font-light text-stone-400">
-                        {description}
-                    </p>
-                )}
-                {!isDescriptionString && description && (
-                    <div className="ml-1">{description}</div>
-                )}
-            </div>
-
-            <div className="relative w-full">
-                <textarea
-                    ref={textAreaRef}
-                    className={`${activatedStyle.class(
-                        mode === 'writer'
-                    )} absolute inset-0 h-fit min-h-32 !w-full bg-transparent px-2 py-1 text-sm font-normal !text-stone-300 caret-stone-300 placeholder:text-stone-500`}
-                    onChange={(e) => {
-                        const input = e.target.value
-                        setInput(input)
-
-                        onChange?.(e)
-                    }}
-                    onFocus={() => {
-                        setMode('writer')
-                    }}
-                    onBlur={() => {
-                        updateCode(input)
-                        setMode('viewer')
-                    }}
-                    onSubmit={() => {
-                        updateCode(input)
-                        setMode('viewer')
-                    }}
-                    placeholder={isDescriptionString ? description : title}
-                    value={input}
-                    aria-label={title}
-                    name={title}
-                    spellCheck={false}
-                />
+        <>
+            {mode === 'writer' && (
+                <div className="relative !size-full min-h-32">
+                    <Textarea
+                        tw={activatedStyle.style(mode === 'writer')}
+                        setInput={setInput}
+                        input={input}
+                        onChange={async (e) => {
+                            const input = e.target.value
+                            await setInput(input)
+                            onChange?.(e)
+                        }}
+                        onFocus={() => {
+                            setMode('writer')
+                        }}
+                        onBlur={() => {
+                            updateCode(input)
+                            setMode('viewer')
+                        }}
+                        onSubmit={() => {
+                            updateCode(input)
+                            setMode('viewer')
+                        }}
+                        placeholder={isDescriptionString ? description : title}
+                        value={input}
+                        aria-label={title}
+                        name={title}
+                        spellCheck={true}
+                        title={title}
+                    />
+                    <Button
+                        type="normal"
+                        size="sm"
+                        tw={{
+                            position: 'absolute',
+                            right: 'right-2',
+                            top: 'top-2',
+                            zIndex: 'z-10',
+                        }}
+                        onClick={() => {
+                            updateCode(input)
+                            setMode('viewer')
+                        }}
+                    >
+                        save
+                    </Button>
+                </div>
+            )}
+            {mode === 'viewer' && (
                 <pre
                     onClick={() => {
                         setMode('writer')
@@ -111,7 +122,7 @@ export const CodeInput = ({
                     }}
                     className={`${activatedStyle.class(
                         mode === 'viewer'
-                    )} absolute inset-0 m-0 size-full min-h-32 overflow-auto whitespace-pre-wrap rounded border border-stone-400/10 bg-transparent px-2 py-1 font-mono text-sm font-normal text-stone-300 hover:cursor-pointer hover:bg-stone-500/10`}
+                    )} relative m-0 size-full min-h-32 overflow-auto whitespace-pre-wrap rounded border border-stone-400/10 bg-stone-900/90 px-2 py-1 font-mono text-sm font-normal !text-stone-300 !caret-stone-300 hover:cursor-pointer hover:bg-stone-500/10`}
                 >
                     {highlightedCode && (
                         <code
@@ -123,12 +134,22 @@ export const CodeInput = ({
                         />
                     )}
                     {!highlightedCode && (
-                        <div className="flex size-full items-center justify-center">
-                            <Label color="yellow">Write JS function</Label>
-                        </div>
+                        <Label
+                            color="gray"
+                            size="sm"
+                            tw={{
+                                position: 'absolute',
+                                top: 'top-1/2',
+                                left: 'left-1/2',
+                                transformTranslateX: '-translate-x-1/2',
+                                transformTranslateY: '-translate-y-1/2',
+                            }}
+                        >
+                            Write JS function
+                        </Label>
                     )}
                 </pre>
-            </div>
-        </div>
+            )}
+        </>
     )
 }

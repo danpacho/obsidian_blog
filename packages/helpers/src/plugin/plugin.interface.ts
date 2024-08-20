@@ -2,15 +2,14 @@
 import {
     Job,
     JobManager,
-    JobManagerConstructor,
-    JobRegistrationShape,
+    type JobManagerConstructor,
+    type JobRegistrationShape,
 } from '../job'
 import {
     DynamicConfigParser,
     type PluginDynamicConfigPrimitiveType,
     type PluginDynamicConfigSchema,
 } from './arg_parser'
-
 /**
  * Plugin base static configuration interface
  */
@@ -66,27 +65,13 @@ export interface PluginInterfaceStaticConfig {
     jobManagerConfig?: JobManagerConstructor
 }
 
-type MappedJob<JobResponses extends readonly [...unknown[]]> =
-    JobResponses extends readonly [infer Head, ...infer Tail]
-        ? Tail extends readonly [...unknown[]]
-            ? [Job<Head>, ...MappedJob<Tail>]
-            : [Job<Head>]
-        : JobResponses
-
 /**
  * Plugin execution response
- * @example
- * ```ts
- * type ExecutionResponse = PluginExecutionResponse<[string, number]>
- * // [Job<string>, Job<number>]
- * type ExecutionResponse = PluginExecutionResponse<string>
- * // Array<Job<string>>
  * ```
  */
-export type PluginExecutionResponse<ExecutionResponse = unknown> =
-    ExecutionResponse extends readonly [...unknown[]]
-        ? MappedJob<ExecutionResponse>
-        : Array<Job<ExecutionResponse>>
+export type PluginExecutionResponse<ExecutionResponse = unknown> = Array<
+    Job<ExecutionResponse>
+>
 
 class PluginInterfaceError extends SyntaxError {
     public constructor(message: string, config: unknown, cause?: unknown) {
@@ -152,6 +137,7 @@ export type InferPluginConfig<Plugin extends PluginShape> =
               dynamicConfig: Dynamic
           }
         : never
+
 /**
  * Represents an abstract class for a plugin interface.
  * @template StaticConfig - The type of the plugin configuration {@link PluginInterfaceStaticConfig}.
@@ -166,7 +152,13 @@ export abstract class PluginInterface<
 {
     protected static readonly $dynamicConfigParser: DynamicConfigParser =
         new DynamicConfigParser()
-    protected readonly $jobManager: JobManager
+    protected readonly $jobManager: JobManager<unknown>
+    /**
+     * Gets the history of plugin executions.
+     */
+    public get history() {
+        return this.$jobManager.history
+    }
     /**
      * Gets the runtime dependencies of the plugin.
      */
@@ -489,6 +481,40 @@ export abstract class PluginInterface<
         }
     }
 
+    /**
+     * **Executed to perform** the plugin.
+     * @description all the plugins logic should be executed by `this.$jobManager`.
+     * @param controller control workflow of the plugin job.
+     * @param preparedCalculation The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
+     * @returns `this.history`, the history of the plugin execution.
+     * @example
+     * ```ts
+     * // 🔮 Core logic of the plugin
+     * private async getSomeData() {}
+     * // 🔮 Core logic of the plugin
+     * private async saveData() {}
+     *
+     * // ✅ Plugin execution
+     * public async execute() {
+     *     this.$jobManager.registerJobs([
+     *       {
+     *         name: 'get-data',
+     *         execute: async () => {
+     *           return await this.getSomeData()
+     *         },
+     *       },
+     *       {
+     *         name: 'save-data',
+     *         execute: async () => {
+     *           return await this.saveData()
+     *         },
+     *       },
+     *     ])
+     *     await this.$jobManager.processJobs()
+     *     return this.history
+     * }
+     * ```
+     */
     public abstract execute(
         /**
          * Execution flow controller
@@ -501,7 +527,7 @@ export abstract class PluginInterface<
          * - Plugin itself by return data of `prepare` method
          */
         context: unknown
-    ): Promise<PluginExecutionResponse>
+    ): Promise<PluginExecutionResponse<unknown>>
 
     /**
      * Lifecycle hooks for the job registration.
@@ -518,7 +544,14 @@ export abstract class PluginInterface<
      * @param job The completed job.
      * @returns A promise that resolves when the after-job tasks are completed.
      */
-    public cleanup?(job: PluginExecutionResponse[number]): Promise<void>
+    public cleanup?(
+        job: PluginExecutionResponse<unknown>[number]
+    ): Promise<void>
 }
 
+export {
+    type PluginDynamicSchemaType,
+    type PluginDynamicConfigPrimitiveType,
+    type PluginDynamicConfigSchema,
+} from './arg_parser'
 export { type PluginLoadInformation } from './plugin.loader'

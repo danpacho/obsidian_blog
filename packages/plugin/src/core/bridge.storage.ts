@@ -1,16 +1,19 @@
 /* eslint-disable no-console */
 import { FileChangeInfo, watch } from 'fs/promises'
-import { type Job } from '@obsidian_blogger/helpers/job'
+import { type Runner } from '@obsidian_blogger/helpers/plugin'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
 import { PluginConfigStorage } from './plugin.config.storage'
+
+export type BuildBridgeHistoryValue = Runner.PluginRunnerExecutionResponse
+export type BuildBridgeHistoryRecord = Record<string, BuildBridgeHistoryValue>
+
 /**
  * Class representing the storage for BuildBridge configurations and job history.
  * @template Keys - The type of the keys used in the configuration storage.
  */
 export class BuildBridgeStorage<Keys extends readonly string[]> {
     private readonly $config: Map<Keys[number], PluginConfigStorage>
-    private readonly $history: JsonStorage<Job<Array<Job>>>
-    private static $instance: BuildBridgeStorage<readonly string[]>
+    private readonly $history: JsonStorage<BuildBridgeHistoryValue>
 
     private _initialized: boolean = false
 
@@ -19,7 +22,7 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
             bridgeRoot: string
             storePrefix: string
             configStorage: Map<Keys[number], PluginConfigStorage>
-            historyStorage: JsonStorage<Job<Array<Job>>>
+            historyStorage: JsonStorage<BuildBridgeHistoryValue>
         }
     ) {
         this.$config = options.configStorage
@@ -37,21 +40,10 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     /**
      * Retrieves the job history storage.
      */
-    public get history(): JsonStorage<Job<Array<Job>>> {
+    public get history(): JsonStorage<BuildBridgeHistoryValue> {
         return this.$history
     }
-
     private _watcher: null | AsyncIterable<FileChangeInfo<string>> = null
-    private readonly _watcherController = new AbortController()
-
-    /**
-     * Retrieves the AbortController for the watcher.
-     * @returns The AbortController if the watcher is active, otherwise null.
-     */
-    public get watcherController(): AbortController | null {
-        if (this._watcher) return this._watcherController
-        return null
-    }
 
     private readonly _watcherSubscribers = new Set<
         (newHistory: typeof this.$history.storageRecord) => void | Promise<void>
@@ -69,34 +61,27 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         storePrefix: string
         configNames: Keys
     }): BuildBridgeStorage<Keys> {
-        if (!BuildBridgeStorage.$instance) {
-            const configStorageMap = new Map<
-                Keys[number],
-                PluginConfigStorage
-            >()
+        const configStorageMap = new Map<Keys[number], PluginConfigStorage>()
 
-            for (const name of options.configNames) {
-                configStorageMap.set(
+        for (const name of options.configNames) {
+            configStorageMap.set(
+                name,
+                new PluginConfigStorage({
                     name,
-                    new PluginConfigStorage({
-                        name,
-                        root: `${options.bridgeRoot}/${options.storePrefix}/${name}.json`,
-                    })
-                )
-            }
-
-            BuildBridgeStorage.$instance = new BuildBridgeStorage<Keys>({
-                bridgeRoot: options.bridgeRoot,
-                storePrefix: options.storePrefix,
-                configStorage: configStorageMap,
-                historyStorage: new JsonStorage<Job<Array<Job>>>({
-                    name: 'history',
-                    root: `${options.bridgeRoot}/${options.storePrefix}/history.json`,
-                }),
-            })
+                    root: `${options.bridgeRoot}/${options.storePrefix}/${name}.json`,
+                })
+            )
         }
 
-        return BuildBridgeStorage.$instance as BuildBridgeStorage<Keys>
+        return new BuildBridgeStorage<Keys>({
+            bridgeRoot: options.bridgeRoot,
+            storePrefix: options.storePrefix,
+            configStorage: configStorageMap,
+            historyStorage: new JsonStorage<BuildBridgeHistoryValue>({
+                name: 'history',
+                root: `${options.bridgeRoot}/${options.storePrefix}/history.json`,
+            }),
+        })
     }
 
     /**
@@ -111,15 +96,27 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         this._watcherSubscribers.add(subscriber)
     }
 
+    private _watchRetryCount: number = 0
+
     /**
      * Watches the job history file for changes and notifies subscribers.
      */
     public async watchHistory(): Promise<void> {
+        if (this._watcher) {
+            console.info(`Watcher is already active`)
+            return
+        }
+        if (this._watchRetryCount > 50) {
+            console.error(`Failed to watch history after 50 retries`)
+            return
+        }
         try {
-            const watcher = watch(this.$history.options.root)
-            this._watcher = watcher
+            this._watcher = watch(this.$history.options.root, {
+                persistent: true,
+                recursive: false,
+            })
 
-            for await (const event of watcher) {
+            for await (const event of this._watcher) {
                 if (event.eventType === 'change') {
                     await this.$history.load()
                     const history = this.$history.storageRecord
@@ -133,6 +130,8 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
                 `Stopped watching ${this.$history.options.root}\n${JSON.stringify(err, null, 4)}`
             )
             this.stopWatchingHistory()
+            this._watchRetryCount++
+            await this.watchHistory()
         }
     }
 
@@ -145,7 +144,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
             return
         }
 
-        this._watcherController.abort()
         this._watcher = null
         console.info(`Stopped watching ${this.$history.options.root}`)
     }

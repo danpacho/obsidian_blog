@@ -6,7 +6,11 @@ import { ArgTypeError } from './type.error'
  * Plugin dynamic config primitive type
  */
 export type PluginDynamicConfigPrimitiveType = TypeOf<PrimitiveType>
-
+export interface PluginDynamicSchemaType {
+    primitive: PrimitiveType
+    union: Array<PrimitiveType>
+    schema: PluginDynamicConfigSchema
+}
 interface PluginDynamicSchemaInfo {
     /**
      * The type of the argument

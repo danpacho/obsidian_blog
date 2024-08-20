@@ -19,7 +19,7 @@ import { useCallback, useEffect, useRef } from 'react'
  * ```
  */
 export const useTimer = (
-    callback: { start: () => void; clear: () => void },
+    callback: { start: () => void; clear?: () => void },
     delay: number
 ) => {
     const callbackRef = useRef(callback)
@@ -43,7 +43,7 @@ export const useTimer = (
         if (timerRef.current) {
             clearTimeout(timerRef.current)
             timerRef.current = null
-            callbackRef.current.clear()
+            callbackRef.current.clear?.()
         }
     }, [])
 

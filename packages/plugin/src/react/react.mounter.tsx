@@ -45,7 +45,7 @@ export class ReactView extends ItemView {
     override async onOpen() {
         const isTargetRootExist = this.containerEl.children[1]
         if (!isTargetRootExist) {
-            this.containerEl.createDiv({ cls: 'react-root' })
+            this.containerEl.createDiv({ cls: ['react-root'] })
         }
 
         this.render()

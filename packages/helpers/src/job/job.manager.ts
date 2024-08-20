@@ -36,6 +36,11 @@ export interface Job<JobResponse = unknown> {
      */
     error?: JobError
 }
+/**
+ * Infer the job response from the job shape.
+ */
+export type InferJobResponse<JobShape> =
+    JobShape extends Job<infer Res> ? Res : never
 
 /**
  * Represents a job registration in the job manager.
@@ -68,7 +73,7 @@ export interface JobRegistration<JobResponse, JobPrepare> {
      *      next: () => void // Resumes the job execution.
      * }
      * ```
-     * @param preparedCalculation The prepared calculation for the job. Calculated by the `before` function and will be passed through argument.
+     * @param preparedCalculation The prepared calculation for the job. Calculated by the `prepare` function and will be passed through argument.
      * @returns A promise that resolves to the job response.
      */
     execute(
@@ -192,6 +197,12 @@ export class JobManager<JobResponse = unknown> {
     }
 
     /**
+     * Calculates the `success` status of a job.
+     * @param jobResponse result job response
+     */
+    protected jobSuccessStatusCalculation?(jobResponse: JobResponse): boolean
+
+    /**
      * Gets the history of processed jobs.
      * @returns The history of processed jobs.
      */
@@ -256,11 +267,8 @@ export class JobManager<JobResponse = unknown> {
     /**
      * Processes the registered jobs.
      * @param cleanupHistory - Whether to clear the job history after processing.
-     * @returns A promise that resolves to true if all jobs were processed successfully, or false otherwise.
      */
-    public async processJobs(
-        cleanupHistory: boolean = false
-    ): Promise<boolean> {
+    public async processJobs(cleanupHistory: boolean = false): Promise<void> {
         let stop = false
 
         const processController: Parameters<
@@ -279,23 +287,38 @@ export class JobManager<JobResponse = unknown> {
 
             const job = this.$jobQueue.dequeue()!
             const targetHistoryJob = this.$history.stack[this._jobStackIndex]!
+
+            await this.notifyJobProgress(targetHistoryJob)
             const preparedArgs = await job.prepare?.()
-
             this.jobStart(targetHistoryJob)
-
+            await this.notifyJobProgress(targetHistoryJob)
             try {
                 const jobResponse = await job.execute(
                     processController,
                     preparedArgs
                 )
-                this.jobSucceeded(targetHistoryJob, jobResponse)
+                const jobSuccessStatus =
+                    this?.jobSuccessStatusCalculation?.(jobResponse) ?? true
+
+                if (jobSuccessStatus) {
+                    this.jobSucceeded(targetHistoryJob, jobResponse)
+                } else {
+                    this.jobFailed(
+                        targetHistoryJob,
+                        new JobError(
+                            'Job failed, job response is not valid',
+                            jobResponse
+                        ),
+                        jobResponse
+                    )
+                }
+                await this.notifyJobProgress(targetHistoryJob)
             } catch (error) {
                 this.jobFailed(targetHistoryJob, error)
+                await this.notifyJobProgress(targetHistoryJob)
             } finally {
                 await job.cleanup?.(targetHistoryJob)
             }
-
-            await this.notifyJobProgress(targetHistoryJob)
 
             this._jobRemaining -= 1
             this._jobStackIndex += 1
@@ -304,11 +327,6 @@ export class JobManager<JobResponse = unknown> {
         if (cleanupHistory) this.clearHistory()
 
         this._jobCount = 0
-
-        const jobExecResult = this.history.every(
-            ({ status }) => status === 'success'
-        )
-        return jobExecResult
     }
 
     /**
@@ -347,12 +365,15 @@ export class JobManager<JobResponse = unknown> {
         }
     }
 
-    private jobFailed(job: Job, error: unknown): void {
+    private jobFailed(job: Job, error: unknown, response?: unknown): void {
         const endDate = new Date()
         if (job) {
             job.status = 'failed'
             job.endedAt = endDate
             job.execTime = this.calculateExecTime(job.startedAt!, endDate)
+            if (response) {
+                job.response = response
+            }
             job.error = new JobError(`@${job.jobName} failed`, error)
         }
     }

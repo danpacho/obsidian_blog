@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useTimer } from '../hooks'
 import { tw } from '../tw'
+import { TailwindComponent } from './tailwind.component'
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
-export interface TooltipProps extends ReturnType<typeof useTooltip> {
-    content: string
+export interface TooltipProps
+    extends ReturnType<typeof useTooltip>,
+        TailwindComponent {
+    tooltipContent: React.ReactNode
     children: React.ReactNode
 }
 
 const tooltip = tw.style({
     position: 'absolute',
-    zIndex: 'z-10',
     paddingY: 'py-2',
     paddingX: 'px-2.5',
     color: 'text-white',
@@ -162,27 +164,32 @@ export const useTooltip = ({
 
 /**
  * Tooltip component that displays additional information when hovering over an element.
- * Now with smooth transition effects when appearing and disappearing, and an arrow indicating direction.
- *
- * @param {string} content - The content to display inside the tooltip.
- * @param {'top' | 'bottom' | 'left' | 'right'} [position='top'] - The position of the tooltip relative to the child element.
- * @param {React.ReactNode} children - The element that will trigger the tooltip on hover.
- *
  * @example
  * ```tsx
- * <Tooltip content="This is a tooltip" position="top">
+ * const controller = useTooltip({ delay: 500, position: 'top' })
+ * //...
+ * <Tooltip {...controller} content="This is a tooltip">
  *   <button>Hover me</button>
  * </Tooltip>
  * ```
  */
-export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
+export const Tooltip = ({
+    tooltipContent: content,
+    children,
+    tw: style,
+    ...controller
+}: TooltipProps) => {
     useEffect(() => {
         controller.calculatePosition()
     }, [controller.active, controller.calculatePosition])
 
+    const tooltipStyle = style
+        ? tooltip.compose(visibility.style(controller.visible), style).class
+        : tooltip.compose(visibility.style(controller.visible)).class
+
     return (
         <div
-            className="relative inline-block h-auto w-[inherit]"
+            className="relative z-50 inline-block h-auto w-[inherit]"
             ref={controller.triggerRef}
             onPointerEnter={() => {
                 controller.setActive(true)
@@ -197,7 +204,7 @@ export const Tooltip = ({ content, children, ...controller }: TooltipProps) => {
 
             <div
                 ref={controller.tooltipRef}
-                className={`${tooltip.class} ${visibility.class(controller.visible)}`}
+                className={tooltipStyle}
                 style={controller.tooltipStyle}
             >
                 <span

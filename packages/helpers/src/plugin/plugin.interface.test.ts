@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
 } from './plugin.interface'
@@ -15,8 +14,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<PluginExecutionResponse> {
-                return []
+            public async execute() {
+                return this.history
             }
         }
         const plugin = new TestPlugin()
@@ -48,8 +47,8 @@ describe('PluginInterface', () => {
                 return 1
             }
 
-            public async execute(): Promise<PluginExecutionResponse> {
-                return []
+            public async execute() {
+                return this.history
             }
         }
         try {
@@ -71,8 +70,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<PluginExecutionResponse> {
-                return []
+            public async execute() {
+                return this.history
             }
         }
         const plugin = new TestPlugin()
@@ -99,8 +98,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<PluginExecutionResponse> {
-                return []
+            public async execute() {
+                return this.history
             }
         }
         const plugin = new TestPlugin()
@@ -183,8 +182,8 @@ describe('PluginInterface', () => {
                 }
             }
 
-            public async execute(): Promise<PluginExecutionResponse> {
-                return []
+            public async execute() {
+                return this.history
             }
         }
         const test = {
@@ -259,6 +258,44 @@ describe('PluginInterface', () => {
                     description: 'An object value',
                 },
             },
+        })
+    })
+
+    it('should execute the plugin', async () => {
+        class TestPlugin extends PluginInterface<
+            PluginInterfaceStaticConfig,
+            null,
+            null
+        > {
+            protected defineStaticConfig() {
+                return {
+                    name: 'TestPlugin',
+                    description: 'A test plugin',
+                }
+            }
+
+            public async execute() {
+                this.$jobManager.registerJob({
+                    name: 'TestPluginExecution',
+                    execute: async () => {
+                        return {
+                            status: 'success',
+                            message: 'TestPlugin executed successfully',
+                        }
+                    },
+                })
+                await this.$jobManager.processJobs()
+                return this.history
+            }
+        }
+        const plugin = new TestPlugin()
+        const response = await plugin.execute()
+        expect(response).toHaveLength(1)
+        expect(Array.isArray(response)).toBeTruthy()
+        expect(response[0]?.status).toEqual('success')
+        expect(response[0]?.response).toEqual({
+            status: 'success',
+            message: 'TestPlugin executed successfully',
         })
     })
 })

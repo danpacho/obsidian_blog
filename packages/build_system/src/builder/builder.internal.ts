@@ -283,7 +283,7 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
         context: BuilderInternalPluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     plugin.injectDependencies(context)
@@ -301,7 +301,7 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
     }

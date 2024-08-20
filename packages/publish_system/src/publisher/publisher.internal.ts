@@ -13,7 +13,7 @@ export class PublishPluginRunner extends Runner.PluginRunner<
         dependencies: PublishPluginDependencies
     ) {
         for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     dependencies.logger.updateName(plugin.name)
@@ -29,7 +29,7 @@ export class PublishPluginRunner extends Runner.PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
     }

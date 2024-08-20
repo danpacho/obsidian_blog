@@ -1,12 +1,24 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useObsidianSetting } from './hooks'
+import { StorageProvider } from './provider/bridge.storage'
 import { Routing } from './routing'
 import { BuildView } from './view/build/build.view'
 import { SetupView } from './view/setup/setup.view'
-import { io } from '~/utils'
+import { Io } from '~/utils'
 
 const Container = (props: React.PropsWithChildren) => {
-    return <div className="h-auto w-full">{props.children}</div>
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (containerRef.current) {
+            containerRef.current.parentElement?.classList.add('bg-[#262626]')
+        }
+    }, [])
+    return (
+        <div ref={containerRef} className="h-auto w-full">
+            {props.children}
+        </div>
+    )
 }
 
 const useSetupInitialRoute = (): void => {
@@ -15,8 +27,8 @@ const useSetupInitialRoute = (): void => {
     useEffect(() => {
         const setupRoute = async () => {
             if (!settings || !setRoute) return
-            const setupCompleted = await io.fileExists(
-                settings.bridge_install_root
+            const setupCompleted = await Io.fileExists(
+                `${settings.bridge_install_root}/node_modules`
             )
             if (setupCompleted) {
                 setRoute('build')
@@ -31,10 +43,12 @@ export function App() {
 
     return (
         <Container>
-            <Routing.Router initialRoute="setup">
-                <Routing.Route path="setup" view={<SetupView />} />
-                <Routing.Route path="build" view={<BuildView />} />
-            </Routing.Router>
+            <StorageProvider>
+                <Routing.Router initialRoute="setup">
+                    <Routing.Route path="setup" view={<SetupView />} />
+                    <Routing.Route path="build" view={<BuildView />} />
+                </Routing.Router>
+            </StorageProvider>
         </Container>
     )
 }

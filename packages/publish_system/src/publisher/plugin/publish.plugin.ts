@@ -51,12 +51,4 @@ export abstract class PublishPlugin<
     protected get $io() {
         return this.getRunTimeDependency('io')
     }
-
-    /**
-     * Gets the history of job executions.
-     * @returns An array of job history.
-     */
-    public history() {
-        return this.$jobManager.history
-    }
 }

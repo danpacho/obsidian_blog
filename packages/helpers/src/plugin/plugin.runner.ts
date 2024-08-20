@@ -6,11 +6,20 @@ import {
     type JobSubscriber,
 } from '../job'
 import type {
-    PluginExecutionResponse,
     PluginInterfaceDependencies,
     PluginShape,
 } from './plugin.interface'
+import type { PluginExecutionResponse } from './plugin.interface'
 
+export type PluginRunnerExecutionResponse = PluginExecutionResponse<Job>
+export class PluginRunnerJobManager extends JobManager<PluginRunnerExecutionResponse> {
+    protected override jobSuccessStatusCalculation(
+        pluginResponse: PluginRunnerExecutionResponse
+    ): boolean {
+        const isError = pluginResponse.some(({ status }) => status === 'failed')
+        return !isError
+    }
+}
 export interface PluginRunnerConstructor extends JobManagerConstructor {}
 /**
  * Manages the execution of plugin processes.
@@ -20,14 +29,14 @@ export abstract class PluginRunner<
     RuntimeDependencies extends
         PluginInterfaceDependencies | null = PluginInterfaceDependencies | null,
 > {
-    protected readonly $jobManager: JobManager<PluginExecutionResponse>
+    protected readonly $pluginRunner: PluginRunnerJobManager
 
     /**
      * Creates an instance of PluginProcessManager.
      * @param options - The options for the PluginProcessManager.
      */
     public constructor(public readonly options?: PluginRunnerConstructor) {
-        this.$jobManager = new JobManager(options)
+        this.$pluginRunner = new PluginRunnerJobManager(options)
     }
 
     /**
@@ -35,14 +44,14 @@ export abstract class PluginRunner<
      * @param subscriber - subscriber function.
      */
     public subscribe(subscriber: JobSubscriber<Job>) {
-        return this.$jobManager.subscribeJobProgress(subscriber)
+        return this.$pluginRunner.subscribeJobProgress(subscriber)
     }
 
     /**
      * Gets the history of plugin executions.
      */
     public get history() {
-        return this.$jobManager.history
+        return this.$pluginRunner.history
     }
 
     /**
@@ -53,7 +62,7 @@ export abstract class PluginRunner<
      * @example
      * ```ts
      *  for (const plugin of pluginPipes) {
-            this.$jobManager.registerJob({
+            this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
                     return await plugin.prepare?.()
@@ -67,7 +76,7 @@ export abstract class PluginRunner<
             })
         }
 
-        await this.$jobManager.processJobs()
+        await this.$pluginRunner.processJobs()
 
         return this.history
      * ```

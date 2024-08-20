@@ -1,6 +1,10 @@
 import { Bridge } from '@obsidian_blogger/constants'
-import { PluginConfig } from '@obsidian_blogger/helpers/plugin'
+import {
+    PluginConfig,
+    PluginInterfaceDynamicConfig,
+} from '@obsidian_blogger/helpers/plugin'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
+import { MergeRecord } from '~/utils/merge.record'
 
 /**
  * @description Obsidian bridge configuration interface
@@ -25,37 +29,56 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
         super(options)
     }
 
-    private static isObject(value: unknown): value is Record<string, unknown> {
-        return (
-            value !== null && typeof value === 'object' && !Array.isArray(value)
-        )
+    /**
+     * Updates the dynamic configuration for a plugin by the user configuration.
+     * @param pluginName The name of the plugin
+     * @param dynamicConfig The dynamic configuration to update
+     */
+    public async updateDynamicConfigByUserConfig(
+        pluginName: string,
+        dynamicConfig:
+            | PluginInterfaceDynamicConfig
+            | Bridge.USER_PLUGIN_LOAD_INPUT
+    ): Promise<void> {
+        const prevConfig = this.get(pluginName)
+        // It is not possible, staticConfig is always defined
+        if (!prevConfig) return
+
+        const mergedConfig: PluginConfig = MergeRecord(prevConfig, {
+            staticConfig: prevConfig.staticConfig,
+            dynamicConfig,
+        })
+
+        await this.set(pluginName, mergedConfig)
     }
-    private static deepMergeRecord(
-        base: Record<string, unknown>,
-        after: Record<string, unknown>
-    ): Record<string, unknown> {
-        const result: Record<string, unknown> = { ...base }
 
-        for (const key in after) {
-            if (Object.prototype.hasOwnProperty.call(after, key)) {
-                const baseValue = base[key]
-                const afterValue = after[key]
+    /**
+     * Updates the load status of a single plugin.
+     * @param pluginName Name of the plugin
+     * @param loadStatus Load status of the plugin, `include` or `exclude`
+     */
+    public async updateSinglePluginLoadStatus(
+        pluginName: string,
+        loadStatus: Bridge.USER_PLUGIN_LOAD_STATUS_VALUE
+    ): Promise<void> {
+        await this.updateDynamicConfigByUserConfig(pluginName, {
+            $$load_status$$: loadStatus,
+        })
+    }
 
-                if (
-                    PluginConfigStorage.isObject(baseValue) &&
-                    PluginConfigStorage.isObject(afterValue)
-                ) {
-                    result[key] = PluginConfigStorage.deepMergeRecord(
-                        baseValue,
-                        afterValue
-                    )
-                } else {
-                    result[key] = afterValue
-                }
-            }
+    /**
+     * Updates the load status of multiple plugins.
+     * @param information Information to update
+     */
+    public async updateAllPluginLoadStatus(
+        information: Array<{
+            pluginName: string
+            loadStatus: Bridge.USER_PLUGIN_LOAD_STATUS_VALUE
+        }>
+    ): Promise<void> {
+        for (const { pluginName, loadStatus } of information) {
+            await this.updateSinglePluginLoadStatus(pluginName, loadStatus)
         }
-
-        return result
     }
 
     /**
@@ -77,16 +100,10 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
         userConfig: UserPluginConfig
     ): Promise<void> {
         for (const [pluginName, dynamicConfig] of Object.entries(userConfig)) {
-            const prevConfig = this.get(pluginName)
-            // It is not possible, staticConfig is always defined
-            if (!prevConfig) continue
-
-            const mergedConfig: PluginConfig =
-                PluginConfigStorage.deepMergeRecord(prevConfig, {
-                    dynamicConfig,
-                }) as PluginConfig
-
-            await this.set(pluginName, mergedConfig)
+            await this.updateDynamicConfigByUserConfig(
+                pluginName,
+                dynamicConfig
+            )
         }
     }
 }
