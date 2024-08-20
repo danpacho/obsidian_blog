@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.2.3
+
+### Patch Changes
+
+-   Implement all things
+
 ## 0.2.2
 
 ### Patch Changes
