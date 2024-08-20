@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.2.2
+
+### Patch Changes
+
+-   Stabilize api for job executions
+
 ## 0.2.1
 
 ### Patch Changes

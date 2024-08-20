@@ -1,5 +1,14 @@
 # @obsidian_blogger/publish_system
 
+## 0.2.5
+
+### Patch Changes
+
+-   Stabilize api for job executions
+-   Updated dependencies
+    -   @obsidian_blogger/helpers@0.2.2
+    -   @obsidian_blogger/constants@0.2.2
+
 ## 0.2.4
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @obsidian_blogger/plugin
 
+## 0.2.2
+
+### Patch Changes
+
+-   Stabilize api for job executions
+-   Updated dependencies
+    -   @obsidian_blogger/helpers@0.2.2
+    -   @obsidian_blogger/constants@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
