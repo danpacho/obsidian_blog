@@ -2,7 +2,7 @@ import { Bridge } from '@obsidian_blogger/constants'
 import {
     DynamicConfigParser,
     DynamicConfigParserError,
-    PluginDynamicConfigPrimitiveType,
+    type PluginDynamicConfigPrimitiveType,
 } from '@obsidian_blogger/helpers/arg_parser'
 import {
     type PluginConfig,
@@ -10,9 +10,15 @@ import {
     type PluginInterfaceDynamicConfig,
 } from '@obsidian_blogger/helpers/plugin'
 import { Promisify } from '@obsidian_blogger/helpers/promisify'
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { DynamicConfigViewer } from './components'
-import { PluginConfigStorage } from '~/core'
+import type {
+    BuildBridgeHistoryRecord,
+    BuildBridgeHistoryValue,
+    BuildBridgeStorage,
+    PluginConfigStorage,
+} from '~/core'
+import type { ObsidianBloggerSettings } from '~/plugin/settings'
 import {
     Accordion,
     Button,
@@ -22,19 +28,28 @@ import {
     Text,
     useProgressStatus,
 } from '~/react/common'
+import { useObsidianSetting } from '~/react/hooks'
 import {
     BUILD_STORAGE_KEYS,
+    type BuildStorageKeys,
     PUBLISH_STORAGE_KEYS,
+    type PublishStorageKeys,
     useStorage,
 } from '~/react/provider'
 import { Routing } from '~/react/routing'
-import { Is } from '~/utils'
+import { Is, Shell } from '~/utils'
 import { MergeRecord } from '~/utils/merge.record'
 
 export function BuildView() {
     const storage = useStorage()
+    const { loaded: settingLoaded, settings } = useObsidianSetting()
 
-    if (!storage.loaded) {
+    useEffect(() => {
+        storage.build?.load()
+        storage.publish?.load()
+    }, [])
+
+    if (!storage.loaded || !settingLoaded) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
                 <Label
@@ -57,30 +72,174 @@ export function BuildView() {
     }
 
     return (
-        <div className="relative flex w-full flex-col gap-4">
-            <Routing.Link to="setup" className="absolute right-0 top-0">
+        <div className="relative flex w-full flex-col gap-4 pb-10">
+            <PluginExecutionView
+                type="Build"
+                storage={storage.build!}
+                storageKeys={BUILD_STORAGE_KEYS}
+                {...settings!}
+            />
+            <PluginExecutionView
+                type="Publish"
+                storage={storage.publish!}
+                storageKeys={PUBLISH_STORAGE_KEYS}
+                {...settings!}
+            />
+
+            <Routing.Link to="setup" className="absolute bottom-0 right-0">
                 <Button>Setup ⚙️</Button>
             </Routing.Link>
+        </div>
+    )
+}
 
-            <div className="flex w-full flex-col items-start justify-between gap-y-2 divide-y divide-stone-400/20">
-                <Text.Header>Build plugins</Text.Header>
-                {BUILD_STORAGE_KEYS.map((key) => (
-                    <PluginConfigView
-                        key={key}
-                        configStorage={storage.build!.config(key)}
-                    />
-                ))}
+const ExecutePlugin = async ({
+    command,
+    node_bin,
+    bridge_install_root,
+}: ObsidianBloggerSettings & {
+    command: 'run:build' | 'run:publish'
+}) => {
+    if (!node_bin || !bridge_install_root) return
+
+    const npmPath = `${node_bin}/npm`
+    const buildResult = await Shell.spawn$(npmPath, ['run', 'build'], {
+        cwd: bridge_install_root,
+        env: {
+            PATH: `${process.env.PATH}:${node_bin}`,
+        },
+    })
+    const isBuildError =
+        buildResult === undefined ||
+        ('error_code' in buildResult && buildResult.stderr !== '')
+
+    if (isBuildError) return
+
+    const executionResult = await Shell.spawn$(npmPath, ['run', command], {
+        cwd: bridge_install_root,
+        env: {
+            PATH: `${process.env.PATH}:${node_bin}`,
+        },
+    })
+    return executionResult
+}
+
+const HistoryContext = React.createContext<BuildBridgeHistoryRecord | null>(
+    null
+)
+const usePluginHistory = ({
+    storageName,
+    pluginName,
+}: {
+    storageName: string
+    pluginName: string
+}): BuildBridgeHistoryValue[number] | null => {
+    const context = React.useContext(HistoryContext)
+    if (context === undefined) {
+        throw new Error('useHistory must be used within a HistoryProvider')
+    }
+    if (!context) return null
+
+    return (
+        context[storageName]?.find((job) => job.jobName === pluginName) ?? null
+    )
+}
+
+const PluginExecutionView = ({
+    type,
+    storage,
+    storageKeys,
+    ...settings
+}: {
+    type: 'Build' | 'Publish'
+    storage: BuildBridgeStorage<Array<BuildStorageKeys | PublishStorageKeys>>
+    storageKeys: Array<BuildStorageKeys | PublishStorageKeys>
+} & ObsidianBloggerSettings) => {
+    const [progress, setProgress] = useProgressStatus()
+    const [allPluginHistory, setAllPluginHistory] =
+        useState<BuildBridgeHistoryRecord | null>(null)
+
+    useEffect(() => {
+        storage.subscribeHistory((newHistory) => {
+            setAllPluginHistory(newHistory)
+        })
+    }, [])
+
+    return (
+        <div className="flex w-full flex-col items-start justify-between gap-y-2 divide-y divide-stone-400/20">
+            <div className="flex flex-col items-start justify-center gap-y-2">
+                <Text.Header>{type} plugins</Text.Header>
+                <ProgressButton
+                    idleRecoverTime={500}
+                    controller={[progress, setProgress]}
+                    onStatusChange={(status) => {
+                        switch (status) {
+                            case 'idle':
+                                return 'Run'
+                            case 'progress':
+                                return (
+                                    <>
+                                        <Loader />
+                                        Running...
+                                    </>
+                                )
+                            case 'success':
+                                return 'Success'
+                            case 'error':
+                                return 'Error'
+                        }
+                    }}
+                    startProgress={async () => {
+                        const pluginExecutionResponse = await Promise.race([
+                            storage.watchHistory(),
+                            ExecutePlugin({
+                                ...settings,
+                                command: `run:${type.toLowerCase() as 'build' | 'publish'}`,
+                            }),
+                        ])
+                        storage.stopWatchingHistory()
+
+                        if (!pluginExecutionResponse)
+                            return {
+                                success: false,
+                                error: new Error('Plugin execution failed'),
+                            }
+
+                        const isError =
+                            pluginExecutionResponse === undefined ||
+                            ('error_code' in pluginExecutionResponse &&
+                                pluginExecutionResponse.stderr !== '')
+
+                        if (isError) {
+                            return {
+                                success: false,
+                                error: pluginExecutionResponse
+                                    ? new Error(pluginExecutionResponse.stderr)
+                                    : new Error(
+                                          'Node bin or bridge install root is not set',
+                                          {
+                                              cause: settings,
+                                          }
+                                      ),
+                            }
+                        }
+
+                        return {
+                            success: true,
+                            data: undefined,
+                        }
+                    }}
+                />
             </div>
 
-            <div className="flex w-full flex-col items-start justify-between gap-y-2 divide-y divide-stone-400/20">
-                <Text.Header>Publish plugins</Text.Header>
-                {PUBLISH_STORAGE_KEYS.map((key) => (
+            <HistoryContext.Provider value={allPluginHistory}>
+                {storageKeys.map((key) => (
                     <PluginConfigView
                         key={key}
-                        configStorage={storage.publish!.config(key)}
+                        configStorage={storage.config(key)}
                     />
                 ))}
-            </div>
+            </HistoryContext.Provider>
         </div>
     )
 }
@@ -96,18 +255,17 @@ const PluginConfigView = ({
 
     return (
         <div className="flex h-max w-full flex-col items-start gap-y-2.5 py-2">
-            <Text.SubHeader tw={{ color: 'text-green-400' }}>
-                {configStorage.options.name}
-            </Text.SubHeader>
+            <Text.SubHeader>{configStorage.options.name}</Text.SubHeader>
 
             {isEmpty && <Text.Description>No plugins found</Text.Description>}
 
             {!isEmpty && (
                 <div className="flex w-full flex-col items-center justify-start gap-2 py-1">
                     {Object.values(configStorage.storageRecord).map((value) => {
+                        const pluginName = value.staticConfig.name
                         return (
                             <PluginView
-                                key={value.staticConfig.name}
+                                key={pluginName}
                                 config={value}
                                 configStorage={configStorage}
                             />
@@ -166,11 +324,6 @@ export type UserPluginConfigSetter = (
     }
 ) => void
 
-interface PluginViewProps {
-    config: PluginConfig
-    configStorage: PluginConfigStorage
-}
-
 const FlattenRecord = (
     record: PluginInterfaceDynamicConfig,
     dynamicConfigSchema: PluginDynamicConfigSchema
@@ -202,7 +355,34 @@ const FlattenRecord = (
     flatten(record, '', dynamicConfigSchema)
     return result
 }
+interface PluginViewProps {
+    config: PluginConfig
+    configStorage: PluginConfigStorage
+}
 const PluginView = ({ config, configStorage }: PluginViewProps) => {
+    const history = usePluginHistory({
+        storageName: configStorage.options.name,
+        pluginName: config.staticConfig.name,
+    })
+
+    const [pluginHistory, setPluginHistory] = useState<
+        BuildBridgeHistoryValue[number] | null
+    >(null)
+
+    useEffect(() => {
+        setPluginHistory(history)
+    }, [history])
+
+    const runningState = {
+        pending:
+            (pluginHistory !== null && pluginHistory?.status === 'pending') ||
+            (pluginHistory !== null && pluginHistory?.status === 'started'),
+        executing:
+            pluginHistory !== null && pluginHistory?.status === 'started',
+        success: pluginHistory !== null && pluginHistory?.status === 'success',
+        failed: pluginHistory !== null && pluginHistory?.status === 'failed',
+    }
+
     const [pluginIncluded, setPluginIncluded] = useState<boolean>(true)
 
     const { staticConfig, dynamicConfig } = config
@@ -323,45 +503,73 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
     }, [])
 
     return (
-        <Accordion.Container className="flex w-full flex-col items-start gap-y-2.5 rounded-md border border-stone-700 px-2.5 py-1">
+        <Accordion.Container className="flex w-full flex-col items-start gap-y-2.5 rounded-md border border-stone-700 p-1">
             <Accordion.Item accordionId={pluginName} className="w-full">
                 <Accordion.Item.Title
-                    className="flex w-full flex-row items-center justify-start gap-x-2"
-                    indicator={(isActive) => (
-                        <Button
-                            size="sm"
-                            type={pluginIncluded ? 'success' : 'error'}
-                            tw={{
-                                opacity: isActive
-                                    ? 'opacity-100'
-                                    : 'opacity-85',
-                                transition: 'transition-all ease-linear',
-                                transformGPU: 'transform-gpu',
-                                transformRotate: isActive
-                                    ? 'rotate-90'
-                                    : 'rotate-0',
-                                size: 'size-7',
-                                transitionDuration: 'duration-300',
-                                borderRadius: isActive
-                                    ? 'rounded-3xl'
-                                    : 'rounded',
-                                alignSelf: 'self-center',
-                            }}
-                        >
-                            ▶
-                        </Button>
-                    )}
+                    className="flex w-full flex-row items-center justify-start gap-x-2 rounded px-1.5 hover:bg-stone-400/10"
+                    indicator={(isActive) => {
+                        const status = runningState.pending
+                            ? 'warn'
+                            : pluginIncluded
+                              ? 'success'
+                              : 'error'
+
+                        return (
+                            <Button
+                                size="sm"
+                                type={status}
+                                tw={{
+                                    transition: 'transition-all ease-linear',
+                                    transformGPU: 'transform-gpu',
+                                    transformRotate: isActive
+                                        ? 'rotate-90'
+                                        : 'rotate-0',
+                                    opacity: isActive
+                                        ? 'opacity-100'
+                                        : 'opacity-85',
+                                    size: 'size-7',
+                                    transitionDuration: runningState.pending
+                                        ? 'duration-[0]'
+                                        : 'duration-300',
+                                    borderRadius: runningState.pending
+                                        ? 'rounded-3xl'
+                                        : isActive
+                                          ? 'rounded-3xl'
+                                          : 'rounded',
+                                    alignSelf: 'self-center',
+                                }}
+                            >
+                                {runningState.pending && (
+                                    <Loader color="yellow" size="sm" />
+                                )}
+                                {!runningState.pending && '▶'}
+                            </Button>
+                        )
+                    }}
                 >
                     <div className="flex flex-col items-start justify-center">
-                        <Text.SubHeader>{pluginName}</Text.SubHeader>
+                        <Text.SubHeader
+                            tw={{
+                                color: runningState.pending
+                                    ? 'text-yellow-300'
+                                    : 'text-stone-300',
+                                animation: runningState.pending
+                                    ? 'animate-pulse'
+                                    : 'animate-none',
+                            }}
+                        >
+                            {pluginName}
+                        </Text.SubHeader>
                         <Text.Description>{description}</Text.Description>
                     </div>
                 </Accordion.Item.Title>
 
                 <Accordion.Item.Content
-                    className="flex flex-col items-start justify-center gap-y-0.5 overflow-x-clip pl-8"
+                    className={`flex flex-col items-start justify-center gap-y-0.5 overflow-x-clip pl-8 pt-1`}
                     disableAnimation
                 >
+                    <PluginHistoryViewer history={pluginHistory} />
+
                     {dynamicConfigSchema && (
                         <DynamicConfigViewer
                             schema={dynamicConfigSchema}
@@ -376,59 +584,63 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                         <Label color="yellow">Static Configuration only</Label>
                     )}
 
-                    <div className="flex w-full flex-row items-center justify-center gap-x-2">
-                        <ProgressButton
-                            controller={[saveStatus, setSaveStatus]}
-                            onStatusChange={(status) => {
-                                switch (status) {
-                                    case 'progress':
-                                        return (
-                                            <>
-                                                <Loader />
-                                                Saving...
-                                            </>
-                                        )
-                                    case 'success':
-                                        return 'Config Saved'
-                                    case 'error':
-                                        return 'Config Error'
-                                    case 'idle':
-                                        return 'Save Config'
-                                }
-                            }}
-                            startProgress={async () => {
-                                return await updatePluginDynamicConfig({
-                                    configStorage,
-                                    updatedConfigMap: userDynamicConfig,
-                                    pluginIncluded,
-                                })
-                            }}
-                            tw={{
-                                width: 'w-full',
-                            }}
-                        />
+                    {dynamicConfigSchema && (
+                        <div className="flex w-full flex-row items-center justify-center gap-x-2">
+                            <ProgressButton
+                                controller={[saveStatus, setSaveStatus]}
+                                disabled={runningState.pending}
+                                onStatusChange={(status) => {
+                                    switch (status) {
+                                        case 'progress':
+                                            return (
+                                                <>
+                                                    <Loader />
+                                                    Saving...
+                                                </>
+                                            )
+                                        case 'success':
+                                            return 'Config Saved'
+                                        case 'error':
+                                            return 'Config Error'
+                                        case 'idle':
+                                            return 'Save Config'
+                                    }
+                                }}
+                                startProgress={async () => {
+                                    return await updatePluginDynamicConfig({
+                                        configStorage,
+                                        updatedConfigMap: userDynamicConfig,
+                                        pluginIncluded,
+                                    })
+                                }}
+                                tw={{
+                                    width: 'w-full',
+                                }}
+                            />
 
-                        <Button
-                            tw={{
-                                width: 'w-full',
-                                textDecorationLine: pluginIncluded
-                                    ? 'no-underline'
-                                    : 'underline',
-                                textDecorationStyle: 'decoration-wavy',
-                                textUnderlineOffset:
-                                    'underline-offset-[3.25px]',
-                                textDecorationColor: 'decoration-white/50',
-                            }}
-                            type={pluginIncluded ? 'success' : 'error'}
-                            onClick={() => {
-                                setPluginIncluded((prev) => !prev)
-                            }}
-                        >
-                            {pluginIncluded
-                                ? 'Exclude Plugin'
-                                : 'Include Plugin'}
-                        </Button>
-                    </div>
+                            <Button
+                                tw={{
+                                    width: 'w-full',
+                                    textDecorationLine: pluginIncluded
+                                        ? 'no-underline'
+                                        : 'underline',
+                                    textDecorationStyle: 'decoration-wavy',
+                                    textUnderlineOffset:
+                                        'underline-offset-[3.25px]',
+                                    textDecorationColor: 'decoration-white/50',
+                                }}
+                                disabled={runningState.pending}
+                                type={pluginIncluded ? 'success' : 'error'}
+                                onClick={() => {
+                                    setPluginIncluded((prev) => !prev)
+                                }}
+                            >
+                                {pluginIncluded
+                                    ? 'Exclude Plugin'
+                                    : 'Include Plugin'}
+                            </Button>
+                        </div>
+                    )}
 
                     {saveStatus.error.current &&
                         saveStatus.error.current instanceof
@@ -490,6 +702,161 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 </Text.Code>
                             </Label>
                         )}
+                </Accordion.Item.Content>
+            </Accordion.Item>
+        </Accordion.Container>
+    )
+}
+
+const HistoryProperty = ({
+    title,
+    property,
+}: {
+    title: string
+    property: string | undefined
+}) => {
+    if (!property) return null
+
+    return (
+        <div className="flex flex-row items-center justify-center gap-x-2">
+            <Label
+                color="blue"
+                size="sm"
+                tw={{
+                    fontFamily: 'font-mono',
+                }}
+            >
+                {title}
+            </Label>
+            <Text.Description>{property}</Text.Description>
+        </div>
+    )
+}
+
+const PluginHistoryViewer = ({
+    history,
+}: {
+    history: BuildBridgeHistoryValue[number] | null
+}) => {
+    if (!history) return null
+
+    const { jobName, status, execTime, endedAt, startedAt, error, response } =
+        history
+
+    return (
+        <Accordion.Container className="w-full rounded border border-stone-400/20 p-1.5">
+            <Accordion.Item
+                initialOpen
+                accordionId={`${jobName}-history`}
+                className="flex w-full flex-col items-start justify-center gap-y-2"
+            >
+                <Accordion.Item.Title className="flex w-full flex-row items-center justify-start gap-x-2 rounded px-1 hover:bg-stone-400/10">
+                    <Text.SubHeader
+                        tw={{
+                            fontFamily: 'font-sans',
+                            $hover: {
+                                textDecorationLine: 'hover:underline',
+                            },
+                            fontWeight: 'font-semibold',
+                        }}
+                    >
+                        Result
+                    </Text.SubHeader>
+                </Accordion.Item.Title>
+
+                <Accordion.Item.Content
+                    className="flex w-full flex-col items-start justify-center gap-y-2 pl-3.5"
+                    disableAnimation
+                >
+                    <HistoryProperty
+                        title="Started"
+                        property={
+                            startedAt && new Date(startedAt).toLocaleString()
+                        }
+                    />
+                    <HistoryProperty
+                        title="Ended"
+                        property={endedAt && new Date(endedAt).toLocaleString()}
+                    />
+
+                    <HistoryProperty title="Status" property={status} />
+                    <HistoryProperty
+                        title="Execution Time"
+                        property={
+                            typeof execTime === 'number'
+                                ? `${execTime / 1000}s`
+                                : undefined
+                        }
+                    />
+
+                    <Accordion.Container className="w-full overflow-hidden">
+                        <Accordion.Item
+                            className="w-full"
+                            accordionId={`${jobName}-response-or-error`}
+                        >
+                            <Accordion.Item.Title className="flex flex-row items-center justify-start gap-x-2">
+                                <Label
+                                    color={status === 'failed' ? 'red' : 'blue'}
+                                    size="sm"
+                                    tw={{
+                                        fontFamily: 'font-mono',
+                                    }}
+                                >
+                                    {status === 'failed' ? 'Error' : 'Response'}
+                                </Label>
+                                <Label
+                                    color="gray"
+                                    size="sm"
+                                    tw={{
+                                        fontFamily: 'font-mono',
+                                    }}
+                                >
+                                    JSON
+                                </Label>
+                            </Accordion.Item.Title>
+                            <Accordion.Item.Content className="w-full">
+                                <Label
+                                    color={status === 'failed' ? 'red' : 'blue'}
+                                    style="border"
+                                    tw={{
+                                        marginTop: 'mt-2',
+                                        paddingX: 'px-3',
+                                        paddingY: 'py-2.5',
+                                        maxWidth: 'max-w-full',
+                                        width: 'w-full',
+                                        overflow: 'overflow-x-scroll',
+                                        display: 'flex',
+                                        flexDirection: 'flex-col',
+                                        gapY: 'gap-y-1.5',
+                                        alignItems: 'items-start',
+                                        justifyContent: 'justify-center',
+                                        $hover: {
+                                            backgroundColor:
+                                                'hover:bg-transparent',
+                                        },
+                                        transition: 'transition',
+                                    }}
+                                >
+                                    <Text.Code
+                                        tw={{
+                                            color:
+                                                status === 'failed'
+                                                    ? 'text-red-400'
+                                                    : 'text-blue-400',
+                                        }}
+                                    >
+                                        {JSON.stringify(
+                                            status === 'failed'
+                                                ? error
+                                                : response,
+                                            null,
+                                            2
+                                        )}
+                                    </Text.Code>
+                                </Label>
+                            </Accordion.Item.Content>
+                        </Accordion.Item>
+                    </Accordion.Container>
                 </Accordion.Item.Content>
             </Accordion.Item>
         </Accordion.Container>
