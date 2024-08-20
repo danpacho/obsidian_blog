@@ -5,7 +5,6 @@ export class JobError extends Error {
     /**
      * Creates a new instance of JobError.
      * @param message The error message.
-     * @param job The job that caused the error.
      * @param error The cause of the error.
      */
     constructor(
