@@ -75,10 +75,10 @@ export abstract class StorageInterface<Schema> {
 
     /**
      * Initializes the storage.
-     *
+     * @param initTemplateData - The initial data to use when creating a new storage file. Default is an empty object.
      * @returns {Promise<void>} A promise that resolves when initialization is complete.
      */
-    public async init(): Promise<void> {
+    public async init(initTemplateData: string = '{}'): Promise<void> {
         if (this._initialized) return
 
         const rootExists = await this.$io.reader.fileExists(this.options.root)
@@ -89,7 +89,7 @@ export abstract class StorageInterface<Schema> {
                 'Storage file does not exist. Creating new storage.'
             )
             const created = await this.$io.writer.write({
-                data: '{}',
+                data: initTemplateData,
                 filePath: this.options.root,
             })
             if (created.success) {
