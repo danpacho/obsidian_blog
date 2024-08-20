@@ -29,7 +29,7 @@ const SubHeader = (props: React.PropsWithChildren<TailwindComponent>) => {
 const description = tw.style({
     fontFamily: 'font-sans',
     fontSize: 'text-sm',
-    fontWeight: 'font-light',
+    fontWeight: 'font-normal',
     color: 'text-stone-400',
 })
 const Description = (props: React.PropsWithChildren<TailwindComponent>) => {
