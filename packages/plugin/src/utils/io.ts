@@ -1,5 +1,5 @@
 import { statSync } from 'node:fs'
-import { stat } from 'node:fs/promises'
+import { rmdir, stat } from 'node:fs/promises'
 
 export const Io = {
     fileExists: async (path: string): Promise<boolean> => {
@@ -17,5 +17,8 @@ export const Io = {
         } catch {
             return false
         }
+    },
+    removeDir: async (dirPath: string): Promise<void> => {
+        await rmdir(dirPath, { recursive: true })
     },
 }
