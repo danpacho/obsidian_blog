@@ -16,14 +16,15 @@ describe('PluginRunner', () => {
 
         public async run(pluginPipes: PluginShape[]) {
             for (const plugin of pluginPipes) {
-                this.$jobManager.registerJob({
+                this.$pluginRunner.registerJob({
                     name: plugin.name,
                     prepare: async () => {
                         this._count.push(1)
                         return await plugin.prepare?.()
                     },
                     execute: async (controller, prepared) => {
-                        return await plugin.execute(controller, prepared)
+                        const res = await plugin.execute(controller, prepared)
+                        return res
                     },
                     cleanup: async (job) => {
                         this._count.pop()
@@ -31,8 +32,7 @@ describe('PluginRunner', () => {
                     },
                 })
             }
-
-            await this.$jobManager.processJobs()
+            await this.$pluginRunner.processJobs()
 
             return this.history
         }
@@ -77,7 +77,17 @@ describe('PluginRunner', () => {
         }
 
         public async execute(): Promise<PluginExecutionResponse> {
-            return []
+            return [
+                {
+                    jobName: 'bulk-job-success',
+                    status: 'success',
+                },
+
+                {
+                    jobName: 'bulk-job-failed',
+                    status: 'success',
+                },
+            ]
         }
     }
 
@@ -92,5 +102,10 @@ describe('PluginRunner', () => {
 
     it('should add some internal logics for plugin running situations', () => {
         expect(runner.count).toEqual([])
+    })
+
+    it('should catch errors', async () => {
+        const res = await runner.run([new Plugin(), new Plugin2()])
+        expect(res.length).toBe(4)
     })
 })

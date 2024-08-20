@@ -2,7 +2,6 @@
 import { describe, expect, it } from 'vitest'
 import { PluginConfigStorage } from './plugin.config.storage'
 import {
-    PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
     PluginShape,
@@ -15,7 +14,7 @@ describe('PluginManager', () => {
     class Runner extends PluginRunner {
         public async run(pipes: Array<PluginShape>): Promise<this['history']> {
             for (const plugin of pipes) {
-                this.$jobManager.registerJob({
+                this.$pluginRunner.registerJob({
                     name: plugin.name,
                     prepare: async () => {
                         return await plugin.prepare?.()
@@ -29,7 +28,7 @@ describe('PluginManager', () => {
                 })
             }
 
-            await this.$jobManager.processJobs()
+            await this.$pluginRunner.processJobs()
 
             return this.history
         }
@@ -93,7 +92,7 @@ describe('PluginManager', () => {
                     },
                 }
             }
-            public async execute(): Promise<PluginExecutionResponse> {
+            public async execute() {
                 return []
             }
         }
