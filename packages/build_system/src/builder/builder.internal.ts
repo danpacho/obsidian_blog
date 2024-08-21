@@ -308,6 +308,13 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
 }
 
 export class BuilderPluginCachePipelines extends PluginCachePipelines {
+    /**
+     * Default exclude patterns
+     * @default [/^\.\w+/]
+     * @description Exclude files that start with a `.`(dot)
+     */
+    public static defaultExclude = [/^\.\w+/]
+
     public override treeCachePipeline(args: {
         cacheManager: BuildCacheManager
         node: FileTreeNode
@@ -327,6 +334,13 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
         if (!buildInfo?.id) return false
 
         if (config?.disableCache) return false
+
+        const defaultExcludeResult: boolean =
+            BuilderPluginCachePipelines.defaultExclude.some((pattern) =>
+                pattern.test(node.fileName)
+            )
+
+        if (defaultExcludeResult) return false
 
         const fileName = node.fileName
         if (config?.exclude) {
