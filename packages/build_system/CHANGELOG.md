@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.2.4
+
+### Patch Changes
+
+-   Refactor CorePlugins dynamicConfig and add default exclude
+
 ## 0.2.3
 
 ### Patch Changes
