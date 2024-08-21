@@ -114,9 +114,14 @@ export class DynamicConfigParser {
                 const targetValue = value[key]
 
                 const isOptional =
-                    schemaValue.optional && targetValue === undefined
+                    schemaValue.optional &&
+                    (targetValue === undefined || targetValue === null)
+
                 if (isOptional) {
-                    if (schemaValue.defaultValue !== undefined) {
+                    if (
+                        schemaValue.defaultValue !== undefined &&
+                        schemaValue.defaultValue !== null
+                    ) {
                         _result[key] = schemaValue.defaultValue
                     }
                     continue
