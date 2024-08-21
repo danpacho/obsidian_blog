@@ -4,6 +4,10 @@ import {
 } from '@obsidian_blogger/helpers/plugin'
 import { Is } from '../../../../utils'
 
+export type DecoderAdapter = (
+    value: PluginDynamicConfigPrimitiveType
+) => PluginDynamicConfigPrimitiveType
+
 /**
  * Decode input value into the correct type
  * @param schemaInfo Schema information
@@ -15,10 +19,27 @@ export const Decoder = (
     value: PluginDynamicConfigPrimitiveType
 ) => {
     switch (schemaInfo.type) {
-        case 'RegExp':
+        case 'RegExp': {
+            if (!Is.string(value) || value === '') return null
+
+            // g, i, m, s, u, y = global, ignoreCase, multiline, dotAll, unicode, sticky
+            const matches = value.match(/^\/(.*)\/([gimsuy]*)$/)
+
+            if (!matches) return null
+
+            const pattern = matches[1]
+            const flags = matches[2]
+
+            if (!pattern) return null
+
+            return new RegExp(pattern, flags)
+        }
+        case 'NULL':
+            return null
+        case 'Function': {
+            if (Is.string(value) && value === '') return null
             return value
-        case 'Function':
-            return value
+        }
         case 'boolean':
             return Boolean(value)
         case 'number':
@@ -26,7 +47,9 @@ export const Decoder = (
         case 'int':
             return Number(value)
         case 'string':
-            return value as string
+            if (!Is.string(value)) return null
+            if (value.trim() === '') return null
+            return value
         default: {
             // union
             if (Is.array(schemaInfo.type)) return value
@@ -38,7 +61,9 @@ export const Decoder = (
             if (schemaInfo.type.startsWith('Literal')) return value
 
             // array
-            if (!value) return [] as Array<unknown>
+            if (!value || !Is.string(value)) return []
+            if (value === '') return []
+
             const purifiedValue = value
                 .toString()
                 .replace(/'/g, '"')
