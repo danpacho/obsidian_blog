@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/plugin",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "description": "Obsidian plugin for extract vault to contents.",
     "author": "danpacho",
     "license": "MIT",
