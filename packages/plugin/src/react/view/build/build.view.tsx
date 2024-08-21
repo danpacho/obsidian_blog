@@ -12,6 +12,7 @@ import {
 import { Promisify } from '@obsidian_blogger/helpers/promisify'
 import React, { useCallback, useEffect, useState } from 'react'
 import { DynamicConfigViewer } from './components'
+import { Decoder, type DecoderAdapter } from './core'
 import type {
     BuildBridgeHistoryRecord,
     BuildBridgeHistoryValue,
@@ -318,17 +319,19 @@ export type UserPluginConfigSetter = (
     key: string,
     config: {
         value: PluginDynamicConfigPrimitiveType
-        decoder?: (
-            value: PluginDynamicConfigPrimitiveType
-        ) => PluginDynamicConfigPrimitiveType
+        decoder?: DecoderAdapter
     }
 ) => void
 
-const FlattenRecord = (
-    record: PluginInterfaceDynamicConfig,
+const FlattenDynamicConfig = ({
+    dynamicConfig,
+    dynamicConfigSchema,
+}: {
+    dynamicConfig: PluginInterfaceDynamicConfig
     dynamicConfigSchema: PluginDynamicConfigSchema
-): UserPluginConfigMap => {
+}): UserPluginConfigMap => {
     const result = new Map<string, PluginDynamicConfigPrimitiveType>()
+
     const flatten = (
         record: PluginInterfaceDynamicConfig,
         prefix: string,
@@ -347,14 +350,20 @@ const FlattenRecord = (
             } else {
                 const targetSchema = dynamicConfigSchema?.[key]
                 if (!targetSchema) return
-                result.set(`${prefix}${key}`, value)
+
+                const decodedValue: PluginDynamicConfigPrimitiveType = Decoder(
+                    targetSchema,
+                    value
+                )
+                result.set(`${prefix}${key}`, decodedValue)
             }
         }
     }
 
-    flatten(record, '', dynamicConfigSchema)
+    flatten(dynamicConfig, '', dynamicConfigSchema)
     return result
 }
+
 interface PluginViewProps {
     config: PluginConfig
     configStorage: PluginConfigStorage
@@ -399,7 +408,10 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
     const [userDynamicConfig, setUserDynamicConfig] =
         useState<UserPluginConfigMap>(() => {
             if (!dynamicConfigSchema) return new Map()
-            return FlattenRecord(initialConfig, dynamicConfigSchema)
+            return FlattenDynamicConfig({
+                dynamicConfig: initialConfig,
+                dynamicConfigSchema,
+            })
         })
 
     const configSetter: UserPluginConfigSetter = useCallback(
