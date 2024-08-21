@@ -13,6 +13,7 @@ export type Primitives =
     | `Literal<${string}>`
     | 'Function'
     | 'RegExp'
+    | 'NULL'
 
 type ParseType<T extends Primitives> = T extends 'number'
     ? number
@@ -22,16 +23,18 @@ type ParseType<T extends Primitives> = T extends 'number'
         ? string
         : T extends 'boolean'
           ? boolean
-          : T extends `Literal<${infer U}>`
-            ? U extends string
-                ? U
-                : never
-            : T extends 'Function'
-              ? /* eslint-disable @typescript-eslint/no-explicit-any */
-                (...args: any[]) => any | Promise<any>
-              : T extends 'RegExp'
-                ? RegExp
-                : never
+          : T extends 'NULL'
+            ? null
+            : T extends `Literal<${infer U}>`
+              ? U extends string
+                  ? U
+                  : never
+              : T extends 'Function'
+                ? /* eslint-disable @typescript-eslint/no-explicit-any */
+                  (...args: any[]) => any | Promise<any>
+                : T extends 'RegExp'
+                  ? RegExp
+                  : never
 
 /**
  * Parse the type name to the actual type
@@ -69,6 +72,14 @@ export class PrimitiveSchema {
         this.AssertNumber(value)
         const isInt = Number.isInteger(value)
         if (!isInt) throw new ArgTypeError('int', value)
+    }
+
+    /**
+     * Asserts that the value is `null`
+     */
+    public AssertNull(value: unknown): asserts value is null {
+        const isNull = value === null
+        if (!isNull) throw new ArgTypeError('null', value)
     }
 
     /**
@@ -130,6 +141,9 @@ export class PrimitiveSchema {
                 break
             case 'boolean':
                 this.AssertBoolean(value)
+                break
+            case 'NULL':
+                this.AssertNull(value)
                 break
             case 'Function':
                 this.AssertFunction(value)
