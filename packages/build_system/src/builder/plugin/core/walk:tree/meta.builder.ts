@@ -2,33 +2,112 @@ import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
-    WalkTreePluginStaticConfig,
+    type WalkTreePluginDynamicConfig,
+    type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
 
-export type MetaBuilderConfig = ContentMetaGeneratorOptions
+export type MetaBuilderStaticConfig = WalkTreePluginStaticConfig
+export type MetaBuilderDynamicConfig = WalkTreePluginDynamicConfig &
+    ContentMetaGeneratorOptions
 
-export class MetaBuilderPlugin extends WalkTreePlugin {
-    public constructor(
-        public readonly config: MetaBuilderConfig = defaultContentMetaBuilderOptions
-    ) {
-        super()
-        this.paramAnalyzer = new ParamAnalyzer(config.paramAnalyzer)
-    }
-
-    private get meta() {
-        return this.$createMetaEngine(this.config.contentMeta)
-    }
-    private readonly paramAnalyzer: ParamAnalyzer
-
+export class MetaBuilderPlugin extends WalkTreePlugin<
+    MetaBuilderStaticConfig,
+    MetaBuilderDynamicConfig
+> {
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
             name: 'meta-builder',
             description: 'Generate meta information for the content',
+            dynamicConfigSchema: {
+                contentMeta: {
+                    type: {
+                        parser: {
+                            type: 'Function',
+                            description: 'Parser function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .parser,
+                        },
+                        generator: {
+                            type: 'Function',
+                            description: 'Generator function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .generator,
+                        },
+                    },
+                    description: 'Content meta parser and generator',
+                    optional: true,
+                },
+                paramAnalyzer: {
+                    description: 'Define the param analyzer options',
+                    optional: true,
+                    type: {
+                        paramShape: {
+                            description: 'Define shape of dynamic param',
+                            type: {
+                                single: {
+                                    type: 'RegExp',
+                                    description:
+                                        'Shape of single dynamic param',
+                                    optional: true,
+                                },
+
+                                multiple: {
+                                    type: 'RegExp',
+                                    description:
+                                        'Shape of multiple dynamic param',
+                                    optional: true,
+                                },
+                            },
+                            optional: true,
+                        },
+                        paramExtractor: {
+                            type: {
+                                single: {
+                                    type: 'Function',
+                                    description:
+                                        'The function to extract single dynamic param',
+                                    typeDescription:
+                                        '(paramString: string) => string',
+                                    optional: true,
+                                },
+                                multiple: {
+                                    type: 'Function',
+                                    description:
+                                        'The function to extract multiple dynamic param',
+                                    optional: true,
+                                },
+                            },
+                            optional: true,
+                            description: 'Define the function to extract param',
+                        },
+                    },
+                },
+            },
         }
+    }
+
+    private get paramAnalyzer() {
+        if (!this._paramAnalyzer) {
+            this._paramAnalyzer = new ParamAnalyzer(
+                this.dynamicConfig.paramAnalyzer
+            )
+        }
+        return this._paramAnalyzer
+    }
+    private _paramAnalyzer: ParamAnalyzer | null = null
+
+    private get meta() {
+        return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
     private async getSeriesInfo(originPath: string): Promise<{

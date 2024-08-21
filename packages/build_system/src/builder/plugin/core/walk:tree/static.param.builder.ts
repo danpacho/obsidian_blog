@@ -3,6 +3,7 @@ import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
+    WalkTreePluginDynamicConfig,
     WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
 import {
@@ -16,30 +17,75 @@ export interface StaticParamBuilderConfig extends ContentMetaGeneratorOptions {
     paramShape: string
 }
 
-export class StaticParamBuilderPlugin extends WalkTreePlugin {
-    public constructor(
-        public readonly config: StaticParamBuilderConfig = {
-            paramShape: '/[category]/[...post]',
-            ...defaultContentMetaBuilderOptions,
-        }
-    ) {
-        super()
-        this.paramAnalyzer = new ParamAnalyzer(config.paramAnalyzer)
-        this.analyzed = this.paramAnalyzer.analyzeParam(config.paramShape)
+export type StaticParamBuilderStaticConfig = WalkTreePluginStaticConfig
+export type StaticParamBuilderDynamicConfig = WalkTreePluginDynamicConfig &
+    ContentMetaGeneratorOptions & {
+        paramShape: string
     }
 
-    private readonly paramAnalyzer: ParamAnalyzer
-    private readonly analyzed: ReturnType<ParamAnalyzer['analyzeParam']>
-
-    private get meta() {
-        return this.$createMetaEngine(this.config.contentMeta)
-    }
-
+export class StaticParamBuilderPlugin extends WalkTreePlugin<
+    StaticParamBuilderStaticConfig,
+    StaticParamBuilderDynamicConfig
+> {
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
             name: 'static-param-builder',
             description: 'Inject static params to the content',
+            dynamicConfigSchema: {
+                contentMeta: {
+                    type: {
+                        parser: {
+                            type: 'Function',
+                            description: 'Parser function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .parser,
+                        },
+                        generator: {
+                            type: 'Function',
+                            description: 'Generator function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .generator,
+                        },
+                    },
+                    description: 'Content meta parser and generator',
+                    optional: true,
+                },
+                paramShape: {
+                    type: 'string',
+                    description: 'Define the shape of dynamic param',
+                    defaultValue: '/[category]/[...post]',
+                },
+            },
         }
+    }
+
+    private _paramAnalyzer: ParamAnalyzer | undefined
+    private get paramAnalyzer() {
+        if (!this._paramAnalyzer) {
+            this._paramAnalyzer = new ParamAnalyzer(
+                this.dynamicConfig.paramAnalyzer
+            )
+        }
+        return this._paramAnalyzer
+    }
+    private _analyzed: ReturnType<ParamAnalyzer['analyzeParam']> | undefined
+    private get analyzed() {
+        if (!this._analyzed) {
+            this._analyzed = this.paramAnalyzer.analyzeParam(
+                this.dynamicConfig.paramShape
+            )
+        }
+        return this._analyzed
+    }
+
+    private get meta() {
+        return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
     private splitToPurePath(path: string): Array<string> {

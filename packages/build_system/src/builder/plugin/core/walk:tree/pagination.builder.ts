@@ -2,6 +2,7 @@ import type { Promisify } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import {
     WalkTreePlugin,
+    WalkTreePluginDynamicConfig,
     WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
 import {
@@ -13,26 +14,48 @@ import type {
     DefaultPaginationInfo,
 } from './shared/meta/interface'
 
-export interface PaginationBuilderConfig extends ContentMetaGeneratorOptions {}
-
-export class PaginationBuilderPlugin extends WalkTreePlugin {
-    public constructor(
-        public readonly config: PaginationBuilderConfig = {
-            ...defaultContentMetaBuilderOptions,
-        }
-    ) {
-        super()
-    }
-
-    private get meta() {
-        return this.$createMetaEngine(this.config.contentMeta)
-    }
-
-    public defineStaticConfig(): WalkTreePluginStaticConfig {
+export type PaginationBuilderStaticConfig = WalkTreePluginStaticConfig
+export type PaginationBuilderDynamicConfig = ContentMetaGeneratorOptions &
+    WalkTreePluginDynamicConfig
+export class PaginationBuilderPlugin extends WalkTreePlugin<
+    PaginationBuilderStaticConfig,
+    PaginationBuilderDynamicConfig
+> {
+    public defineStaticConfig(): PaginationBuilderStaticConfig {
         return {
             name: 'pagination-builder',
             description: 'Generate pagination meta information for the content',
+            dynamicConfigSchema: {
+                contentMeta: {
+                    type: {
+                        parser: {
+                            type: 'Function',
+                            description: 'Parser function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .parser,
+                        },
+                        generator: {
+                            type: 'Function',
+                            description: 'Generator function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .generator,
+                        },
+                    },
+                    description: 'Content meta parser and generator',
+                    optional: true,
+                },
+            },
         }
+    }
+
+    private get meta() {
+        return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
     private async buildPaginationMeta(

@@ -13,8 +13,8 @@ import type {
     DefaultContentMeta,
 } from './shared/meta/interface'
 
-export interface CategoryDescriptionGeneratorStaticConfig
-    extends WalkTreePluginStaticConfig {}
+export type CategoryDescriptionGeneratorStaticConfig =
+    WalkTreePluginStaticConfig
 export type CategoryDescriptionGeneratorDynamicConfig =
     WalkTreePluginDynamicConfig &
         Partial<CategoryDescriptionGeneratorOptions> & {
@@ -41,7 +41,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
                             type: 'Function',
                             description: 'Parser function for the meta',
                             typeDescription:
-                                '(meta: unknown): Record<string, unknown>',
+                                '(meta: unknown) => Record<string, unknown>',
                             defaultValue:
                                 defaultCategoryDescriptionBuilderOptions
                                     .categoryMeta.parser,
@@ -50,7 +50,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
                             type: 'Function',
                             description: 'Generator function for the meta',
                             typeDescription:
-                                '(meta: unknown): Record<string, unknown>',
+                                '(meta: unknown) => Record<string, unknown>',
                             defaultValue:
                                 defaultCategoryDescriptionBuilderOptions
                                     .categoryMeta.generator,

@@ -1,7 +1,8 @@
 import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 import {
     WalkTreePlugin,
-    WalkTreePluginStaticConfig,
+    type WalkTreePluginDynamicConfig,
+    type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
@@ -9,27 +10,48 @@ import {
 } from './shared/meta'
 import type { DefaultContentMeta } from './shared/meta/interface'
 
-export interface SeriesInfoGeneratorConfig
-    extends ContentMetaGeneratorOptions {}
-
-export class SeriesInfoGeneratorPlugin extends WalkTreePlugin {
-    public constructor(
-        public readonly config: SeriesInfoGeneratorConfig = {
-            ...defaultContentMetaBuilderOptions,
-        }
-    ) {
-        super()
-    }
-
-    private get meta() {
-        return this.$createMetaEngine(this.config.contentMeta)
-    }
-
-    public defineStaticConfig(): WalkTreePluginStaticConfig {
+export type SeriesInfoGeneratorStaticConfig = WalkTreePluginStaticConfig
+export type SeriesInfoGeneratorDynamicConfig = WalkTreePluginDynamicConfig &
+    ContentMetaGeneratorOptions
+export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
+    SeriesInfoGeneratorStaticConfig,
+    SeriesInfoGeneratorDynamicConfig
+> {
+    public defineStaticConfig(): SeriesInfoGeneratorStaticConfig {
         return {
             name: 'series-info-generator',
             description: 'Generate series info for the content',
+            dynamicConfigSchema: {
+                contentMeta: {
+                    type: {
+                        parser: {
+                            type: 'Function',
+                            description: 'Parser function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .parser,
+                        },
+                        generator: {
+                            type: 'Function',
+                            description: 'Generator function for the meta',
+                            typeDescription:
+                                '(meta: unknown) => Record<string, unknown>',
+                            defaultValue:
+                                defaultContentMetaBuilderOptions.contentMeta
+                                    .generator,
+                        },
+                    },
+                    description: 'Content meta parser and generator',
+                    optional: true,
+                },
+            },
         }
+    }
+
+    private get meta() {
+        return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
     private async getPostCollectionStore({
