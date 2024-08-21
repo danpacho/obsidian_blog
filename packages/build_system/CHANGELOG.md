@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.2.5
+
+### Patch Changes
+
+-   Update decoding logic at plugin and update dynamic config for meta-validator
+
 ## 0.2.4
 
 ### Patch Changes
