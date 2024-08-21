@@ -2,31 +2,42 @@
 // Build tree plugin template
 // -------------------------------------------------------------- //
 
-import { Node, Plugin } from '@obsidian_blogger/build_system'
+import { Plugin } from '@obsidian_blogger/build_system'
 
-export interface {{plugin_name}}Options {
-    option1: string
-    option2: string
+export type {{plugin_name}}StaticConfig = Plugin.BuildTreePluginStaticConfig & {
+    static1: string
+    static2: string
 }
-export class {{plugin_name}}Plugin extends Plugin.BuildTreePlugin {
-    public constructor(private readonly options: {{plugin_name}}Options) {
-        super()
-    }
-
-    public getConfig(): Plugin.BuildTreePluginConfig {
+export type {{plugin_name}}DynamicConfig = Plugin.BuildTreePluginDynamicConfig & {
+    dynamicProperty?: string
+}
+export class {{plugin_name}}Plugin extends Plugin.BuildTreePlugin<
+    {{plugin_name}}StaticConfig,
+    {{plugin_name}}DynamicConfig
+> {
+    public defineStaticConfig(): {{plugin_name}}StaticConfig {
         return {
             name: '{{plugin_name}}',
-            disableCache: false,
-            exclude: [],
-            skipFolderNode: true,
+            description: '{{plugin_name}} plugin description',
+            // If you want to add a user-input based configuration, you can define it here
+            dynamicConfigSchema: {
+                dynamicProperty: {
+                    type: 'string',
+                    description: 'dynamic1 description',
+                    defaultValue: 'default value for dynamic1',
+                    optional: true,
+                },
+            },
+            // user-defined static configuration
+            static1: 'static1',
+            static2: 'static2',
         }
     }
 
     public async walk(
-        node: Node.FTreeNode,
-        i: number,
-        peerNodes: Array<Node.FTreeNode>
+        node: Parameters<Plugin.BuildTreePlugin['walk']>[0],
+        context: Parameters<Plugin.BuildTreePlugin['walk']>[1]
     ): Promise<void> {
-        return
+        // Implement the build logic here
     }
 }
