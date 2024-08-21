@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.2.3
+
+### Patch Changes
+
+-   Add NULL support for arg parser
+
 ## 0.2.2
 
 ### Patch Changes

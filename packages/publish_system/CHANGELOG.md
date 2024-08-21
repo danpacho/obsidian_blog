@@ -1,5 +1,13 @@
 # @obsidian_blogger/publish_system
 
+## 0.2.6
+
+### Patch Changes
+
+-   Updated dependencies
+    -   @obsidian_blogger/helpers@0.2.3
+    -   @obsidian_blogger/constants@0.2.3
+
 ## 0.2.5
 
 ### Patch Changes
