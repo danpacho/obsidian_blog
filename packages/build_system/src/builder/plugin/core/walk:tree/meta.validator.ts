@@ -65,6 +65,7 @@ export class MetaValidatorPlugin extends WalkTreePlugin<
                                     optional: true,
                                 },
                             },
+                            optional: true,
                         },
                         paramParser: {
                             type: 'Function',
