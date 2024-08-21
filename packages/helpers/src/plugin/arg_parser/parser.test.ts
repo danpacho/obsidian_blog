@@ -58,6 +58,11 @@ describe('DynamicConfigParser', () => {
             description: 'This is a literal field',
             optional: true,
         },
+        regexp: {
+            type: 'RegExp',
+            description: 'This is a regexp field',
+            optional: true,
+        },
     }
 
     it('should be correctly parse and track errors', () => {
