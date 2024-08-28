@@ -2,42 +2,39 @@
 // Walk tree plugin template
 // -------------------------------------------------------------- //
 
-import { Plugin } from "@obsidian_blogger/build_system";
+import { Plugin } from '@obsidian_blogger/build_system'
 
 export type {{plugin_name}}StaticConfig = Plugin.WalkTreePluginStaticConfig & {
-  static1: string;
-  static2: string;
-};
+    static1: string
+    static2: string
+}
 export type {{plugin_name}}DynamicConfig = Plugin.WalkTreePluginDynamicConfig & {
-  dynamicProperty?: string;
-};
-export class {{plugin_name}}Plugin extends Plugin.WalkTreePlugin<
-  {{plugin_name}}StaticConfig,
-  {{plugin_name}}DynamicConfig
-> {
-  public defineStaticConfig(): {{plugin_name}}StaticConfig {
-    return {
-      name: "{{plugin_name}}",
-      description: "{{plugin_name}} plugin description",
-      // If you want to add a user-input based configuration, you can define it here
-      dynamicConfigSchema: {
-        dynamicProperty: {
-          type: "string",
-          description: "dynamic1 description",
-          defaultValue: "default value for dynamic1",
-          optional: true,
-        },
-      },
-      // user-defined static configuration
-      static1: "static1",
-      static2: "static2",
-    };
-  }
+    dynamicProperty?: string
+}
+export class {{plugin_name}}Plugin extends Plugin.WalkTreePlugin<{{plugin_name}}StaticConfig, {{plugin_name}}DynamicConfig> {
+    public defineStaticConfig(): {{plugin_name}}StaticConfig {
+        return {
+            name: ''{{plugin_name}},
+            description: '{{plugin_name}} plugin description',
+            // If you want to add a user-input based configuration, you can define it here
+            dynamicConfigSchema: {
+                dynamicProperty: {
+                    type: 'string',
+                    description: 'dynamic1 description',
+                    defaultValue: 'default value for dynamic1',
+                    optional: true,
+                },
+            },
+            // user-defined static configuration
+            static1: 'static1',
+            static2: 'static2',
+        }
+    }
 
-  public async walk(
-    node: Parameters<Plugin.WalkTreePlugin["walk"]>[0],
-    context: Parameters<Plugin.WalkTreePlugin["walk"]>[1]
-  ): Promise<void> {
-    // Implement the walk logic here
-  }
+    public async walk(
+        node: Parameters<Plugin.WalkTreePlugin['walk']>[0],
+        context: Parameters<Plugin.WalkTreePlugin['walk']>[1]
+    ): Promise<void> {
+        // Implement the walk logic here
+    }
 }
