@@ -1,5 +1,5 @@
 {
-    "name": "@obsidian_blogger/astro_blog",
+    "name": "@obsidian_blogger/template",
     "type": "module",
     "version": "0.1.0",
     "scripts": {
