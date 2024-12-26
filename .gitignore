@@ -7,6 +7,8 @@ dist
 benchmark
 content
 .obsidian
+.vite
+output.css
 
 # Dependencies
 node_modules/
