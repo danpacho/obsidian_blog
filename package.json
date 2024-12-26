@@ -18,7 +18,7 @@
         "build": "pnpm reset:dist && turbo run build --no-cache --force",
         "start": "turbo run start",
         "clean": "turbo run clean",
-        "blog": "pnpm run --filter=@obsidian_blogger/astro-blog",
+        "blog": "pnpm run --filter=@obsidian_blogger/template",
         "plugin": "pnpm run --filter=@obsidian_blogger/plugin",
         "cli": "pnpm run --filter=create-obsidian-blogger",
         "publisher": "pnpm run --filter=@obsidian_blogger/publish_system",
