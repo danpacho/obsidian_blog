@@ -5,6 +5,9 @@
         "@obsidian_blogger/helpers#build": {
             "dependsOn": []
         },
+        "@obsidian_blogger/design_system#build": {
+            "dependsOn": ["@obsidian_blogger/helpers#build"]
+        },
         "@obsidian_blogger/constants#build": {
             "dependsOn": ["@obsidian_blogger/helpers#build"]
         },
@@ -12,7 +15,8 @@
             "persistent": true,
             "dependsOn": [
                 "@obsidian_blogger/constants#build",
-                "@obsidian_blogger/helpers#build"
+                "@obsidian_blogger/helpers#build",
+                "@obsidian_blogger/design_system#build"
             ]
         },
         "test": {
