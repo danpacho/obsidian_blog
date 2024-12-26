@@ -6,9 +6,10 @@ export const Route = createFileRoute('/preview')({
 
 function PreviewComponent() {
     return (
-        // Open localhost:4322 in your browser to see this component
         <div>
             <iframe
+                // Iframe accessible name
+                title="Preview"
                 src="http://localhost:4321"
                 className="size-full min-h-screen"
             />
