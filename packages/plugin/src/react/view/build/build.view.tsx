@@ -1,5 +1,14 @@
 import { Bridge } from '@obsidian_blogger/constants'
 import {
+    Accordion,
+    Button,
+    Label,
+    Loader,
+    ProgressButton,
+    Text,
+    useProgressStatus,
+} from '@obsidian_blogger/design_system/components'
+import {
     DynamicConfigParser,
     DynamicConfigParserError,
     type PluginDynamicConfigPrimitiveType,
@@ -20,15 +29,6 @@ import type {
     PluginConfigStorage,
 } from '~/core'
 import type { ObsidianBloggerSettings } from '~/plugin/settings'
-import {
-    Accordion,
-    Button,
-    Label,
-    Loader,
-    ProgressButton,
-    Text,
-    useProgressStatus,
-} from '~/react/common'
 import { useObsidianSetting } from '~/react/hooks'
 import {
     BUILD_STORAGE_KEYS,

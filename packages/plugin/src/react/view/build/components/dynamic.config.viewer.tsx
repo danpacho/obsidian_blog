@@ -1,14 +1,3 @@
-import type {
-    PluginDynamicConfigPrimitiveType,
-    PluginDynamicConfigSchema,
-    PluginDynamicSchemaType,
-    PluginInterfaceDynamicConfig,
-    PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/helpers/plugin'
-import { useEffect, useMemo, useState } from 'react'
-import { type UserPluginConfigSetter } from '../build.view'
-import { Decoder } from '../core'
-import { PluginConfigStorage } from '~/core'
 import {
     Accordion,
     CodeInput,
@@ -19,8 +8,20 @@ import {
     Textarea,
     Tooltip,
     useTooltip,
-} from '~/react/common'
-import { useMultipleInput } from '~/react/hooks'
+} from '@obsidian_blogger/design_system/components'
+import { useMultipleInput } from '@obsidian_blogger/design_system/hooks'
+import type {
+    PluginDynamicConfigPrimitiveType,
+    PluginDynamicConfigSchema,
+    PluginDynamicSchemaType,
+    PluginInterfaceDynamicConfig,
+    PluginInterfaceStaticConfig,
+} from '@obsidian_blogger/helpers/plugin'
+import { loadPrism } from 'obsidian'
+import { useEffect, useMemo, useState } from 'react'
+import { type UserPluginConfigSetter } from '../build.view'
+import { Decoder } from '../core'
+import { PluginConfigStorage } from '~/core'
 import { Is } from '~/utils'
 
 const GetInitialConfig = ({
@@ -334,6 +335,21 @@ const PrimitiveInput = ({
     const { component, inputType } = InferInputType(type)
     const { getter: inputGetter, setter: setInput } = inputManager
 
+    const [prism, setPrism] = useState<{
+        highlight: (code: string, language: string) => string
+        languages: {
+            javascript: string
+        }
+    } | null>(null)
+
+    useEffect(() => {
+        const initializePrism = async () => {
+            const Prism = await loadPrism()
+            setPrism(Prism)
+        }
+        initializePrism()
+    }, [])
+
     return (
         <>
             {component === 'Input' && inputType === 'checkbox' && (
@@ -387,6 +403,10 @@ const PrimitiveInput = ({
                             | ((...args: unknown[]) => unknown)
                             | Array<unknown>
                     ).toString()}
+                    codeHighlighter={(code) => {
+                        if (!prism) return code
+                        return prism.highlight(code, prism.languages.javascript)
+                    }}
                     setInput={(input) => setInput(input)}
                     description={typeDescription ?? description}
                 />

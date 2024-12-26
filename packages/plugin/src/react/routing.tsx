@@ -1,5 +1,5 @@
+import { Button, Label } from '@obsidian_blogger/design_system/components'
 import React, { useEffect, useRef, useState } from 'react'
-import { Button, Label } from './common'
 
 const RouteValueContext = React.createContext<string | undefined>(undefined)
 const RouteSetterContext = React.createContext<
@@ -38,7 +38,12 @@ const Router = ({ children, initialRoute }: RouterProps) => {
         setRoute?.(initialRoute!)
         React.Children.forEach(children, (child: React.ReactNode) => {
             if (!React.isValidElement(child)) return
-            if (!child.props.path) return
+            if (
+                !React.isValidElement<{ path: string }>(child) ||
+                !child.props.path
+            )
+                return
+
             routes.current.set(child.props.path, child)
         })
     }, [])
