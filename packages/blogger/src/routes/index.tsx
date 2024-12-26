@@ -1,5 +1,5 @@
+import { tw } from '@obsidian_blogger/design_system'
 import { createFileRoute } from '@tanstack/react-router'
-import { tw } from '../tw'
 
 export const Route = createFileRoute('/')({
     component: HomeComponent,
@@ -16,8 +16,7 @@ const box = tw.style({
 function HomeComponent() {
     return (
         <div className="p-2">
-            <h3>Welcome Home!</h3>
-            <div className={box.class}>a</div>
+            <div className={box.class}>Welcome Home</div>
         </div>
     )
 }
