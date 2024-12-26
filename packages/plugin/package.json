@@ -23,17 +23,17 @@
     },
     "dependencies": {
         "@obsidian_blogger/constants": "workspace:^",
+        "@obsidian_blogger/design_system": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
-        "builtin-modules": "^3.3.0",
-        "obsidian": "1.5.7-1",
-        "react": "^18.3.1",
-        "react-dom": "^18.3.1",
-        "tailwindest": "^2.3.4"
+        "builtin-modules": "^4.0.0",
+        "obsidian": "1.7.2",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     },
     "devDependencies": {
-        "@types/react": "^18.3.3",
-        "@types/react-dom": "^18.3.0",
-        "tailwindcss": "^3.4.1",
-        "watcher": "^2.3.0"
+        "@types/react": "^19.0.2",
+        "@types/react-dom": "^19.0.2",
+        "tailwindcss": "^3.4.17",
+        "watcher": "^2.3.1"
     }
 }

@@ -44,6 +44,7 @@
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
+        "@obsidian_blogger/design_system": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
         "@tanstack/react-router": "^1.92.3",
         "electron-squirrel-startup": "^1.0.1",

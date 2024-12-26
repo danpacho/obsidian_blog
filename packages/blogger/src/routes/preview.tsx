@@ -11,7 +11,7 @@ function PreviewComponent() {
                 // Iframe accessible name
                 title="Preview"
                 src="http://localhost:4321"
-                className="size-full min-h-screen"
+                className="size-full min-h-[calc(100vh-4rem)]"
             />
         </div>
     )
