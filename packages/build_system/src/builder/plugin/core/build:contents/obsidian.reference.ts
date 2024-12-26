@@ -65,7 +65,7 @@ const RemarkObsidianReferencePlugin: Plugin<
 
                 const imageHTMLNode: Literal = {
                     type: 'html',
-                    value: `<img src="${matchedURL}" alt="${link}">`,
+                    value: `<img src="${matchedURL}" alt="${link}" />`,
                 }
 
                 if (parent && typeof index === 'number') {
@@ -123,7 +123,8 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             }))
 
         const referenceUpdateTextFileList = context.buildStore.filter(
-            ({ file_type }) => file_type === 'TEXT_FILE'
+            ({ file_type, build_state }) =>
+                file_type === 'TEXT_FILE' && build_state !== 'CACHED'
         )
 
         const referenceUpdatedList = await referenceUpdateTextFileList.reduce<
