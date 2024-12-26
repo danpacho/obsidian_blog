@@ -1,6 +1,6 @@
+import { tw } from '@obsidian_blogger/design_system'
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { tw } from '../tw'
 
 export const Route = createRootRoute({
     component: RootComponent,

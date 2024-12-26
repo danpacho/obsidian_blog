@@ -47,8 +47,7 @@
         "@obsidian_blogger/design_system": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
         "@tanstack/react-router": "^1.92.3",
-        "electron-squirrel-startup": "^1.0.1",
-        "tailwindest": "^2.3.6"
+        "electron-squirrel-startup": "^1.0.1"
     },
     "author": {
         "name": "Danpa_cho",
