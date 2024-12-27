@@ -1,10 +1,11 @@
-import { Bridge as BridgeConstant } from '@obsidian_blogger/constants'
 import { IO, Logger } from '@obsidian_blogger/helpers'
-import { Bridge } from '@obsidian_blogger/helpers/plugin'
+import { Bridge } from '@obsidian_blogger/plugin'
+import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin/constants'
 import { Builder, type BuilderConstructor } from './builder'
 import type { BuildSystemPluginAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
 //TODO: refactor, divide constructor <-> config options
+
 type ClassInstance = 'io' | 'logger' | 'parser'
 type AlreadyFulfilled = 'rootFolder' | 'storagePrefix'
 type ExcludeProperties = ClassInstance | AlreadyFulfilled

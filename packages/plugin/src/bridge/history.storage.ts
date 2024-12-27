@@ -1,8 +1,8 @@
-import type { Job } from '../../job'
-import { JsonStorage } from '../../storage'
+import type { Job } from '@obsidian_blogger/helpers/job'
+import { JsonStorage } from '@obsidian_blogger/helpers/storage'
 import type { PluginShape } from '../plugin.interface'
-import type { PluginManager } from '../plugin.manager'
 import type { PluginRunner } from '../plugin.runner'
+import type { PluginManager } from './plugin.manager'
 
 export interface HistoryBridgeStorageConstructor {
     bridgeRoot: string

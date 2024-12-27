@@ -1,14 +1,14 @@
-import { Bridge as BridgeConstant } from '@obsidian_blogger/constants'
 import { IO } from '@obsidian_blogger/helpers/io'
 import {
     Logger,
     type LoggerConstructor,
 } from '@obsidian_blogger/helpers/logger'
-import { Bridge } from '@obsidian_blogger/helpers/plugin'
 import {
     ShellExecutor,
     type ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
+import { Bridge } from '@obsidian_blogger/plugin'
+import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin/constants'
 import type { PublishSystemPluginAdapter } from './publish.system.interface'
 import { Publisher } from './publisher/publisher'
 export interface PublishSystemConstructor {

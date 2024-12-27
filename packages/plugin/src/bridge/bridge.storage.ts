@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
 import { FileChangeInfo, watch } from 'fs/promises'
-import { type Runner } from '@obsidian_blogger/helpers/plugin'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
+import { PluginRunnerExecutionResponse } from '../plugin.runner'
 import { PluginConfigStorage } from './plugin.config.storage'
 
-export type BuildBridgeHistoryValue = Runner.PluginRunnerExecutionResponse
+export type BuildBridgeHistoryValue = PluginRunnerExecutionResponse
 export type BuildBridgeHistoryRecord = Record<string, BuildBridgeHistoryValue>
 
 /**

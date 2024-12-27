@@ -4,13 +4,13 @@ import {
     type LoggerConstructor,
 } from '@obsidian_blogger/helpers/logger'
 import {
-    PluginInterface,
-    PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/helpers/plugin'
-import {
     ShellExecutor,
     type ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
+import {
+    PluginInterface,
+    PluginInterfaceStaticConfig,
+} from '@obsidian_blogger/plugin'
 
 export type PublishPluginDynamicConfig = {
     /**

@@ -1,10 +1,12 @@
-import { Bridge } from '@obsidian_blogger/constants'
 import {
+    JsonStorage,
+    type JsonStorageConstructor,
+} from '@obsidian_blogger/helpers/storage'
+import type { Bridge } from '../constants'
+import type {
     PluginConfig,
     PluginInterfaceDynamicConfig,
-} from '@obsidian_blogger/helpers/plugin'
-import { JsonStorage } from '@obsidian_blogger/helpers/storage'
-import { MergeRecord } from '~/utils/merge.record'
+} from '../plugin.interface'
 
 /**
  * @description Obsidian bridge configuration interface
@@ -24,9 +26,92 @@ import { MergeRecord } from '~/utils/merge.record'
  */
 export type UserPluginConfig = Record<string, Bridge.USER_PLUGIN_LOAD_INPUT>
 
+export interface PluginConfigStoreConstructor extends JsonStorageConstructor {}
 export class PluginConfigStorage extends JsonStorage<PluginConfig> {
-    public constructor(options: { name: string; root: string }) {
+    public constructor(options: PluginConfigStoreConstructor) {
         super(options)
+    }
+
+    private isRecord<T extends Record<string, unknown>>(
+        target: unknown
+    ): target is T {
+        return (
+            typeof target === 'object' &&
+            target !== null &&
+            !Array.isArray(target)
+        )
+    }
+    private mergeRecord<T extends Record<string, unknown>>(
+        currRecord: T,
+        newRecord: T
+    ): T {
+        const result: T = { ...currRecord }
+
+        for (const key in newRecord) {
+            if (Object.prototype.hasOwnProperty.call(newRecord, key)) {
+                const currValue = currRecord[key]
+                const newValue = newRecord[key]
+
+                if (this.isRecord(currValue) && this.isRecord(newValue)) {
+                    result[key] = this.mergeRecord(currValue, newValue)
+                } else {
+                    result[key] = newValue
+                }
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Checks if a configuration with the specified name exists in the store.
+     * @param name - The name of the configuration.
+     * @returns A boolean indicating whether the configuration exists.
+     */
+    public hasConfig(name: string): boolean {
+        return this.storage.has(name)
+    }
+
+    /**
+     * Adds a configuration to the store.
+     * @param pluginName - The name of the plugin.
+     * @param config - The configuration to add.
+     */
+    public async addConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
+        if (this.hasConfig(pluginName)) return
+
+        await this.set(pluginName, {
+            staticConfig: config.staticConfig,
+            dynamicConfig: config.dynamicConfig ?? null,
+        })
+        return
+    }
+
+    /**
+     * Updates a configuration in the store.
+     * @param pluginName - The name of the plugin.
+     * @param config - The updated configuration.
+     */
+    public async updateConfig(
+        pluginName: string,
+        config: PluginConfig
+    ): Promise<void> {
+        const prevConfig = this.get(pluginName)
+
+        if (!prevConfig) {
+            await this.addConfig(pluginName, config)
+            return
+        }
+
+        const mergedConfig = this.mergeRecord(prevConfig, {
+            staticConfig: prevConfig.staticConfig,
+            dynamicConfig: config.dynamicConfig ?? null,
+        })
+
+        await this.set(pluginName, mergedConfig)
     }
 
     /**
@@ -44,7 +129,7 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
         // It is not possible, staticConfig is always defined
         if (!prevConfig) return
 
-        const mergedConfig: PluginConfig = MergeRecord(prevConfig, {
+        const mergedConfig = this.mergeRecord(prevConfig, {
             staticConfig: prevConfig.staticConfig,
             dynamicConfig,
         })

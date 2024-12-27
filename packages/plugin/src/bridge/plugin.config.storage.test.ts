@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PluginConfigStorage } from '../bridge2/plugin.config.storage'
+import { PluginConfigStorage } from './plugin.config.storage'
 
 describe('PluginConfigStorage', async () => {
     const store = new PluginConfigStorage({

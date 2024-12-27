@@ -1,4 +1,3 @@
-import { Bridge } from '@obsidian_blogger/constants'
 import {
     Accordion,
     Button,
@@ -8,26 +7,27 @@ import {
     Text,
     useProgressStatus,
 } from '@obsidian_blogger/design_system/components'
-import {
-    DynamicConfigParser,
-    DynamicConfigParserError,
-    type PluginDynamicConfigPrimitiveType,
-} from '@obsidian_blogger/helpers/arg_parser'
+import { Promisify } from '@obsidian_blogger/helpers/promisify'
 import {
     type PluginConfig,
     type PluginDynamicConfigSchema,
     type PluginInterfaceDynamicConfig,
-} from '@obsidian_blogger/helpers/plugin'
-import { Promisify } from '@obsidian_blogger/helpers/promisify'
-import React, { useCallback, useEffect, useState } from 'react'
-import { DynamicConfigViewer } from './components'
-import { Decoder, type DecoderAdapter } from './core'
+} from '@obsidian_blogger/plugin'
+import {
+    DynamicConfigParser,
+    DynamicConfigParserError,
+    type PluginDynamicConfigPrimitiveType,
+} from '@obsidian_blogger/plugin/arg_parser'
 import type {
     BuildBridgeHistoryRecord,
     BuildBridgeHistoryValue,
     BuildBridgeStorage,
     PluginConfigStorage,
-} from '~/core'
+} from '@obsidian_blogger/plugin/bridge'
+import { Bridge } from '@obsidian_blogger/plugin/constants'
+import React, { useCallback, useEffect, useState } from 'react'
+import { DynamicConfigViewer } from './components'
+import { Decoder, type DecoderAdapter } from './core'
 import type { ObsidianBloggerSettings } from '~/plugin/settings'
 import { useObsidianSetting } from '~/react/hooks'
 import {

@@ -1,5 +1,7 @@
-import type { PluginExecutionResponse } from '@obsidian_blogger/helpers/plugin'
-import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
+import type {
+    PluginDynamicConfigSchema,
+    PluginExecutionResponse,
+} from '@obsidian_blogger/plugin'
 import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import {

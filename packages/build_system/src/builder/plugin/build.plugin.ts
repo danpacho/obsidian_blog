@@ -1,7 +1,7 @@
 import {
     PluginInterface,
     type PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/helpers/plugin'
+} from '@obsidian_blogger/plugin'
 import {
     MetaEngine,
     type MetaEngineConstructor,

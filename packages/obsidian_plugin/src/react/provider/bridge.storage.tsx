@@ -1,6 +1,6 @@
-import { Bridge } from '@obsidian_blogger/constants'
+import { BuildBridgeStorage } from '@obsidian_blogger/plugin/bridge'
+import { Bridge } from '@obsidian_blogger/plugin/constants'
 import React, { useEffect, useRef, useState } from 'react'
-import { BuildBridgeStorage } from '../../core/bridge.storage'
 import { useObsidianSetting } from '../hooks/use.setting'
 
 export type BuildStorageKeys = (typeof BUILD_STORAGE_KEYS)[number]

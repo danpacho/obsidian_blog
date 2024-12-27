@@ -1,4 +1,4 @@
-import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
+import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin'
 import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import {

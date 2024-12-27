@@ -4,7 +4,7 @@ import {
     JobManager,
     type JobManagerConstructor,
     type JobSubscriber,
-} from '../job'
+} from '@obsidian_blogger/helpers/job'
 import type {
     PluginInterfaceDependencies,
     PluginShape,

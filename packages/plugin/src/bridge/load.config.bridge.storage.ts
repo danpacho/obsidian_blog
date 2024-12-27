@@ -1,5 +1,8 @@
+import {
+    Logger,
+    type LoggerConstructor,
+} from '@obsidian_blogger/helpers/logger'
 import { type PluginLoadInformation, PluginManager, type PluginShape } from '..'
-import { Logger, type LoggerConstructor } from '../../logger'
 import type { PluginRunner } from '../plugin.runner'
 
 export interface LoadConfigBridgeStorageConstructor {

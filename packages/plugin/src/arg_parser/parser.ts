@@ -1,4 +1,4 @@
-import { type Stateful } from '../../promisify'
+import { type Stateful } from '@obsidian_blogger/helpers/promisify'
 import { PrimitiveSchema, type PrimitiveType, type TypeOf } from './primitives'
 import { ArgTypeError } from './type.error'
 

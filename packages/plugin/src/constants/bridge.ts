@@ -1,4 +1,4 @@
-import { type PluginDynamicConfigPrimitiveType } from '@obsidian_blogger/helpers/arg_parser'
+import { type PluginDynamicConfigPrimitiveType } from '../arg_parser'
 
 const DIVIDER = '::' as const
 

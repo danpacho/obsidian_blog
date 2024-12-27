@@ -4,7 +4,7 @@ import {
     JobManager,
     type JobManagerConstructor,
     type JobRegistrationShape,
-} from '../job'
+} from '@obsidian_blogger/helpers/job'
 import {
     DynamicConfigParser,
     type PluginDynamicConfigPrimitiveType,

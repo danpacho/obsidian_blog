@@ -1,4 +1,4 @@
-import { Runner } from '@obsidian_blogger/helpers/plugin'
+import { Runner } from '@obsidian_blogger/plugin'
 import type {
     BuildContentsPlugin,
     BuildContentsPluginDependencies,

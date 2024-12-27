@@ -1,5 +1,5 @@
 import type { Job } from '@obsidian_blogger/helpers/job'
-import type { PluginDynamicConfigSchema } from 'packages/helpers/dist'
+import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin'
 import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
 import {

@@ -5,9 +5,9 @@ import {
     PluginInterfaceStaticConfig,
     PluginShape,
 } from '../plugin.interface'
-import { PluginManager } from '../plugin.manager'
 import { PluginRunner } from '../plugin.runner'
 import { LoadConfigBridgeStorage } from './load.config.bridge.storage'
+import { PluginManager } from './plugin.manager'
 
 describe('LoadConfigBridgeStorage', async () => {
     class Runner extends PluginRunner {
@@ -133,7 +133,7 @@ describe('LoadConfigBridgeStorage', async () => {
                     add: (a: number, b: number) => a + b,
                 }
 
-                await manager.$config.updateDynamicConfig(
+                await manager.$config.updateDynamicConfigByUserConfig(
                     name,
                     newDynamicConfig
                 )
@@ -175,7 +175,7 @@ describe('LoadConfigBridgeStorage', async () => {
                     add: (a: number, b: number) => a + b + a * 2 + b * 2,
                 }
 
-                await manager.$config.updateDynamicConfig(
+                await manager.$config.updateDynamicConfigByUserConfig(
                     name,
                     newDynamicConfig
                 )
