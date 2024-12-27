@@ -1,0 +1,53 @@
+{
+    "name": "@obsidian_blogger/plugin",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Plugin abstraction",
+    "private": false,
+    "keywords": [],
+    "sideEffects": true,
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        "./*": {
+            "import": {
+                "types": "./dist/*.d.ts",
+                "default": "./dist/*.js"
+            },
+            "require": {
+                "types": "./dist/*.d.cts",
+                "default": "./dist/*.cjs"
+            }
+        },
+        ".": {
+            "import": {
+                "types": "./dist/index.d.ts",
+                "default": "./dist/index.js"
+            },
+            "require": {
+                "types": "./dist/index.d.cts",
+                "default": "./dist/index.cjs"
+            }
+        }
+    },
+    "scripts": {
+        "build": "tsup",
+        "build:fast": "tsup --no-dts",
+        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "format": "prettier --write \"./{src,tests}/**/*\"",
+        "test": "vitest",
+        "test:ci": "vitest run",
+        "lint:ts": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@obsidian_blogger/constants": "workspace:^",
+        "@obsidian_blogger/helpers": "workspace:^"
+    }
+}
