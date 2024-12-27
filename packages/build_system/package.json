@@ -26,7 +26,7 @@
         "lint:ts": "tsc --noEmit"
     },
     "dependencies": {
-        "@obsidian_blogger/constants": "workspace:^",
+        "@obsidian_blogger/plugin": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
         "chokidar": "^3.6.0",
         "glob": "^10.3.10",

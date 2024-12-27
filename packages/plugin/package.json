@@ -47,7 +47,6 @@
         "lint:ts": "tsc --noEmit"
     },
     "dependencies": {
-        "@obsidian_blogger/constants": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^"
     }
 }
