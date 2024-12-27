@@ -22,7 +22,7 @@
         "dev": "concurrently \"pnpm build:script\" \"pnpm build:fast --sourcemap --clean=false --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx tailwindcss -i ./src/css/main.css -o ./dist/styles.css --watch\""
     },
     "dependencies": {
-        "@obsidian_blogger/constants": "workspace:^",
+        "@obsidian_blogger/plugin": "workspace:^",
         "@obsidian_blogger/design_system": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
         "builtin-modules": "^4.0.0",
