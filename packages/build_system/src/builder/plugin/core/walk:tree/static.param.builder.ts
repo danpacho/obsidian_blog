@@ -3,8 +3,8 @@ import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
-    WalkTreePluginDynamicConfig,
-    WalkTreePluginStaticConfig,
+    type WalkTreePluginDynamicConfig,
+    type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
 import {
     type ContentMetaGeneratorOptions,
@@ -13,15 +13,33 @@ import {
 
 type RecordShape = Record<string, string>
 
-export interface StaticParamBuilderConfig extends ContentMetaGeneratorOptions {
+export interface StaticParamBuilderConfig
+    extends Partial<ContentMetaGeneratorOptions> {
+    /**
+     * Define the shape of dynamic param
+     *
+     * @default '/[category]/[...post]'
+     * @example '/$page/[...posts]'
+     *
+     * @description
+     * 1. `[name]` - single dynamic param
+     * 2. `[...name]` - multiple dynamic param
+     * 3. `$page` - special dynamic param for pagination
+     */
     paramShape: string
+    /**
+     * Define the maximum page number for pagination
+     *
+     * @default 7
+     * @description
+     * if there is an $page param, this value will be used to determine the maximum page number
+     */
+    maxPage?: number
 }
 
 export type StaticParamBuilderStaticConfig = WalkTreePluginStaticConfig
 export type StaticParamBuilderDynamicConfig = WalkTreePluginDynamicConfig &
-    Partial<ContentMetaGeneratorOptions> & {
-        paramShape: string
-    }
+    StaticParamBuilderConfig
 
 export class StaticParamBuilderPlugin extends WalkTreePlugin<
     StaticParamBuilderStaticConfig,
@@ -59,7 +77,14 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                 paramShape: {
                     type: 'string',
                     description: 'Define the shape of dynamic param',
-                    defaultValue: '/[category]/[...post]',
+                    defaultValue: '/[...post]',
+                },
+                maxPage: {
+                    type: 'number',
+                    description:
+                        'Define the maximum page number for pagination',
+                    defaultValue: 7,
+                    optional: true,
                 },
             },
         }
@@ -102,6 +127,22 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         )
     }
 
+    private _paramBuildStore: Record<string, Array<string>> = {}
+    private get paramBuildStore(): Record<string, Array<string>> {
+        return this._paramBuildStore
+    }
+    private addParams(paramEntry: Array<[string, string]>): void {
+        paramEntry.forEach(([key, value]) => {
+            if (!this.paramBuildStore[key]) {
+                this.paramBuildStore[key] = []
+            }
+            this.paramBuildStore[key].push(value)
+        })
+    }
+    private getParamBuildStore(key: string): Array<string> {
+        return this.paramBuildStore[key] ?? []
+    }
+
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
@@ -135,12 +176,12 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                 const { paramName } = curr
 
                 if (!curr.isMultiple) {
-                    const fondedPath = buildList[acc.listPointer]
-                    if (!fondedPath) return acc
+                    const foundedPath = buildList[acc.listPointer]
+                    if (!foundedPath) return acc
 
                     const buildPath: string = [
                         ...acc.store.nonDynamic,
-                        fondedPath,
+                        foundedPath,
                     ].join('/')
 
                     acc.listPointer += 1
@@ -169,11 +210,10 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         )
 
         const href = this.analyzed.result.reduce<string>((acc, curr) => {
-            if (!curr.isDynamicParam) {
-                return acc
-            }
+            if (!curr.isDynamicParam) return acc
 
             const { paramName } = curr
+
             if (!curr.isMultiple) {
                 acc += `/${staticParamsInfo.params[paramName]}`
                 return acc
@@ -183,11 +223,47 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             return acc
         }, '')
 
+        this.addParams(Object.entries(staticParamsInfo.params))
+
+        const getPaginatedParams = () => {
+            const PAGE_SYMBOL = '$page'
+            return this.analyzed.result.reduce<RecordShape>(
+                (acc, curr, i, tot) => {
+                    if (!curr.isDynamicParam) return acc
+                    if (i === 0) return acc
+                    // dynamic param & prev is not dynamic & name is $page
+                    const prev = tot[i - 1]
+                    if (
+                        !prev?.isDynamicParam &&
+                        prev?.dividerName === PAGE_SYMBOL
+                    ) {
+                        const targetPageParam = acc[curr.paramName]
+
+                        if (!targetPageParam) return acc
+
+                        const targetPageNum = Math.ceil(
+                            this.getParamBuildStore(curr.paramName).length /
+                                this.dynamicConfig.maxPage!
+                        )
+
+                        const paginatedParam = targetPageParam.replace(
+                            PAGE_SYMBOL,
+                            targetPageNum.toString()
+                        )
+                        acc[curr.paramName] = paginatedParam
+                    }
+                    return acc
+                },
+                staticParamsInfo.params
+            )
+        }
+        const paginatedParams = getPaginatedParams()
+
         const staticParamUpdate = await this.meta.update({
             injectPath: finalBuildPath,
             meta: {
                 href,
-                params: staticParamsInfo.params,
+                params: paginatedParams,
             },
         })
 
