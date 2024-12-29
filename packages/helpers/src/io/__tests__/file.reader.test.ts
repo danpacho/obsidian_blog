@@ -22,6 +22,16 @@ describe('FileReader', () => {
 
     const basePath = `${process.cwd()}/packages/helpers/src/io/__fixtures__`
 
+    it('should extract FILE extension', () => {
+        const files = [
+            'test.md',
+            'extension_test.extension',
+            'a.a.a.a.a.a.extension',
+        ]
+        const extensions = files.map(FileReader.getExtension)
+        expect(extensions).toEqual(['md', 'extension', 'extension'])
+    })
+
     it('should READ file content', async () => {
         const filePath = await finder.findFile('test.md')
         const target = (filePath.success && filePath.data[0]?.path) || ''

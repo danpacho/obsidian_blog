@@ -166,7 +166,7 @@ export class FileReader {
 
     public static getPureFileName(fileName: string): string {
         return fileName.replace(
-            String(FileReader.getExtension(fileName)) ?? '',
+            `.${String(FileReader.getExtension(fileName)) ?? ''}`,
             ''
         )
     }
