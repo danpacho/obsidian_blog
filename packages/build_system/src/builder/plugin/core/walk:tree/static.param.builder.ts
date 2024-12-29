@@ -19,7 +19,7 @@ export interface StaticParamBuilderConfig extends ContentMetaGeneratorOptions {
 
 export type StaticParamBuilderStaticConfig = WalkTreePluginStaticConfig
 export type StaticParamBuilderDynamicConfig = WalkTreePluginDynamicConfig &
-    ContentMetaGeneratorOptions & {
+    Partial<ContentMetaGeneratorOptions> & {
         paramShape: string
     }
 
@@ -85,7 +85,10 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
     }
 
     private get meta() {
-        return this.$createMetaEngine(this.dynamicConfig.contentMeta)
+        return this.$createMetaEngine(
+            this.dynamicConfig?.contentMeta ??
+                this.defaultDynamicConfig!.contentMeta!
+        )
     }
 
     private splitToPurePath(path: string): Array<string> {
