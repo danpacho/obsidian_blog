@@ -15,8 +15,10 @@ import type {
 } from './shared/meta/interface'
 
 export type PaginationBuilderStaticConfig = WalkTreePluginStaticConfig
+
 export type PaginationBuilderDynamicConfig = ContentMetaGeneratorOptions &
     WalkTreePluginDynamicConfig
+
 export class PaginationBuilderPlugin extends WalkTreePlugin<
     PaginationBuilderStaticConfig,
     PaginationBuilderDynamicConfig
