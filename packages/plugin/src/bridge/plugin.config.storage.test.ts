@@ -4,7 +4,7 @@ import { PluginConfigStorage } from './plugin.config.storage'
 describe('PluginConfigStorage', async () => {
     const store = new PluginConfigStorage({
         name: 'build_system::build_contents',
-        root: `${process.cwd()}/packages/plugin/src/core/__fixtures__/store/build/build_system::walk_tree.json`,
+        root: `${process.cwd()}/packages/plugin/src/bridge/__fixtures__/store/build/build_system::walk_tree.json`,
     })
 
     await store.init()
