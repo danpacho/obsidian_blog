@@ -39,6 +39,23 @@ interface PluginDynamicSchemaInfo {
      */
     typeDescription?: string
     /**
+     * Add extra validation for the argument
+     * @param configValue Target dynamic config value
+     * @throws Error if the validation fails
+     * @example
+     * ```ts
+     * extraValidation: (configValue: number) => {
+     *      // type : "number"
+     *      // -> Already confirmed that the type is number
+     *      if(configValue < 0) {
+     *           throw new Error('The value should be greater than 0')
+     *      }
+     * }
+     * ```
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    extraValidation?: (configValue: any) => void
+    /**
      * The default value of the argument
      * @optional Optional value
      */
@@ -76,9 +93,10 @@ export class DynamicConfigParserError extends ArgTypeError {
     public constructor(
         info: { expected: string; received: unknown },
         public readonly schema: PluginDynamicConfigSchema,
-        public readonly path: string[] = []
+        public readonly path: string[] = [],
+        public readonly additionalError?: Array<Error>
     ) {
-        super(info.expected, info.received)
+        super(info.expected, info.received, additionalError)
     }
 }
 
@@ -176,6 +194,11 @@ export class DynamicConfigParser {
                         }
                     }
                 }
+
+                // Extra validation
+                if (schemaValue.extraValidation) {
+                    schemaValue.extraValidation(_result[key])
+                }
             }
 
             return {
@@ -259,7 +282,8 @@ export class DynamicConfigParser {
                         received: value,
                     },
                     schema,
-                    _path
+                    _path,
+                    [e]
                 ),
                 success: false,
             }
