@@ -18,15 +18,29 @@ export interface StaticParamBuilderConfig
     /**
      * Define the shape of dynamic param
      *
-     * @default '/[category]/[...post]'
-     * @example '/$page/[...posts]'
+     * @default '/[$page]/[...postId]'
+     * @example '/[category]/[...postId]'
      *
      * @description
      * 1. `[name]` - single dynamic param
      * 2. `[...name]` - multiple dynamic param
-     * 3. `$page` - special dynamic param for pagination
+     * 3. `[$page]` - special dynamic param for pagination
      */
     paramShape: string
+    /**
+     * Define the prefix for the dynamic param
+     *
+     * @default ''
+     * @example
+     * ```
+     * const config = {
+     *     prefix: '/posts',
+     *     paramShape: '/[$page]/[...postId]'
+     * }
+     * // result: /posts/{page}/{postId}
+     * ```
+     */
+    prefix?: string
     /**
      * Define the maximum page number for pagination
      *
@@ -48,7 +62,8 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
     public defineStaticConfig(): WalkTreePluginStaticConfig {
         return {
             name: 'static-param-builder',
-            description: 'Inject static params to the content',
+            description:
+                'Inject static params to the content, [meta.params] & [meta.href] will be added.',
             dynamicConfigSchema: {
                 contentMeta: {
                     type: {
@@ -77,7 +92,24 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                 paramShape: {
                     type: 'string',
                     description: 'Define the shape of dynamic param',
-                    defaultValue: '/[...post]',
+                    defaultValue: '/[$page]/[...postId]',
+                    extraValidation: (configValue: string) => {
+                        const pageSymbol = /\$page/g
+                        const pageSymbolCount =
+                            configValue.match(pageSymbol) || []
+
+                        if (pageSymbolCount.length > 1) {
+                            throw new Error(
+                                `paramShape currently support only one [$page] symbol, received ${configValue}`
+                            )
+                        }
+                    },
+                },
+                prefix: {
+                    type: 'string',
+                    description: 'Define the prefix for the dynamic param',
+                    defaultValue: '',
+                    optional: true,
                 },
                 maxPage: {
                     type: 'number',
@@ -85,6 +117,11 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                         'Define the maximum page number for pagination',
                     defaultValue: 7,
                     optional: true,
+                    extraValidation: (configValue: number) => {
+                        if (configValue < 1) {
+                            throw new Error('maxPage must be greater than 0')
+                        }
+                    },
                 },
             },
         }
@@ -143,6 +180,10 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         return this.paramBuildStore[key] ?? []
     }
 
+    private static get PAGE_SYMBOL() {
+        return '$page'
+    }
+
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
@@ -174,6 +215,11 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                 }
 
                 const { paramName } = curr
+
+                if (paramName === StaticParamBuilderPlugin.PAGE_SYMBOL) {
+                    acc.params[paramName] = StaticParamBuilderPlugin.PAGE_SYMBOL
+                    return acc
+                }
 
                 if (!curr.isMultiple) {
                     const foundedPath = buildList[acc.listPointer]
@@ -209,55 +255,61 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             }
         )
 
-        const href = this.analyzed.result.reduce<string>((acc, curr) => {
-            if (!curr.isDynamicParam) return acc
-
-            const { paramName } = curr
-
-            if (!curr.isMultiple) {
-                acc += `/${staticParamsInfo.params[paramName]}`
-                return acc
-            }
-
-            acc += `/${staticParamsInfo.params[paramName]}`
-            return acc
-        }, '')
-
         this.addParams(Object.entries(staticParamsInfo.params))
 
         const getPaginatedParams = () => {
-            const PAGE_SYMBOL = '$page'
-            return this.analyzed.result.reduce<RecordShape>(
-                (acc, curr, i, tot) => {
+            return this.analyzed.result.reduce<RecordShape>((acc, curr) => {
+                if (!curr.isDynamicParam) return acc
+                if (
+                    curr.isDynamicParam &&
+                    curr.paramName === StaticParamBuilderPlugin.PAGE_SYMBOL
+                ) {
+                    const targetPageParam = acc[curr.paramName]
+
+                    if (!targetPageParam) return acc
+
+                    const targetPageNum = Math.ceil(
+                        this.getParamBuildStore(curr.paramName).length /
+                            this.dynamicConfig.maxPage!
+                    )
+
+                    acc['page'] = targetPageNum.toString()
+
+                    delete acc[curr.paramName]
+                }
+                return acc
+            }, staticParamsInfo.params)
+        }
+
+        const paginatedParams = getPaginatedParams()
+
+        const href = this.analyzed.result
+            .reduce<Array<string>>(
+                (acc, curr) => {
                     if (!curr.isDynamicParam) return acc
-                    if (i === 0) return acc
-                    // dynamic param & prev is not dynamic & name is $page
-                    const prev = tot[i - 1]
-                    if (
-                        !prev?.isDynamicParam &&
-                        prev?.dividerName === PAGE_SYMBOL
-                    ) {
-                        const targetPageParam = acc[curr.paramName]
 
-                        if (!targetPageParam) return acc
+                    const { paramName } = curr
 
-                        const targetPageNum = Math.ceil(
-                            this.getParamBuildStore(curr.paramName).length /
-                                this.dynamicConfig.maxPage!
-                        )
-
-                        const paginatedParam = targetPageParam.replace(
-                            PAGE_SYMBOL,
-                            targetPageNum.toString()
-                        )
-                        acc[curr.paramName] = paginatedParam
+                    if (paramName === StaticParamBuilderPlugin.PAGE_SYMBOL) {
+                        const pageNum = paginatedParams['page']
+                        if (pageNum) {
+                            acc.push(pageNum)
+                        } else {
+                            throw new Error(
+                                `page param is not found in the paginatedParams`
+                            )
+                        }
                     }
+
+                    acc.push(staticParamsInfo.params[paramName]!)
                     return acc
                 },
-                staticParamsInfo.params
+                this.dynamicConfig.prefix! === ''
+                    ? []
+                    : [this.dynamicConfig.prefix!]
             )
-        }
-        const paginatedParams = getPaginatedParams()
+            .filter(Boolean)
+            .join('/')
 
         const staticParamUpdate = await this.meta.update({
             injectPath: finalBuildPath,
