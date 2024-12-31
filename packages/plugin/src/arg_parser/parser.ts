@@ -94,7 +94,7 @@ export class DynamicConfigParserError extends ArgTypeError {
         info: { expected: string; received: unknown },
         public readonly schema: PluginDynamicConfigSchema,
         public readonly path: string[] = [],
-        public readonly additionalError?: Array<Error>
+        additionalError?: Array<Error>
     ) {
         super(info.expected, info.received, additionalError)
     }
@@ -270,7 +270,24 @@ export class DynamicConfigParser {
                     success: false,
                 }
             }
-
+            if (e instanceof Error) {
+                return {
+                    error: new DynamicConfigParserError(
+                        {
+                            expected: JSON.stringify(
+                                extractSchemaType(schema),
+                                null,
+                                4
+                            ),
+                            received: e.message,
+                        },
+                        schema,
+                        _path,
+                        [e]
+                    ),
+                    success: false,
+                }
+            }
             return {
                 error: new DynamicConfigParserError(
                     {
@@ -282,8 +299,7 @@ export class DynamicConfigParser {
                         received: value,
                     },
                     schema,
-                    _path,
-                    [e]
+                    _path
                 ),
                 success: false,
             }
