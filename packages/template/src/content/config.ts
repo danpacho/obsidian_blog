@@ -1,32 +1,23 @@
+import { glob } from 'astro/loaders'
 import { defineCollection, z } from 'astro:content'
 
-const blogMeta = z.object({
-    title: z.string(),
-    description: z.string(),
-    // Transform string to Date object
-    pubDate: z.coerce.date(),
-    updatedDate: z.coerce.date().optional(),
-    heroImage: z.string().optional(),
-    youtube: z.string().optional(),
-})
+const POST_ROOT = './src/db/contents' as const
 
-const cartegoryMeta = z.object({
-    title: z.string(),
-    description: z.string(),
-    banner: z.string().optional(),
-    pubDate: z.coerce.date(),
-})
-
-const blog = defineCollection({
-    type: 'content',
+const post = defineCollection({
     // Type-check frontmatter using a schema
-    schema: blogMeta,
+    schema: z.object({
+        // Base Schema
+        title: z.string(),
+        description: z.string(),
+        update: z.coerce.date(),
+        // Static Param Schema
+        href: z.string(),
+        params: z.object({
+            page: z.string(),
+            postId: z.string(),
+        }),
+    }),
+    loader: glob({ pattern: '**/*.md', base: POST_ROOT }),
 })
 
-const category = defineCollection({
-    type: 'data',
-    // Type-check frontmatter using a schema
-    schema: cartegoryMeta,
-})
-
-export const collections = { blog, category }
+export const collections = { post }
