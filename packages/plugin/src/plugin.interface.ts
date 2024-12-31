@@ -67,7 +67,19 @@ export interface PluginInterfaceStaticConfig {
 
 /**
  * Plugin execution response
- * ```
+ * @example
+ * ```ts
+ * const response: PluginExecutionResponse = [
+ * {
+ *      jobName: 'job-name',
+ *      status: 'success',
+ *      startedAt: new Date(),
+ *      endedAt: new Date(),
+ *      execTime: 1000,
+ *      response: 'response',
+ * },
+ * ...
+ * ]
  */
 export type PluginExecutionResponse<ExecutionResponse = unknown> = Array<
     Job<ExecutionResponse>
