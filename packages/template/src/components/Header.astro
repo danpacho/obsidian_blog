@@ -1,15 +1,11 @@
 ---
-import { SITE_TITLE } from '../consts'
 import HeaderLink from './HeaderLink.astro'
 ---
 
-<header>
-    <nav>
-        <h2><a href="/">{SITE_TITLE}</a></h2>
-        <div class="flex flex-row gap-2 hover:underline">
-            <HeaderLink href="/">Home</HeaderLink>
-            <HeaderLink href="/blog">Blog</HeaderLink>
-            <HeaderLink href="/about">About</HeaderLink>
-        </div>
+<header class="sticky top-0 z-10 bg-white">
+    <nav class="flex w-full flex-row gap-x-4 p-2">
+        <HeaderLink href="/">Home</HeaderLink>
+        <HeaderLink href="/posts/1">Posts</HeaderLink>
+        <HeaderLink href="/about">About</HeaderLink>
     </nav>
 </header>

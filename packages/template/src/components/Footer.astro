@@ -1,9 +1,10 @@
 ---
+import { config } from '../config'
+
 const today = new Date()
-const BLOGGER = 'NAME'
 ---
 
-<footer>
+<footer class="w-full pb-4 pt-20 text-center text-xs text-stone-500">
     &copy; {today.getFullYear()}
-    {BLOGGER}. All rights reserved.
+    {config.name}. All rights reserved.
 </footer>
