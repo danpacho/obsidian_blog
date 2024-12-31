@@ -1,0 +1,32 @@
+---
+import RootLayout from './root_layout.astro'
+
+type Props = {
+    pages: Array<number>
+}
+
+const { pages } = Astro.props
+
+const currentPage = Astro.params.page
+---
+
+<RootLayout>
+    <div class="flex h-full flex-col items-center justify-between gap-10">
+        <slot />
+
+        <ul class="flex flex-row items-center justify-center gap-2">
+            {
+                pages.map((page) => (
+                    <li>
+                        <a
+                            class={`text-lg ${page === Number(currentPage ?? -1) ? 'font-bold' : 'font-normal'}`}
+                            href={`/posts/${page}`}
+                        >
+                            {page}
+                        </a>
+                    </li>
+                ))
+            }
+        </ul>
+    </div>
+</RootLayout>

@@ -1,0 +1,24 @@
+---
+import '../styles/tailwind.css'
+import '../styles/global.css'
+
+import BaseHead from '../components/BaseHead.astro'
+import Footer from '../components/Footer.astro'
+import Header from '../components/Header.astro'
+import { config } from '../config'
+---
+
+<!doctype html>
+<html lang="en">
+    <head>
+        <BaseHead title={config.title} description={config.description} />
+    </head>
+
+    <body class="grid min-h-screen grid-rows-[auto_1fr_auto]">
+        <Header />
+        <main class="overflow-auto">
+            <slot />
+        </main>
+        <Footer />
+    </body>
+</html>
