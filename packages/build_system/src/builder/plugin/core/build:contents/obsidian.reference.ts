@@ -8,35 +8,64 @@ import {
     type BuildContentsPluginStaticConfig,
 } from '../../build.contents.plugin'
 
+type ImageReference = Array<{
+    origin: string
+    build: string
+}>
+
 type ObsidianReferencePluginOptions = {
-    imageReference: Array<{
-        origin: string
-        build: string
-    }>
-    buildAssetPath: string
+    referenceMap: Map<
+        string,
+        Array<{
+            origin: string
+            build: string
+            buildReplaced: string
+        }>
+    >
 }
 
+// Matches e.g. ![[img.png]] inside text nodes
 const EMBED_LINK_REGEX = /!\[\[([^[\]]+)\]\]/g
 
-/**
- * Utility to strip trailing Obsidian query-parameters after the file name
- * e.g. "someFile.png#xyz" => "someFile.png"
- */
-const getPureLink = (link: string): string => {
-    for (const remove of ['?', '#', '|'] as const) {
-        if (link.includes(remove)) return link.split(remove)[0]!
+const getFileName = (link: string): string | null => {
+    const split = link.split('/')
+    return split[split.length - 1] ?? null
+}
+
+const resolveAssetPath = (
+    link: string,
+    referenceMap: ObsidianReferencePluginOptions['referenceMap']
+): string | null => {
+    const pureFilename = getFileName(link)
+    if (!pureFilename) return null
+
+    const possibleRefs = referenceMap.get(pureFilename)
+    if (!possibleRefs || possibleRefs.length === 0) return null
+
+    if (possibleRefs.length === 1) {
+        return possibleRefs[0]!.buildReplaced
     }
-    return link
+
+    const queriedLink = link.startsWith('./') ? link.slice(2) : link
+    const found = possibleRefs.find((ref) => ref.origin.includes(queriedLink))
+    if (found) {
+        return found.buildReplaced
+    }
+
+    return null
 }
 
 export const RemarkObsidianReferencePlugin: Plugin<
     [ObsidianReferencePluginOptions]
 > = (options) => {
-    const { imageReference, buildAssetPath } = options
+    const { referenceMap } = options
 
     return (tree) => {
-        visit(tree, 'paragraph', (node: Parent | undefined) => {
-            if (!node || !node.children) return
+        /**
+         * 1) Handle Obsidian references:  ![[filename.png]]
+         */
+        visit(tree, 'paragraph', (node: Parent) => {
+            if (!node.children) return
 
             for (let i = 0; i < node.children.length; i++) {
                 const child = node.children[i]
@@ -69,7 +98,7 @@ export const RemarkObsidianReferencePlugin: Plugin<
                 }
 
                 // If there are no embeds, continue
-                if (segments.length === 1 && segments[0]!.text !== undefined) {
+                if (segments.length === 1 && segments[0]?.text !== undefined) {
                     continue
                 }
 
@@ -77,24 +106,22 @@ export const RemarkObsidianReferencePlugin: Plugin<
                 const newChildren = segments.flatMap<RootContent>((seg) => {
                     // Plain text
                     if (seg.text !== undefined) {
-                        // Don’t create an empty text node if there's no text
                         if (!seg.text) return []
                         return [{ type: 'text', value: seg.text }]
                     }
 
                     // Otherwise it's an embed link
                     const link = seg.link!
-                    const pureLink = getPureLink(link)
-
-                    const targetLink = imageReference
-                        .find((e) => e.origin.includes(pureLink))
-                        ?.build.replace(buildAssetPath, '')
+                    const targetLink = resolveAssetPath(link, referenceMap)
 
                     if (!targetLink) {
-                        return [{ type: 'text', value: link }]
+                        // Fallback: just keep the link text if not found
+                        return [{ type: 'text', value: `![[${link}]]` }]
                     }
 
-                    const extension = pureLink.split('.').pop() || ''
+                    // Determine extension and produce appropriate HTML
+                    const extension =
+                        (getFileName(link) ?? '').split('.').pop() || ''
                     if (ImageFileNode.is(extension)) {
                         return [
                             {
@@ -110,6 +137,7 @@ export const RemarkObsidianReferencePlugin: Plugin<
                             },
                         ]
                     } else {
+                        // fallback link
                         return [
                             {
                                 type: 'html',
@@ -121,9 +149,43 @@ export const RemarkObsidianReferencePlugin: Plugin<
 
                 // Replace the old single text child with possibly multiple children
                 node.children.splice(i, 1, ...newChildren)
-                // Advance i by however many children we just inserted minus one
                 i += newChildren.length - 1
             }
+        })
+
+        /**
+         * 2) Handle Markdown images:  ![alt text](./img.png)
+         */
+        visit(tree, 'image', (node: { url: string }) => {
+            const targetLink = resolveAssetPath(node.url, referenceMap)
+            if (!targetLink) return
+            node.url = targetLink
+        })
+
+        /**
+         * 3) Handle inline HTML <img src="..."> or <audio> references:
+         */
+        visit(tree, 'html', (node: { value: string }) => {
+            const value: string = node.value
+            if (!/<(img|audio)\s/i.test(value)) return
+
+            const srcRegex = /src\s*=\s*"([^"]+)"/gi
+            let replacedValue = value
+
+            let match: RegExpExecArray | null
+            while ((match = srcRegex.exec(value)) !== null) {
+                const oldSrc = match[1]
+                if (!oldSrc) continue
+
+                const targetLink = resolveAssetPath(oldSrc, referenceMap)
+                if (!targetLink) continue
+                replacedValue = replacedValue.replace(
+                    match[0],
+                    `src="${targetLink}"`
+                )
+            }
+
+            node.value = replacedValue
         })
     }
 }
@@ -133,21 +195,61 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         return {
             name: 'obsidian-reference',
             description:
-                'convert obsidian image and audio reference to html tag and update link tag',
+                'convert obsidian image/audio references, markdown image syntax, and inline HTML <img>/<audio> to updated asset paths',
         }
     }
 
-    public async buildContents(context: {
-        buildStore: BuildStoreList
-    }): Promise<
-        Array<{
-            newContent: string
-            writePath: string
-        }>
+    private getFileName(path: string): string | null {
+        const pathSplit = path.split('/')
+        return pathSplit[pathSplit.length - 1] ?? null
+    }
+    /**
+     * Build a Map from the final filename to an array of references that share this filename.
+     *
+     * @example
+     * ```
+     * e.g.  "img.png" -> [
+     *   { origin: "nested/img.png", build: "/images/abc_img.png" },
+     *   { origin: "img.png",        build: "/images/xyz_img.png" }
+     * ]
+     * ```
+     */
+    private buildReferenceMap(
+        imageReference: ImageReference,
+        buildAssetPath: string
+    ): Map<
+        string,
+        Array<{ origin: string; build: string; buildReplaced: string }>
     > {
-        const buildAssetPath = this.$buildPath.assets
+        const referenceMap: ObsidianReferencePluginOptions['referenceMap'] =
+            new Map()
 
-        const assetReferencesUUIDList = context.buildStore
+        for (const ref of imageReference) {
+            const pureFilename = this.getFileName(ref.origin)
+            if (!pureFilename) continue
+
+            const entry = referenceMap.get(pureFilename) || []
+
+            entry.push({
+                origin: ref.origin,
+                build: ref.build,
+                buildReplaced: ref.build.replace(buildAssetPath, ''),
+            })
+            referenceMap.set(pureFilename, entry)
+        }
+        return referenceMap
+    }
+    private referenceMap:
+        | ObsidianReferencePluginOptions['referenceMap']
+        | undefined = undefined
+
+    private assetReferencesUUIDList: ImageReference | undefined = undefined
+    private referenceUpdateTextFileList: BuildStoreList | undefined = undefined
+
+    public override async prepare(): Promise<void> {
+        const buildStore = this.dependencies!.buildStore.getStoreList('current')
+
+        this.assetReferencesUUIDList = buildStore
             .filter(
                 ({ file_type }) =>
                     file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
@@ -157,20 +259,40 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                 origin: report.build_path.origin,
             }))
 
-        const referenceUpdateTextFileList = context.buildStore.filter(
+        this.referenceUpdateTextFileList = buildStore.filter(
             ({ file_type, build_state }) =>
                 file_type === 'TEXT_FILE' && build_state !== 'CACHED'
         )
 
-        const referenceUpdatedList = await referenceUpdateTextFileList.reduce<
-            Promise<
-                {
-                    newContent: string
-                    writePath: string
-                }[]
-            >
-        >(
-            async (acc, textFile) => {
+        const buildAssetPath = this.$buildPath.assets
+
+        if (!this.assetReferencesUUIDList || !buildAssetPath) return
+
+        this.referenceMap = this.buildReferenceMap(
+            this.assetReferencesUUIDList,
+            buildAssetPath
+        )
+    }
+
+    public async buildContents(): Promise<
+        Array<{
+            newContent: string
+            writePath: string
+        }>
+    > {
+        if (!this.referenceMap || !this.referenceUpdateTextFileList) {
+            this.$logger.error(
+                'referenceMap or referenceUpdateTextFileList not prepared'
+            )
+            return []
+        }
+
+        const buildAssetPath = this.$buildPath.assets
+
+        const referenceUpdatedList =
+            await this.referenceUpdateTextFileList.reduce<
+                Promise<{ newContent: string; writePath: string }[]>
+            >(async (acc, textFile) => {
                 const awaitedAcc = await acc
                 const textFileContent = await this.$io.reader.readFile(
                     textFile.build_path.build
@@ -178,7 +300,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                 if (textFileContent.success) {
                     const updatedVFile = await this.$processor.remark
                         .use(RemarkObsidianReferencePlugin, {
-                            imageReference: assetReferencesUUIDList,
+                            referenceMap: this.referenceMap!,
                             buildAssetPath,
                         })
                         .process(textFileContent.data)
@@ -189,11 +311,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                     })
                 }
                 return awaitedAcc
-            },
-            Promise.resolve([]) as Promise<
-                { newContent: string; writePath: string }[]
-            >
-        )
+            }, Promise.resolve([]))
 
         return referenceUpdatedList
     }
