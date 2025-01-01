@@ -243,13 +243,13 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         | ObsidianReferencePluginOptions['referenceMap']
         | undefined = undefined
 
-    private assetReferencesUUIDList: ImageReference | undefined = undefined
     private referenceUpdateTextFileList: BuildStoreList | undefined = undefined
 
     public override async prepare(): Promise<void> {
-        const buildStore = this.dependencies!.buildStore.getStoreList('current')
+        const buildStore =
+            this.getRunTimeDependency('buildStore').getStoreList('current')
 
-        this.assetReferencesUUIDList = buildStore
+        const assetReferencesUUIDList = buildStore
             .filter(
                 ({ file_type }) =>
                     file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
@@ -266,10 +266,8 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
 
         const buildAssetPath = this.$buildPath.assets
 
-        if (!this.assetReferencesUUIDList || !buildAssetPath) return
-
         this.referenceMap = this.buildReferenceMap(
-            this.assetReferencesUUIDList,
+            assetReferencesUUIDList,
             buildAssetPath
         )
     }
