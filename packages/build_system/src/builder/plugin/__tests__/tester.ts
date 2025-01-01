@@ -3,13 +3,13 @@ import { PluginConfigStorage } from '@obsidian_blogger/plugin/bridge'
 import { BuildSystem } from '../../../index'
 import { MetaEngine } from '../../../meta/engine'
 import type { FileTreeNode } from '../../../parser/node'
-import type { BuildSystemPlugin } from '../../builder.plugin.interface'
+import type { BuildSystemPluginAdapter } from '../../builder.plugin.interface'
 import type { PathGenerator } from '../../core'
 
 const PREFIX = `${process.cwd()}/packages/build_system/src/builder/plugin/__tests__/__fixtures__`
 
 const createBuildSystem = (
-    plugin: Partial<BuildSystemPlugin>,
+    plugin: Partial<BuildSystemPluginAdapter>,
     distFolder: string
 ) => {
     const pathGen: PathGenerator = async (node, { vaultRoot }) => {
@@ -125,7 +125,7 @@ const setupPluginConfigStorage = (distFolder: string) => {
 }
 
 const setupPluginConfig = async (
-    plugin: Partial<BuildSystemPlugin>,
+    plugin: Partial<BuildSystemPluginAdapter>,
     distFolder: string
 ): Promise<void> => {
     const storage = setupPluginConfigStorage(distFolder)
@@ -139,31 +139,63 @@ const setupPluginConfig = async (
     for (const [pluginName, pluginConfig] of pluginEntries) {
         switch (pluginName) {
             case 'walk:tree': {
-                await storage.walkTree.updateDynamicConfigByUserConfig(
-                    pluginConfig.staticConfig.name,
-                    {
-                        $$load_status$$: 'include',
+                if (Array.isArray(pluginConfig)) {
+                    for (const config of pluginConfig) {
+                        await storage.walkTree.updateDynamicConfigByUserConfig(
+                            config.staticConfig.name,
+                            {
+                                $$load_status$$: 'include',
+                            }
+                        )
                     }
-                )
+                } else {
+                    await storage.walkTree.updateDynamicConfigByUserConfig(
+                        pluginConfig.staticConfig.name,
+                        {
+                            $$load_status$$: 'include',
+                        }
+                    )
+                }
                 break
             }
             case 'build:tree': {
-                await storage.buildTree.updateDynamicConfigByUserConfig(
-                    pluginConfig.staticConfig.name,
-
-                    {
-                        $$load_status$$: 'include',
+                if (Array.isArray(pluginConfig)) {
+                    for (const config of pluginConfig) {
+                        await storage.buildTree.updateDynamicConfigByUserConfig(
+                            config.staticConfig.name,
+                            {
+                                $$load_status$$: 'include',
+                            }
+                        )
                     }
-                )
+                } else {
+                    await storage.buildTree.updateDynamicConfigByUserConfig(
+                        pluginConfig.staticConfig.name,
+                        {
+                            $$load_status$$: 'include',
+                        }
+                    )
+                }
                 break
             }
             case 'build:contents': {
-                await storage.buildContents.updateDynamicConfigByUserConfig(
-                    pluginConfig.staticConfig.name,
-                    {
-                        $$load_status$$: 'include',
+                if (Array.isArray(pluginConfig)) {
+                    for (const config of pluginConfig) {
+                        await storage.buildContents.updateDynamicConfigByUserConfig(
+                            config.staticConfig.name,
+                            {
+                                $$load_status$$: 'include',
+                            }
+                        )
                     }
-                )
+                } else {
+                    await storage.buildContents.updateDynamicConfigByUserConfig(
+                        pluginConfig.staticConfig.name,
+                        {
+                            $$load_status$$: 'include',
+                        }
+                    )
+                }
                 break
             }
         }
@@ -200,7 +232,7 @@ const pipe = async ({
     targetContents,
     targetAssets,
 }: {
-    plugin: Partial<BuildSystemPlugin>
+    plugin: Partial<BuildSystemPluginAdapter>
     targetContents?: ContentsSelector<TESTER_CONTENTS>
     targetAssets?: ContentsSelector<TESTER_ASSETS>
 }): Promise<{
@@ -220,7 +252,12 @@ const pipe = async ({
     const io = new IO()
 
     const pluginName = Object.values(plugin)
-        .map((e) => e.staticConfig.name)
+        .map((e) => {
+            if (Array.isArray(e)) {
+                return e.map((e) => e.staticConfig.name).join('_')
+            }
+            return e.staticConfig.name
+        })
         .join('_')
 
     const distFolder = `${PREFIX}/dist/${pluginName}`
