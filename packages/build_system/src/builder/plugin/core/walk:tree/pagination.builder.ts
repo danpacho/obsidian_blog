@@ -1,5 +1,5 @@
 import type { Promisify } from '@obsidian_blogger/helpers'
-import type { FileTreeNode } from 'packages/build_system/src/parser'
+import { FileTreeNode, FolderNode } from 'packages/build_system/src/parser'
 import {
     WalkTreePlugin,
     WalkTreePluginDynamicConfig,
@@ -15,9 +15,8 @@ import type {
 } from './shared/meta/interface'
 
 export type PaginationBuilderStaticConfig = WalkTreePluginStaticConfig
-
-export type PaginationBuilderDynamicConfig = ContentMetaGeneratorOptions &
-    WalkTreePluginDynamicConfig
+export type PaginationBuilderDynamicConfig = WalkTreePluginDynamicConfig &
+    ContentMetaGeneratorOptions
 
 export class PaginationBuilderPlugin extends WalkTreePlugin<
     PaginationBuilderStaticConfig,
@@ -56,19 +55,30 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         }
     }
 
+    private allTextFiles: Array<FileTreeNode> = []
+
+    public override async prepare(): Promise<void> {
+        const rootNode = this.dependencies!.parser.ast!
+        this.allTextFiles = this.flattenTree([rootNode])
+    }
+
     private get meta() {
         return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
+    /**
+     * Extract the metadata from a text-file node, returning href/title/description
+     * for pagination usage.
+     */
     private async buildPaginationMeta(
         node: FileTreeNode | undefined
     ): Promisify<DefaultPaginationInfo> {
-        if (!node)
+        if (!node) {
             return {
                 success: false,
                 error: new Error('node is undefined'),
             }
-
+        }
         if (node.category !== 'TEXT_FILE') {
             return {
                 success: false,
@@ -77,7 +87,6 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         }
 
         const buildPath = node.absolutePath
-
         const metaResult = await this.meta.extractFromFile(buildPath)
         if (!metaResult.success) {
             return {
@@ -89,9 +98,7 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         const { data } = metaResult
         const typedMeta = data.meta as unknown as DefaultContentMeta
 
-        const href = typedMeta.params
-            ? `/${Object.values(typedMeta.params).join('/')}`
-            : undefined
+        const href = typedMeta.href ?? undefined
         const title = typedMeta.title
         const description = typedMeta.description
 
@@ -105,69 +112,52 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         }
     }
 
-    private searchTextNodeBasedOnOriginIndex(
-        siblingsIndex: number,
-        siblings: Array<FileTreeNode>,
-        type: 'before' | 'after'
-    ): FileTreeNode | undefined {
-        if (type === 'before') {
-            while (siblingsIndex >= 0) {
-                const node = siblings[siblingsIndex]
-                if (node?.category === 'TEXT_FILE') return node
-                if (node?.fileName === 'description.md') return node
-
-                siblingsIndex--
-                this.searchTextNodeBasedOnOriginIndex(
-                    siblingsIndex,
-                    siblings,
-                    type
-                )
+    private flattenTree(
+        tree: Array<FileTreeNode>,
+        result: Array<FileTreeNode> = []
+    ): Array<FileTreeNode> {
+        for (const node of tree) {
+            if (node.category === 'TEXT_FILE') {
+                result.push(node)
             }
-        } else {
-            while (siblingsIndex < siblings.length) {
-                const node = siblings[siblingsIndex]
-                if (node?.category === 'TEXT_FILE') return node
-                if (node?.fileName === 'description.md') return node
-
-                siblingsIndex++
-                this.searchTextNodeBasedOnOriginIndex(
-                    siblingsIndex,
-                    siblings,
-                    type
-                )
+            if (node.category === 'FOLDER') {
+                this.flattenTree((node as FolderNode).children, result)
             }
         }
 
-        return undefined
+        return result
     }
 
     public async walk(
-        node: Parameters<WalkTreePlugin['walk']>[0],
-        { siblings, siblingsIndex }: Parameters<WalkTreePlugin['walk']>[1]
+        node: Parameters<WalkTreePlugin['walk']>[0]
     ): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
-        const finalBuildPath = node.absolutePath
-        if (!siblings || !siblingsIndex) return
-
-        const prevTextNode = this.searchTextNodeBasedOnOriginIndex(
-            siblingsIndex - 1,
-            siblings,
-            'before'
+        // Locate the current node in our flattened array
+        const index = this.allTextFiles.findIndex(
+            (n) => n.absolutePath === node.absolutePath
         )
-        const nextTextNode = this.searchTextNodeBasedOnOriginIndex(
-            siblingsIndex + 1,
-            siblings,
-            'after'
+        if (index === -1) return
+
+        // Identify the previous and next items in the array (if any)
+        const prevNode = index > 0 ? this.allTextFiles[index - 1] : undefined
+        const nextNode =
+            index < this.allTextFiles.length - 1
+                ? this.allTextFiles[index + 1]
+                : undefined
+
+        // Build pagination metadata for prev/next
+        const prevPaginationMeta = await this.buildPaginationMeta(prevNode)
+        const nextPaginationMeta = await this.buildPaginationMeta(nextNode)
+
+        // Extract the current file’s meta
+        const metaDataResult = await this.meta.extractFromFile(
+            node.absolutePath
         )
-        if (!prevTextNode && !nextTextNode) return
-
-        const prevPaginationMeta = await this.buildPaginationMeta(prevTextNode)
-        const nextPaginationMeta = await this.buildPaginationMeta(nextTextNode)
-
-        const metaDataResult = await this.meta.extractFromFile(finalBuildPath)
-
-        if (!metaDataResult.success) return
+        if (!metaDataResult.success) {
+            this.$logger.warn(`No meta data found for ${node.absolutePath}`)
+            return
+        }
 
         const originalMeta = metaDataResult.data.meta
         const paginationMeta = {
@@ -179,8 +169,9 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
                 : undefined,
         }
 
+        // Inject the pagination meta back into the file
         const injectResult = await this.meta.replace({
-            injectPath: finalBuildPath,
+            injectPath: node.absolutePath,
             metaData: {
                 content: metaDataResult.data.content,
                 meta: {
@@ -190,7 +181,15 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
             },
         })
 
-        if (!injectResult.success) return
-        this.$logger.success(`injected pagination meta to ${finalBuildPath}`)
+        if (!injectResult.success) {
+            this.$logger.warn(
+                `Failed to inject pagination meta: ${node.absolutePath}`
+            )
+            return
+        }
+
+        this.$logger.success(
+            `Injected pagination meta into ${node.absolutePath}`
+        )
     }
 }
