@@ -65,6 +65,19 @@ export abstract class BuildPlugin<
     }
 
     /**
+     * Get non-validation meta engine handles read/write/update meta-data from the file system.
+     * @returns
+     */
+    protected get $meta(): MetaEngine<PolymorphicMeta> {
+        return MetaEngine.create(
+            {
+                parser: (meta: unknown) => meta as PolymorphicMeta,
+            },
+            this.$io
+        )
+    }
+
+    /**
      * Gets the `IO` instance for operating the file system.
      * @throws if it is used in the constructor.
      */
@@ -92,7 +105,7 @@ export abstract class BuildPlugin<
      * `Build path`
      * ```ts
      * type BuildPath = {
-     *     assets: string
+     *     assets:   string
      *     contents: string
      * }
      * ```
