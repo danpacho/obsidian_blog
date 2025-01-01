@@ -12,10 +12,10 @@ describe('ObsidianReferencePlugin', () => {
         })
 
         const imgFile = res.buildFiles.contents.find(
-            (e) => e.filename === 'img.md'
+            (e) => e.fileName === 'img.md'
         )
         const imgFilename = res.buildFiles.assets.find((e) =>
-            e.filename.includes('.png')
+            e.fileName.includes('.png')
         )
         const imgPath__replaced_origin_build_path = imgFilename?.path.replace(
             res.buildPath.assets,
