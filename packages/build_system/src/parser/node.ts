@@ -13,6 +13,14 @@ export type NodeType =
 
 type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id' | 'build_state'>
 
+export interface ParentNodeInfo {
+    absolutePath: string
+    fileName: string
+    /**
+     * The parent node.
+     */
+    node: FileTreeNode
+}
 /**
  * Represents an abstract class for a file tree node.
  */
@@ -32,20 +40,12 @@ export abstract class FileTreeNode {
     public get parentInfo() {
         return this._parentInfo
     }
-    private _parentInfo:
-        | {
-              absolutePath: string
-              fileName: string
-          }
-        | undefined = undefined
+    private _parentInfo: ParentNodeInfo | undefined = undefined
     /**
      * Sets the parent information of the file tree node.
      * @param parentInfo The parent information.
      */
-    public setParentInfo(parentInfo: {
-        absolutePath: string
-        fileName: string
-    }): void {
+    public setParentInfo(parentInfo: ParentNodeInfo): void {
         this._parentInfo = parentInfo
     }
 
