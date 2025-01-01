@@ -22,7 +22,12 @@ describe('StaticParamBuilderPlugin', () => {
             { postId: 'img', page: '1' },
             { postId: 'link', page: '1' },
             { postId: 'markdown', page: '2' },
-            { postId: 'nested/nested/nested', page: '2' },
+            {
+                postId: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+                page: '2',
+            },
+            { postId: 'nested/nested/nested', page: '3' },
+            { postId: 'nested/nested/nested2', page: '3' },
         ])
 
         const hrefList = buildFiles.contents.map((e) => e.meta!.href)
@@ -30,7 +35,9 @@ describe('StaticParamBuilderPlugin', () => {
             'posts/1/img',
             'posts/1/link',
             'posts/2/markdown',
-            'posts/2/nested/nested/nested',
+            'posts/2/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+            'posts/3/nested/nested/nested',
+            'posts/3/nested/nested/nested2',
         ])
     })
 })
