@@ -1,11 +1,20 @@
 ---
 title: Markdown.md
 description: DEFAULT DESCRIPTION
-update: 2024-12-31T05:54:37.761Z
+update: 2024-12-31T14:47:50.791Z
 href: posts/2/markdown
 params:
     postId: markdown
     page: '2'
+pagination:
+    prev:
+        href: posts/1/link
+        title: Link.md
+        description: DEFAULT DESCRIPTION
+    next:
+        href: posts/2/nested/nested/nested
+        title: Nested.md
+        description: DEFAULT DESCRIPTION
 ---
 
 # Text

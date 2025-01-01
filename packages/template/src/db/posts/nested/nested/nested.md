@@ -6,6 +6,11 @@ href: posts/2/nested/nested/nested
 params:
     postId: nested/nested/nested
     page: '2'
+pagination:
+    prev:
+        href: posts/2/markdown
+        title: Markdown.md
+        description: DEFAULT DESCRIPTION
 ---
 
 Nested file test
