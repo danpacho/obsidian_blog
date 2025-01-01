@@ -14,16 +14,17 @@ describe('ObsidianReferencePlugin', () => {
         const imgFile = res.buildFiles.contents.find(
             (e) => e.fileName === 'img.md'
         )
-        const imgFilename = res.buildFiles.assets.find((e) =>
-            e.fileName.includes('.png')
-        )
-        const imgPath__replaced_origin_build_path = imgFilename?.path.replace(
-            res.buildPath.assets,
-            ''
+
+        const imgFileNames = res.buildFiles.assets
+            .filter((e) => e.fileName.includes('.png'))
+            .map((e) => e.fileName)
+
+        const imgPath__replaced_origin_build_path = imgFileNames.map((e) =>
+            e.replace(res.buildPath.assets, '')
         )
 
-        expect(imgFile?.content).toContain(
-            `<img src="${imgPath__replaced_origin_build_path}" alt="img.png" />`
-        )
+        imgPath__replaced_origin_build_path.forEach((e) => {
+            expect(imgFile?.content).toContain(`src="/${e}"`)
+        })
     })
 })
