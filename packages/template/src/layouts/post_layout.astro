@@ -4,7 +4,7 @@ import FormattedDate from '../components/FormattedDate.astro'
 import RootLayout from './root_layout.astro'
 type Props = CollectionEntry<'post'>['data']
 
-const { title, description, update } = Astro.props
+const { title, description, update, pagination } = Astro.props
 ---
 
 <RootLayout>
@@ -17,8 +17,43 @@ const { title, description, update } = Astro.props
             <FormattedDate date={update} />
         </div>
 
-        <article class="w-full">
+        <article class="prose prose-lg min-h-dvh w-full">
             <slot />
         </article>
+
+        <div class="flex w-full flex-row items-center justify-center gap-x-4">
+            {
+                pagination?.prev && (
+                    <a
+                        href={`/${pagination.prev.href}`}
+                        class="flex flex-col items-start rounded-lg border border-gray-300 p-4 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                    >
+                        <span class="text-sm text-gray-500">Previous</span>
+                        <span class="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                            ← {pagination.prev.title}
+                        </span>
+                        <p class="text-gray-600">
+                            {pagination.prev.description}
+                        </p>
+                    </a>
+                )
+            }
+            {
+                pagination?.next && (
+                    <a
+                        href={`/${pagination.next.href}`}
+                        class="flex flex-col items-end rounded-lg border border-gray-300 p-4 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                    >
+                        <span class="text-sm text-gray-500">Next</span>
+                        <span class="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                            {pagination.next.title} →
+                        </span>
+                        <p class="text-gray-600">
+                            {pagination.next.description}
+                        </p>
+                    </a>
+                )
+            }
+        </div>
     </div>
 </RootLayout>
