@@ -1,5 +1,6 @@
 ---
 title: Img.md
+banner: '![[img.png]]'
 ---
 
 # Img.md
