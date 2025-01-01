@@ -12,3 +12,5 @@ Image file test
    <img src="./img.png" alt="Image" />
 3. Obsidian image syntax
    ![[img.png]]
+4. Nested image syntax
+   ![[nested/nested/img.png]]
