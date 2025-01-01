@@ -221,7 +221,7 @@ type ContentsSelector<T extends string> =
     | ((testingFileName: string) => boolean)
 
 interface FileResponse {
-    filename: string
+    fileName: string
     path: string
     content: string | null
     meta: Record<string, unknown> | null
@@ -319,7 +319,10 @@ const pipe = async ({
         return extracted
     }
 
-    const buildFileNames = {
+    const buildFileNames: {
+        contents: Array<string>
+        assets: Array<string>
+    } = {
         contents: await extractContentsDir(
             targetContents,
             `${distFolder}/contents`
@@ -327,15 +330,18 @@ const pipe = async ({
         assets: await extractContentsDir(targetAssets, `${distFolder}/assets`),
     }
 
-    const buildFiles = {
+    const buildFiles: {
+        contents: Array<FileResponse>
+        assets: Array<FileResponse>
+    } = {
         contents: (
             await Promise.all(
-                buildFileNames.contents.map(async (filename) => {
-                    const contentsPath = `${distFolder}/contents/${filename}`
+                buildFileNames.contents.map(async (fileName) => {
+                    const contentsPath = `${distFolder}/contents/${fileName}`
                     const content = await io.reader.readFile(contentsPath)
 
                     return {
-                        filename: filename,
+                        fileName: fileName,
                         path: contentsPath,
                         content: content.success ? content.data : null,
                         meta: content.success ? meta(content.data).meta : null,
@@ -346,12 +352,12 @@ const pipe = async ({
 
         assets: (
             await Promise.all(
-                buildFileNames.assets.map(async (fileDirent) => {
-                    const assetsPath = `${distFolder}/assets/${fileDirent}`
+                buildFileNames.assets.map(async (fileName) => {
+                    const assetsPath = `${distFolder}/assets/${fileName}`
                     const asset = await io.reader.readFile(assetsPath)
 
                     return {
-                        filename: fileDirent,
+                        fileName: fileName,
                         path: assetsPath,
                         content: asset.success ? asset.data : null,
                         meta: asset.success ? meta(asset.data).meta : null,
@@ -361,7 +367,10 @@ const pipe = async ({
         ).flat(),
     }
 
-    const buildPath = {
+    const buildPath: {
+        contents: string
+        assets: string
+    } = {
         contents: `${distFolder}/contents`,
         assets: `${distFolder}/assets`,
     }
