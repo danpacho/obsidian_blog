@@ -4,6 +4,7 @@ import {
     FileTreeNode,
     FolderNode,
     ImageFileNode,
+    type ParentNodeInfo,
     TextFileNode,
 } from './node'
 
@@ -119,10 +120,11 @@ export class FileTreeParser {
         for (const node of folderList.data) {
             const { isDir, extension, path, name } = node
             const childDepth = parentDepth + 1
-            const parentInfo = parentRoot
+            const parentInfo: ParentNodeInfo | undefined = parentRoot
                 ? {
                       absolutePath: parentRoot.absolutePath,
                       fileName: parentRoot.fileName,
+                      node: parentRoot,
                   }
                 : undefined
 
