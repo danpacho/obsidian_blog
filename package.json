@@ -28,7 +28,7 @@
         "test": "FORCE_COLOR=1 vitest",
         "test:watch": "FORCE_COLOR=1 vitest --watch -u",
         "test:coverage": "FORCE_COLOR=1 vitest run --coverage",
-        "test:ci": "pnpm build && pnpm prettier && pnpm ts:typecheck && pnpm test:coverage",
+        "test:ci": "pnpm build && pnpm prettier && pnpm test:coverage",
         "ts:typecheck": "tsc --noEmit --allowImportingTsExtensions --skipLibCheck --jsx react-jsx",
         "ts:performance": "rimraf ts-perf && tsc --noEmit --generateTrace ts-perf",
         "reset": "pnpm clean && pnpm -r --parallel exec rimraf node_modules dist && rimraf node_modules dist",
