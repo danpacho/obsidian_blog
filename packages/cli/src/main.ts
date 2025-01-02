@@ -84,11 +84,9 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
     }
 
     private reportError(e: unknown) {
-        const REPORT_REPO = 'https://github.com/danpacho/obsidian_blog' as const
-
         this.$logger.error(JSON.stringify(e))
         this.$logger.log(
-            `Failed to install bridge package, please raise an issue on ${REPORT_REPO}`
+            `Failed to install bridge package, please raise an issue on ${this.repo}`
         )
     }
 
@@ -103,7 +101,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         const isTs = ts || !js
 
         const repository_path =
-            `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/${isTs ? 'ts' : 'js'}` as const
+            `${this.repo}/tree/main/packages/cli/src/template/${isTs ? 'ts' : 'js'}` as const
 
         const repoInfo = await this.getRepoInfo(repository_path)
         if (!repoInfo) return
@@ -197,6 +195,44 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         }
     }
 
+    private async installTemplate(install_path: string) {
+        const root = `${this.repo}/tree/main/packages/template` as const
+
+        const repoInfo = await this.getRepoInfo(root)
+
+        if (!repoInfo) {
+            this.$logger.error('Failed to get repo info for template')
+            return
+        }
+
+        try {
+            const isInstalled = await this.$io.reader.fileExists(install_path)
+            if (isInstalled) {
+                this.$logger.info('Template already installed')
+                return
+            }
+
+            await this.$io.writer.createFolder(install_path)
+
+            await this.$repo.downloadAndExtractRepo(install_path, repoInfo, {
+                onRetry: (e, attempt) => {
+                    this.$logger.log(
+                        `Attempt ${attempt} failed: ${e.message}, retrying...`
+                    )
+                },
+            })
+
+            const success = await this.$io.reader.fileExists(install_path)
+            if (!success) {
+                this.$logger.error('Failed to install template')
+            }
+            this.$logger.success('Template installed')
+            this.$logger.log(`Gen at ${install_path}`)
+        } catch (e) {
+            this.reportError(e)
+        }
+    }
+
     private async runPackageInstallation(install_path: string) {
         this.$logger.info(`Installing package`)
         const pkgManager = this.$pkgManager.getPkgManager()
@@ -229,7 +265,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         const isTs: boolean = ts || !js
 
         const repository_path =
-            `https://github.com/danpacho/obsidian_blog/tree/main/packages/cli/src/template/plugin/${type}/${isTs ? 'ts' : 'js'}/${plugin_type}` as const
+            `${this.repo}/tree/main/packages/cli/src/template/plugin/${type}/${isTs ? 'ts' : 'js'}/${plugin_type}` as const
 
         const repoInfo = await this.getRepoInfo(repository_path)
         if (!repoInfo) return
@@ -433,9 +469,19 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 })
             },
         })
+
+        // TEMPLATE COMMAND
+        this.addCommand({
+            cmdFlag: 'template',
+            cmdDescription: 'Install a template',
+            argFlag: ['<install_path>'],
+            cmdAction: async ({ install_path }) => {
+                await this.installTemplate(install_path)
+            },
+        })
     }
 
-    private constructor() {
+    private constructor(public readonly repo: string) {
         super({
             info: {
                 name: pkg.name,
@@ -461,7 +507,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         this.$program.parse(process.argv)
     }
 
-    public static instance() {
-        return new BloggerCLI()
+    public static instance(repo: string): BloggerCLI {
+        return new BloggerCLI(repo)
     }
 }
