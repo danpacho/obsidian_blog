@@ -11,17 +11,17 @@ import {
 } from '@obsidian_blogger/design_system/components'
 import { useMultipleInput } from '@obsidian_blogger/design_system/hooks'
 import type {
+    Bridge,
     PluginDynamicConfigPrimitiveType,
     PluginDynamicConfigSchema,
     PluginDynamicSchemaType,
     PluginInterfaceDynamicConfig,
     PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/helpers/plugin'
+} from '@obsidian_blogger/plugin'
 import { loadPrism } from 'obsidian'
 import { useEffect, useMemo, useState } from 'react'
 import { type UserPluginConfigSetter } from '../build.view'
 import { Decoder } from '../core'
-import { PluginConfigStorage } from '~/core'
 import { Is } from '~/utils'
 
 const GetInitialConfig = ({
@@ -87,7 +87,7 @@ interface DynamicConfigViewerProps {
     pluginName: string
     userPluginConfigSetter: UserPluginConfigSetter
     schema: PluginDynamicConfigSchema | undefined
-    configStorage: PluginConfigStorage
+    configStorage: Bridge.PluginConfigStorage
     initialConfig: PluginInterfaceDynamicConfig | null
     depth?: number | undefined
     accessingField?: Array<string> | undefined

@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import { Config, IO, ShellExecutor } from '@obsidian_blogger/helpers'
+import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
+import { Bridge } from '@obsidian_blogger/plugin'
 import { CorePlugins, PublishSystem } from '../src'
 
 const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
@@ -7,15 +8,15 @@ const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
 const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
     const roots = publisher.$configBridgeStorage.configStoreRoot
 
-    const bridgeForBuildScript = new Config.PluginConfigStorage({
+    const bridgeForBuildScript = new Bridge.PluginConfigStorage({
         name: 'bridge',
         root: roots[0]!.root as string,
     })
-    const bridgeForRepository = new Config.PluginConfigStorage({
+    const bridgeForRepository = new Bridge.PluginConfigStorage({
         name: 'bridge',
         root: roots[1]!.root as string,
     })
-    const bridgeForDeploy = new Config.PluginConfigStorage({
+    const bridgeForDeploy = new Bridge.PluginConfigStorage({
         name: 'bridge',
         root: roots[2]!.root as string,
     })
@@ -48,17 +49,17 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
         },
     }
 
-    await bridgeForBuildScript.updateDynamicConfig(
+    await bridgeForBuildScript.updateDynamicConfigByUserConfig(
         'blog-build-script-runner',
         dynamicConfigs['blog-build-script-runner'].dynamicConfig
     )
 
-    await bridgeForRepository.updateDynamicConfig(
+    await bridgeForRepository.updateDynamicConfigByUserConfig(
         'github',
         dynamicConfigs.github.dynamicConfig
     )
 
-    await bridgeForDeploy.updateDynamicConfig(
+    await bridgeForDeploy.updateDynamicConfigByUserConfig(
         'vercel',
         dynamicConfigs.vercel.dynamicConfig
     )

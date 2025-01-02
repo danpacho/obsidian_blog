@@ -122,7 +122,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 {
                     onRetry: (e, attempt) => {
                         this.$logger.log(
-                            `Attempt ${attempt} failed: ${e.message}, retrying...`
+                            `Attempt ${attempt} failed: ${JSON.stringify(e, null, 4)}, retrying...`
                         )
                     },
                 }
@@ -217,7 +217,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             await this.$repo.downloadAndExtractRepo(install_path, repoInfo, {
                 onRetry: (e, attempt) => {
                     this.$logger.log(
-                        `Attempt ${attempt} failed: ${e.message}, retrying...`
+                        `Attempt ${attempt} failed: ${JSON.stringify(e, null, 4)}, retrying...`
                     )
                 },
             })
@@ -277,7 +277,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             await this.$repo.downloadAndExtractRepo(pluginWorkspace, repoInfo, {
                 onRetry: (e, attempt) => {
                     this.$logger.log(
-                        `Attempt ${attempt} failed: ${e.message}, retrying...`
+                        `Attempt ${attempt} failed: ${JSON.stringify(e, null, 4)}, retrying...`
                     )
                 },
             })

@@ -1,7 +1,7 @@
 import {
     type PluginDynamicConfigPrimitiveType,
     type PluginDynamicConfigSchema,
-} from '@obsidian_blogger/helpers/plugin'
+} from '@obsidian_blogger/plugin'
 import { Is } from '../../../../utils'
 
 export type DecoderAdapter = (
