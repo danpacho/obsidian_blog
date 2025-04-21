@@ -14,14 +14,14 @@ export interface TooltipProps
 
 const tooltip = tw.style({
     position: 'absolute',
-    paddingY: 'py-2',
-    paddingX: 'px-2.5',
+    padding: ['py-2', 'px-2.5'],
     color: 'text-white',
     backgroundColor: 'bg-black',
     fontSize: 'text-sm/5',
     borderRadius: 'rounded-lg',
     boxShadow: 'shadow-2xl',
-    transition: 'transition-opacity ease-out',
+    transitionProperty: 'transition-opacity',
+    transitionTimingFunction: 'ease-out',
     transitionDuration: 'duration-300',
 })
 
@@ -43,33 +43,32 @@ const arrowStyles = tw.rotary({
         width: 'w-2',
         height: 'h-2',
         transformOrigin: 'origin-center',
-        transformRotate: 'rotate-45',
-        transition: 'transition-opacity ease-out',
+        rotate: 'rotate-45',
+        transitionProperty: 'transition-opacity',
+        transitionTimingFunction: 'ease-out',
         transitionDuration: 'duration-300',
     },
-    top: {
-        left: 'left-1/2',
-        bottom: 'bottom-0',
-        transformTranslateX: '-translate-x-1/2',
-        transformTranslateY: 'translate-y-1/2',
-    },
-    bottom: {
-        left: 'left-1/2',
-        top: 'top-0',
-        transformTranslateX: '-translate-x-1/2',
-        transformTranslateY: '-translate-y-1/2',
-    },
-    left: {
-        top: 'top-1/2',
-        right: 'right-0',
-        transformTranslateX: 'translate-x-1/2',
-        transformTranslateY: '-translate-y-1/2',
-    },
-    right: {
-        top: 'top-1/2',
-        left: 'left-0',
-        transformTranslateX: '-translate-x-1/2',
-        transformTranslateY: '-translate-y-1/2',
+    variants: {
+        top: {
+            left: 'left-1/2',
+            bottom: 'bottom-0',
+            translate: ['-translate-x-1/2', 'translate-y-1/2'],
+        },
+        bottom: {
+            left: 'left-1/2',
+            top: 'top-0',
+            translate: ['-translate-x-1/2', '-translate-y-1/2'],
+        },
+        left: {
+            top: 'top-1/2',
+            right: 'right-0',
+            translate: ['translate-x-1/2', '-translate-y-1/2'],
+        },
+        right: {
+            top: 'top-1/2',
+            left: 'left-0',
+            translate: ['-translate-x-1/2', '-translate-y-1/2'],
+        },
     },
 })
 
@@ -184,8 +183,8 @@ export const Tooltip = ({
     }, [controller.active, controller.calculatePosition])
 
     const tooltipStyle = style
-        ? tooltip.compose(visibility.style(controller.visible), style).class
-        : tooltip.compose(visibility.style(controller.visible)).class
+        ? tooltip.compose(visibility.style(controller.visible), style).class()
+        : tooltip.compose(visibility.style(controller.visible)).class()
 
     return (
         <div

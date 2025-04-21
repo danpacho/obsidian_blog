@@ -98,7 +98,10 @@ export class FileReader {
             const dataChunks: Uint8Array[] = []
             let totalLength = 0
 
-            readableStream.on('data', (chunk: Buffer) => {
+            readableStream.on('data', (chunk: string | Buffer) => {
+                if (typeof chunk === 'string') {
+                    return
+                }
                 dataChunks.push(chunk)
                 totalLength += chunk.length
             })

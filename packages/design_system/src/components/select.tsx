@@ -4,53 +4,48 @@ import { TailwindComponent } from './tailwind.component.js'
 
 const selectStyle = tw.toggle({
     base: {
-        //@ts-ignore
         width: '!w-full',
-        //@ts-ignore
+
         fontFamily: '!font-mono',
         fontSize: 'text-sm',
         fontWeight: 'font-normal',
-        //@ts-ignore
+
         color: '!text-stone-300',
         $placeholder: {
-            //@ts-ignore
             color: 'placeholder:!text-stone-500',
         },
-        paddingX: 'px-2',
+        padding: ['px-2'],
         borderWidth: 'border',
         borderStyle: 'border-solid',
-        //@ts-ignore
+
         boxShadow: '!shadow-none',
-        //@ts-ignore
+
         accentColor: '!accent-stone-300',
-        transition: 'transition-colors ease-in-out',
+        transitionProperty: 'transition-colors',
+        transitionTimingFunction: 'ease-in-out',
         transitionDuration: 'duration-200',
     },
     truthy: {
-        //@ts-ignore
         backgroundColor: '!bg-stone-700',
-        //@ts-ignore
+
         borderColor: '!border-stone-700',
-        //@ts-ignore
+
         color: '!text-stone-300',
         $hover: {
-            //@ts-ignore
             backgroundColor: 'hover:!bg-stone-700',
-            //@ts-ignore
+
             color: 'hover:!text-stone-300',
         },
     },
     falsy: {
-        //@ts-ignore
         backgroundColor: '!bg-stone-800',
-        //@ts-ignore
+
         borderColor: '!border-stone-700',
-        //@ts-ignore
+
         color: '!text-stone-300',
         $hover: {
-            //@ts-ignore
             backgroundColor: 'hover:!bg-stone-500/10',
-            //@ts-ignore
+
             color: 'hover:!text-stone-300',
         },
     },

@@ -5,7 +5,7 @@ const loader = tw.variants({
     base: {
         animation: 'animate-spin',
         borderRadius: 'rounded-full',
-        borderYColor: 'border-y-transparent',
+        borderColor: 'border-y-transparent',
 
         display: 'flex',
         alignItems: 'items-center',
@@ -14,7 +14,7 @@ const loader = tw.variants({
     variants: {
         size: {
             sm: {
-                size: 'size-2.5',
+                width: 'size-2.5',
                 borderWidth: 'border',
             },
             md: {
@@ -37,7 +37,9 @@ const loader = tw.variants({
     },
 })
 
-interface LoaderProps extends TailwindComponent, GetVariants<typeof loader> {}
+interface LoaderProps
+    extends TailwindComponent,
+        GetVariants<typeof loader> {}
 export const Loader = ({
     tw: style,
     color = 'blue',
@@ -59,7 +61,7 @@ export const Loader = ({
         <div className={className}>
             <div
                 className={`size-[2.5px] animate-ping rounded-full ${color === 'blue' ? 'bg-blue-400' : 'bg-yellow-400'}`}
-            ></div>
+            />
         </div>
     )
 }

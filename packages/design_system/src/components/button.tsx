@@ -40,26 +40,23 @@ const button = tw.variants({
                 },
                 $active: {
                     opacity: 'active:opacity-75',
-                    transformTranslateY: 'active:translate-y-0',
+                    translate: 'active:translate-y-0',
                 },
             },
         },
         size: {
             sm: {
-                paddingX: 'px-2',
-                paddingY: 'py-1',
+                padding: ['px-2', 'py-1'],
                 fontSize: 'text-xs',
                 borderRadius: 'rounded',
             },
             md: {
-                paddingX: 'px-3',
-                paddingY: 'py-1.5',
+                padding: ['px-3', 'py-1.5'],
                 fontSize: 'text-sm',
                 borderRadius: 'rounded-md',
             },
             lg: {
-                paddingX: 'px-4',
-                paddingY: 'py-2',
+                padding: ['px-4', 'py-2'],
                 fontSize: 'text-base',
                 borderRadius: 'rounded-lg',
             },
@@ -78,7 +75,8 @@ const button = tw.variants({
         color: 'text-white',
         borderWidth: 'border',
 
-        transition: 'transition-colors ease-out',
+        transitionProperty: 'transition-colors',
+        transitionTimingFunction: 'ease-out',
         cursor: 'cursor-pointer',
 
         $hover: {
@@ -86,7 +84,7 @@ const button = tw.variants({
         },
         $active: {
             opacity: 'active:opacity-75',
-            transformTranslateY: 'active:translate-y-0.5',
+            translate: 'active:translate-y-0.1',
         },
     },
 })
@@ -106,7 +104,7 @@ export const Button = ({
                   type,
                   size,
               }),
-              style
+              style ?? {}
           )
         : button.class({
               type,

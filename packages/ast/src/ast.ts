@@ -52,6 +52,6 @@ class Node<T> {
 }
 
 export class AST<T> {
-    private _root: Node<T>
+    // private _root: Node<T>
     public constructor() {}
 }

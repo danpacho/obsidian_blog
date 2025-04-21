@@ -10,8 +10,8 @@ const header = tw.style({
 })
 const Header = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
-        ? tw.mergeProps(header.style, props.tw)
-        : header.class
+        ? tw.mergeProps(header.style(), props.tw)
+        : header.class()
     return <h1 className={className}>{props.children}</h1>
 }
 const subHeader = tw.style({
@@ -22,8 +22,8 @@ const subHeader = tw.style({
 })
 const SubHeader = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
-        ? tw.mergeProps(subHeader.style, props.tw)
-        : subHeader.class
+        ? tw.mergeProps(subHeader.style(), props.tw)
+        : subHeader.class()
     return <h2 className={className}>{props.children}</h2>
 }
 const description = tw.style({
@@ -34,8 +34,8 @@ const description = tw.style({
 })
 const Description = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
-        ? tw.mergeProps(description.style, props.tw)
-        : description.class
+        ? tw.mergeProps(description.style(), props.tw)
+        : description.class()
     return <p className={className}>{props.children}</p>
 }
 const paragraph = tw.style({
@@ -46,8 +46,8 @@ const paragraph = tw.style({
 })
 const Paragraph = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
-        ? tw.mergeProps(paragraph.style, props.tw)
-        : paragraph.class
+        ? tw.mergeProps(paragraph.style(), props.tw)
+        : paragraph.class()
     return <p className={className}>{props.children}</p>
 }
 const code = tw.style({
@@ -58,8 +58,8 @@ const code = tw.style({
 })
 const Code = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
-        ? tw.mergeProps(code.style, props.tw)
-        : code.class
+        ? tw.mergeProps(code.style(), props.tw)
+        : code.class()
     return <pre className={className}>{props.children}</pre>
 }
 

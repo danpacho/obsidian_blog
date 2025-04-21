@@ -531,15 +531,16 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 size="sm"
                                 type={status}
                                 tw={{
-                                    transition: 'transition-all ease-linear',
-                                    transformGPU: 'transform-gpu',
-                                    transformRotate: isActive
+                                    transitionProperty: 'transition-all',
+                                    transitionTimingFunction: 'ease-linear',
+                                    transform: 'transform-gpu',
+                                    rotate: isActive
                                         ? 'rotate-90'
                                         : 'rotate-0',
                                     opacity: isActive
                                         ? 'opacity-100'
                                         : 'opacity-85',
-                                    size: 'size-7',
+                                    width: 'size-7',
                                     transitionDuration: runningState.pending
                                         ? 'duration-[0]'
                                         : 'duration-300',
@@ -552,7 +553,7 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 }}
                             >
                                 {runningState.pending && (
-                                    <Loader color="yellow" size="sm" />
+                                    <Loader  color="yellow" size="sm" />
                                 )}
                                 {!runningState.pending && '▶'}
                             </Button>
@@ -661,21 +662,20 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 color="red"
                                 style="border"
                                 tw={{
-                                    marginTop: 'mt-2',
-                                    paddingX: 'px-3',
-                                    paddingY: 'py-2.5',
+                                    margin: 'mt-2',
+                                    padding: ['px-3','py-2.5'],
                                     maxWidth: 'max-w-full',
                                     width: 'w-full',
                                     overflow: 'overflow-x-scroll',
                                     display: 'flex',
                                     flexDirection: 'flex-col',
-                                    gapY: 'gap-y-1.5',
+                                    gap: 'gap-y-1.5',
                                     alignItems: 'items-start',
                                     justifyContent: 'justify-center',
                                     $hover: {
                                         backgroundColor: 'hover:bg-transparent',
                                     },
-                                    transition: 'transition',
+                                    transitionProperty: 'transition',
                                 }}
                             >
                                 <Text.SubHeader>Expected</Text.SubHeader>
@@ -831,22 +831,21 @@ const PluginHistoryViewer = ({
                                     color={status === 'failed' ? 'red' : 'blue'}
                                     style="border"
                                     tw={{
-                                        marginTop: 'mt-2',
-                                        paddingX: 'px-3',
-                                        paddingY: 'py-2.5',
+                                        margin: 'mt-2',
+                                        padding: ['px-3', 'py-2.5'],
                                         maxWidth: 'max-w-full',
                                         width: 'w-full',
                                         overflow: 'overflow-x-scroll',
                                         display: 'flex',
                                         flexDirection: 'flex-col',
-                                        gapY: 'gap-y-1.5',
+                                        gap: 'gap-y-1.5',
                                         alignItems: 'items-start',
                                         justifyContent: 'justify-center',
                                         $hover: {
                                             backgroundColor:
                                                 'hover:bg-transparent',
                                         },
-                                        transition: 'transition',
+                                        transitionProperty: 'transition',
                                     }}
                                 >
                                     <Text.Code

@@ -14,7 +14,7 @@ export const Universal = <T extends React.ElementType = 'div'>({
     ...props
 }: UniversalProps<T>) => {
     const Element = as || 'div'
-    const className = style ? tw.style(style).class : undefined
+    const className = style ? tw.style(style).class() : undefined
     return (
         <Element className={className} {...props}>
             {children}

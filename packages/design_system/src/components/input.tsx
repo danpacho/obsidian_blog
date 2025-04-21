@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-
 import type { InputType } from '../hooks/index.js'
 import { tw } from '../tools/tw.js'
 import type { TailwindComponent } from './tailwind.component.js'
@@ -19,7 +16,8 @@ const inputStyle = tw.style({
     borderColor: '!border-stone-700',
     caretColor: '!caret-stone-300',
     accentColor: '!accent-stone-300',
-    transition: 'transition-colors ease-in-out',
+    transitionProperty: 'transition-colors',
+    transitionTimingFunction: 'ease-in-out',
     transitionDuration: 'duration-200',
     $checked: {
         caretColor: 'checked:!accent-stone-300',
@@ -62,8 +60,8 @@ export const Input = <InputT extends InputType = InputType>({
 }: React.PropsWithChildren<InputProps<InputT>>) => {
     const isDescriptionString = typeof description === 'string'
     const className = style
-        ? tw.mergeProps(inputStyle.style, style)
-        : inputStyle.class
+        ? tw.mergeProps(inputStyle.style(), style)
+        : inputStyle.class()
 
     return (
         <input

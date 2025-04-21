@@ -16,7 +16,7 @@ const box = tw.style({
 function HomeComponent() {
     return (
         <div className="p-2">
-            <div className={box.class}>Welcome Home</div>
+            <div className={box.class()}>Welcome Home</div>
         </div>
     )
 }

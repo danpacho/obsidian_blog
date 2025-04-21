@@ -1,4 +1,4 @@
-import { GetVariants, tw } from '../tools/tw.js'
+import { type GetVariants, tw } from '../tools/tw.js'
 import type { TailwindComponent } from './tailwind.component.js'
 
 const label = tw.variants({
@@ -65,20 +65,17 @@ const label = tw.variants({
         size: {
             sm: {
                 fontSize: 'text-xs',
-                paddingX: 'px-1',
-                paddingY: 'py-[0.5px]',
+                padding: ['px-1', 'py-[0.5px]'],
                 borderRadius: 'rounded-sm',
             },
             md: {
                 fontSize: 'text-sm',
-                paddingX: 'px-1.5',
-                paddingY: 'py-0.5',
+                padding: ['px-1.5', 'py-0.5'],
                 borderRadius: 'rounded',
             },
             lg: {
                 fontSize: 'text-lg',
-                paddingX: 'px-2',
-                paddingY: 'py-1',
+                padding: ['px-2', 'py-1'],
                 borderRadius: 'rounded-lg',
             },
         },
@@ -95,6 +92,7 @@ const label = tw.variants({
 })
 
 export interface LabelProps
+    //@ts-ignore
     extends GetVariants<typeof label>,
         TailwindComponent {
     children: React.ReactNode

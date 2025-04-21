@@ -447,7 +447,7 @@ const DynamicDescription = ({
                 <Tooltip
                     {...tooltipController}
                     tw={{
-                        whitespace: 'whitespace-nowrap',
+                        whiteSpace: "whitespace-nowrap"
                     }}
                     active={typeDescription ? tooltipController.visible : false}
                     visible={

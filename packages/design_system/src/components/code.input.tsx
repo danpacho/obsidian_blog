@@ -8,8 +8,6 @@ const activatedStyle = tw.toggle({
     base: {
         minHeight: 'min-h-32',
         $hover: {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            //@ts-ignore
             backgroundColor: 'hover:!bg-stone-800',
         },
     },
@@ -130,8 +128,10 @@ export const CodeInput = ({
                                 position: 'absolute',
                                 top: 'top-1/2',
                                 left: 'left-1/2',
-                                transformTranslateX: '-translate-x-1/2',
-                                transformTranslateY: '-translate-y-1/2',
+                                translate: [
+                                    '-translate-x-1/2',
+                                    '-translate-y-1/2',
+                                ],
                             }}
                         >
                             Write JS function

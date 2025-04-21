@@ -1,25 +1,22 @@
-import { type GetVariants, type Tailwindest, createTools } from 'tailwindest'
+import {
+    CreateTailwindLiteral,
+    type CreateTailwindest,
+    createTools,
+} from 'tailwindest'
+import type { TailwindNestGroups, Tailwind } from './tailwind.js'
 
-/**
- * Custom type definition of tailwindest
- * @see {@link https://tailwindest.vercel.app/apis/Tailwindest api reference}
- */
-type TailwindCustom = Tailwindest<
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    {},
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    {},
-    {
-        breakIdentifier: '$'
-        pseudoClassIdentifier: '$'
-        pseudoElementIdentifier: '$'
-    }
->
-/**
- * Full type definition of `tailwindcss`
- */
-type Tailwind = Required<TailwindCustom>
+export type Tailwindest = CreateTailwindest<{
+    tailwind: Tailwind
+    tailwindNestGroups: TailwindNestGroups
+    useArbitrary: true
+    groupPrefix: '$'
+}>
+export type TailwindLiteral = CreateTailwindLiteral<Tailwind>
 
-const tw = createTools<TailwindCustom>()
+export const tw = createTools<{
+    tailwindest: Tailwindest
+    tailwindLiteral: TailwindLiteral
+    useArbitrary: true
+}>()
 
-export { tw, type Tailwind, type TailwindCustom, type GetVariants }
+export * from 'tailwindest'

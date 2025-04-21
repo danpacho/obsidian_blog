@@ -22,7 +22,7 @@ const nav = tw.style({
 function RootComponent() {
     return (
         <>
-            <div className={nav.class}>
+            <div className={nav.class()}>
                 <Link
                     to="/"
                     activeProps={{
