@@ -1,5 +1,11 @@
 # create-obsidian-blogger
 
+## 0.3.1
+
+### Patch Changes
+
+- Update package dependency to latest
+
 ## 0.3.0
 
 ### Minor Changes
