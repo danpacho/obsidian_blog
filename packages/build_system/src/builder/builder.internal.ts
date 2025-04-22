@@ -332,37 +332,29 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
         const { buildInfo } = node
 
         if (!buildInfo?.id) return false
-
         if (config?.disableCache) return false
 
-        const defaultExcludeResult: boolean =
-            BuilderPluginCachePipelines.defaultExclude.some((pattern) =>
-                pattern.test(node.fileName)
-            )
-
-        if (defaultExcludeResult) return false
-
         const fileName = node.fileName
-        if (config?.exclude) {
-            const { exclude } = config
-            if (typeof exclude === 'string') {
-                if (exclude === fileName) return true
-            } else if (exclude instanceof RegExp) {
-                if (exclude.test(fileName)) {
-                    return true
-                }
-            } else {
-                if (exclude.some((ex) => fileName.includes(ex))) {
-                    return true
-                }
+        const excludeResult: boolean = [
+            ...BuilderPluginCachePipelines.defaultExclude,
+            config?.exclude ?? [],
+        ].some((pattern) => {
+            if (typeof pattern === 'string') {
+                return pattern === fileName
             }
-        }
+            if (pattern instanceof RegExp) {
+                return pattern.test(fileName)
+            }
+            return pattern.some((patternName) => patternName === fileName)
+        })
+
+        if (excludeResult) return false
 
         const status = cacheManager.checkStatus(buildInfo.id)
 
         if (!status.success) return false
 
-        if (pluginCacheChecker !== undefined) {
+        if (pluginCacheChecker) {
             // User-defined caching logic
             return pluginCacheChecker(
                 { state: status.data, node },
