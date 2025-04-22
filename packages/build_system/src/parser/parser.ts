@@ -29,6 +29,24 @@ interface FileSyntax {
 }
 interface FileTreeSyntax extends FolderSyntax, FileSyntax {}
 
+export interface WalkOption {
+    /**
+     * Tree traversal type `DFS` or `BFS`
+     */
+    type: 'DFS' | 'BFS'
+    /**
+     * Skip executing walk function for folder node
+     */
+    skipFolderNode?: boolean
+    /**
+     * Root node to start walking
+     */
+    walkRoot?: FileTreeNode
+    /**
+     * Exclude walking
+     */
+    exclude?: string | Array<string> | RegExp
+}
 /**
  * A function that walks through the file tree
  */
@@ -185,14 +203,44 @@ export class FileTreeParser {
         return this._ast
     }
 
+    /**
+     * Default exclude patterns
+     * @default [/^\.\w+/, /^\./]
+     * @description Exclude files that start with a `.`(dot)
+     */
+    public static defaultExclude = [/^\.\w+/, /^\./]
+
+    private exclude(
+        pattern: string | Array<string> | RegExp,
+        fileName: string
+    ) {
+        const excludeResult: boolean = [
+            ...FileTreeParser.defaultExclude,
+            pattern,
+        ].some((pattern) => {
+            if (typeof pattern === 'string') {
+                return pattern === fileName
+            }
+            if (pattern instanceof RegExp) {
+                return pattern.test(fileName)
+            }
+            return pattern.some((patternName) => patternName === fileName)
+        })
+        return excludeResult
+    }
+
     private async walkDFS(
         node: FileTreeNode,
         walker: Walker,
         skipFolderNode: boolean = false,
+        exclude: string | RegExp | Array<string> | undefined = undefined,
         siblings: Array<FileTreeNode> | undefined = undefined,
         siblingsIndex: number | undefined = undefined
     ): Promise<void> {
         if (!node) return
+        if (exclude && this.exclude(exclude, node.fileName)) {
+            return
+        }
 
         const shouldWalk: boolean = !(
             skipFolderNode && node instanceof FolderNode
@@ -211,16 +259,27 @@ export class FileTreeParser {
             const child = node.children[i]
             if (!child) continue
 
-            await this.walkDFS(child, walker, skipFolderNode, node.children, i)
+            await this.walkDFS(
+                child,
+                walker,
+                skipFolderNode,
+                exclude,
+                node.children,
+                i
+            )
         }
     }
 
     private async walkBFS(
         node: FileTreeNode,
         walker: Walker,
-        skipFolderNode: boolean = false
+        skipFolderNode: boolean = false,
+        exclude: string | RegExp | Array<string> | undefined = undefined
     ): Promise<void> {
         if (!node) return
+        if (exclude && this.exclude(exclude, node.fileName)) {
+            return
+        }
 
         this._queue.enqueue({
             node,
@@ -280,6 +339,10 @@ export class FileTreeParser {
              * Root node to start walking
              */
             walkRoot?: FileTreeNode
+            /**
+             * Exclude walking
+             */
+            exclude?: string | Array<string> | RegExp
         }
     ): Promise<void> {
         const { skipFolderNode, type } = options
@@ -288,9 +351,19 @@ export class FileTreeParser {
 
         const skipFolderNodeCondition = skipFolderNode ?? false
         if (type === 'DFS') {
-            await this.walkDFS(targetAST, walker, skipFolderNodeCondition)
+            await this.walkDFS(
+                targetAST,
+                walker,
+                skipFolderNodeCondition,
+                options.exclude
+            )
         } else {
-            await this.walkBFS(targetAST, walker, skipFolderNodeCondition)
+            await this.walkBFS(
+                targetAST,
+                walker,
+                skipFolderNodeCondition,
+                options.exclude
+            )
         }
     }
 }
