@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.3.2
+
+### Patch Changes
+
+- Update package name : @obsidian_blogger/plugin_api
+
 ## 0.3.1
 
 ### Patch Changes

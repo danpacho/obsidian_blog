@@ -1,5 +1,13 @@
 # @obsidian_blogger/plugin
 
+## 0.3.2
+
+### Patch Changes
+
+- Update package name : @obsidian_blogger/plugin_api
+- Updated dependencies
+    - @obsidian_blogger/design_system@0.2.2
+
 ## 0.3.1
 
 ### Patch Changes
