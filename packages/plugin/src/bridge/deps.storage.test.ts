@@ -8,7 +8,7 @@ import {
 
 describe('DependencyTable', () => {
     const config: DependencyTableConfig = {
-        recordRoot: `${cwd()}/packages/plugin/src/core/__fixtures__`,
+        recordRoot: `${cwd()}/packages/plugin/src/bridge/__fixtures__`,
     }
     const dependencyTable = new DependencyTable(config)
 
