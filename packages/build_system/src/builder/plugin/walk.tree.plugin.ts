@@ -2,7 +2,7 @@ import type {
     PluginDynamicConfigSchema,
     PluginExecutionResponse,
 } from '@obsidian_blogger/plugin_api'
-import type { FileTreeNode } from '../../parser'
+import type { FileTreeNode, WalkOption } from '../../parser'
 import type { BuildInformation } from '../core'
 import {
     BuildPlugin,
@@ -147,14 +147,15 @@ export abstract class WalkTreePlugin<
                 this.$logger.updateName(this.name)
             },
             execute: async () => {
-                const defaultOptions = {
-                    type: this.dynamicConfig?.walkType ?? 'DFS',
-                    skipFolderNode: this.dynamicConfig?.skipFolderNode ?? true,
-                }
-
                 const parser = this.getRunTimeDependency('parser')
                 const cacheManager = this.getRunTimeDependency('cacheManager')
                 const walkRoot = this.getRunTimeDependency('walkRoot')
+
+                const defaultWalkOptions: WalkOption = {
+                    type: this.dynamicConfig?.walkType ?? 'DFS',
+                    skipFolderNode: this.dynamicConfig?.skipFolderNode ?? true,
+                    exclude: this.defaultDynamicConfig?.exclude ?? [],
+                }
 
                 this.walk = this.walk.bind(this)
 
@@ -175,10 +176,10 @@ export abstract class WalkTreePlugin<
                     },
                     walkRoot
                         ? {
-                              ...defaultOptions,
+                              ...defaultWalkOptions,
                               walkRoot,
                           }
-                        : defaultOptions
+                        : defaultWalkOptions
                 )
                 return
             },
