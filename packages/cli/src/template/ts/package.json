@@ -23,6 +23,7 @@
         "@obsidian_blogger/build_system": "latest",
         "@obsidian_blogger/publish_system": "latest",
         "@obsidian_blogger/helpers": "latest",
+        "@obsidian_blogger/plugin": "latest",
         "tsup": "^8.2.4",
         "typescript": "latest"
     },
