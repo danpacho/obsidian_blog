@@ -23,11 +23,11 @@
         "@obsidian_blogger/build_system": "latest",
         "@obsidian_blogger/publish_system": "latest",
         "@obsidian_blogger/helpers": "latest",
-        "@obsidian_blogger/plugin": "latest",
+        "@obsidian_blogger/plugin_api": "latest",
         "tsup": "^8.4.0",
         "typescript": "latest"
     },
     "engines": {
-        "node": ">=18.17.0"
+        "node": ">=20.0.0"
     }
 }
