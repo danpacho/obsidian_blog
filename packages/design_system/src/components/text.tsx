@@ -12,7 +12,7 @@ const Header = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
         ? tw.mergeProps(header.style(), props.tw)
         : header.class()
-    return <h1 className={className}>{props.children}</h1>
+    return <p className={className}>{props.children}</p>
 }
 const subHeader = tw.style({
     fontFamily: 'font-mono',
@@ -24,7 +24,7 @@ const SubHeader = (props: React.PropsWithChildren<TailwindComponent>) => {
     const className = props.tw
         ? tw.mergeProps(subHeader.style(), props.tw)
         : subHeader.class()
-    return <h2 className={className}>{props.children}</h2>
+    return <p className={className}>{props.children}</p>
 }
 const description = tw.style({
     fontFamily: 'font-sans',

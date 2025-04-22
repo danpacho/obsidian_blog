@@ -89,7 +89,7 @@ const ConfigInput = ({
 
     const message = isError ? 'Error' : isValid ? 'Saved' : 'Save'
     return (
-        <div key={id} className="w-full px-1 pt-3">
+        <div key={id} className="w-full pt-2 pb-4">
             <div className="flex w-full flex-col items-start justify-start gap-2">
                 <div className="flex w-full flex-row gap-x-2">
                     <Text.Paragraph tw={{ fontFamily: 'font-mono' }}>
@@ -247,7 +247,7 @@ const ConfigView = () => {
     }, [loaded])
 
     return (
-        <div className="flex flex-col gap-y-5 divide-y divide-stone-700">
+        <div className="flex flex-col gap-y-2 divide-y divide-stone-700">
             {Object.values(settingsWithInfo)
                 .filter((config) => config !== undefined)
                 .map(({ title, description, key, required }) => (
@@ -385,7 +385,7 @@ export function SetupView() {
     }
 
     return (
-        <div className="flex size-full flex-col gap-y-4 divide-y divide-stone-700">
+        <div className="flex size-full flex-col gap-y-4">
             <ConfigView />
 
             <div className="flex w-full flex-col gap-y-2 py-5">

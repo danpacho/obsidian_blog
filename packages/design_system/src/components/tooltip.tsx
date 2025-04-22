@@ -23,6 +23,7 @@ const tooltip = tw.style({
     transitionProperty: 'transition-opacity',
     transitionTimingFunction: 'ease-out',
     transitionDuration: 'duration-300',
+    minWidth: 'min-w-50',
 })
 
 const visibility = tw.toggle({

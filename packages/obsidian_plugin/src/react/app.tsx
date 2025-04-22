@@ -11,7 +11,7 @@ const Container = (props: React.PropsWithChildren) => {
 
     useEffect(() => {
         if (containerRef.current) {
-            containerRef.current.parentElement?.classList.add('bg-[#262626]')
+            containerRef.current.parentElement?.classList.add('bg-[#101010FF]')
         }
     }, [])
     return (
