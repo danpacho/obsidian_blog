@@ -1,52 +1,51 @@
 {
-  "name": "create-obsidian-blogger",
-  "version": "0.3.1",
-  "description": "Obsidian CI/CD bridge generator for Obsidian Blogger",
-  "author": "danpacho",
-  "license": "MIT",
-  "type": "module",
-  "keywords": [],
-  "sideEffects": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "bin": {
-    "create-obsidian-blogger": "./dist/index.cjs"
-  },
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "tsup",
-    "build:fast": "tsup --no-dts",
-    "dev": "pnpm build:fast --sourcemap --clean=false --watch",
-    "format": "prettier --write \"./{src,tests}/**/*\"",
-    "test": "pnpm build && chmod +x ./scripts/test_cli_gen.sh && ./scripts/test_cli_gen.sh",
-    "lint:ts": "tsc --noEmit",
-    "install:template": "cd src/template/ts && npm install",
-    "build:template": "cd src/template/ts && pnpm build",
-    "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish",
-    "run:template:js": "cd src/template/js && pnpm run:build && pnpm run:publish"
-  },
-  "devDependencies": {
-    "@types/async-retry": "^1.4.9",
-    "@types/tar": "^6.1.13",
-    "@types/validate-npm-package-name": "^4.0.2",
-    "@obsidian_blogger/build_system": "workspace:^",
-    "@obsidian_blogger/helpers": "workspace:^",
-    "commander": "^13.1.0",
-    "async-retry": "^1.3.3",
-    "cross-spawn": "^7.0.6",
-    "fast-glob": "^3.3.3",
-    "tar": "^7.4.3",
-    "update-check": "^1.5.4",
-    "validate-npm-package-name": "^6.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "dependencies": null
+    "name": "create-obsidian-blogger",
+    "version": "0.3.1",
+    "description": "Obsidian CI/CD bridge generator for Obsidian Blogger",
+    "author": "danpacho",
+    "license": "MIT",
+    "type": "module",
+    "keywords": [],
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "bin": {
+        "create-obsidian-blogger": "./dist/index.cjs"
+    },
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup",
+        "build:fast": "tsup --no-dts",
+        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "format": "prettier --write \"./{src,tests}/**/*\"",
+        "test": "pnpm build && chmod +x ./scripts/test_cli_gen.sh && ./scripts/test_cli_gen.sh",
+        "lint:ts": "tsc --noEmit",
+        "install:template": "cd src/template/ts && npm install",
+        "build:template": "cd src/template/ts && pnpm build",
+        "run:template:ts": "cd src/template/ts && pnpm run:build && pnpm run:publish",
+        "run:template:js": "cd src/template/js && pnpm run:build && pnpm run:publish"
+    },
+    "devDependencies": {
+        "@types/async-retry": "^1.4.9",
+        "@types/tar": "^6.1.13",
+        "@types/validate-npm-package-name": "^4.0.2",
+        "@obsidian_blogger/build_system": "workspace:^",
+        "@obsidian_blogger/helpers": "workspace:^",
+        "commander": "^13.1.0",
+        "async-retry": "^1.3.3",
+        "cross-spawn": "^7.0.6",
+        "fast-glob": "^3.3.3",
+        "tar": "^7.4.3",
+        "update-check": "^1.5.4",
+        "validate-npm-package-name": "^6.0.0"
+    },
+    "engines": {
+        "node": ">=20.0.0"
+    }
 }
