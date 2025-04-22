@@ -310,10 +310,10 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
 export class BuilderPluginCachePipelines extends PluginCachePipelines {
     /**
      * Default exclude patterns
-     * @default [/^\.\w+/]
+     * @default [/^\.\w+/, /^\./]
      * @description Exclude files that start with a `.`(dot)
      */
-    public static defaultExclude = [/^\.\w+/]
+    public static defaultExclude = [/^\.\w+/, /^\./]
 
     public override treeCachePipeline(args: {
         cacheManager: BuildCacheManager
