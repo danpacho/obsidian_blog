@@ -1,4 +1,4 @@
-import { Runner } from '@obsidian_blogger/plugin'
+import { Runner } from '@obsidian_blogger/plugin_api'
 import type {
     PublishPlugin,
     PublishPluginDependencies,

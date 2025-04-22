@@ -1,8 +1,11 @@
 import type { IO } from '@obsidian_blogger/helpers/io'
 import type { Logger } from '@obsidian_blogger/helpers/logger'
 import type { ShellExecutor } from '@obsidian_blogger/helpers/shell'
-import { PluginLoadInformation, PluginManager } from '@obsidian_blogger/plugin'
-import { Bridge } from '@obsidian_blogger/plugin/constants'
+import {
+    PluginLoadInformation,
+    PluginManager,
+} from '@obsidian_blogger/plugin_api'
+import { Bridge } from '@obsidian_blogger/plugin_api/constants'
 import { PublishSystemPluginAdapter } from '../publish.system.interface'
 import type {
     BuildScriptPlugin,

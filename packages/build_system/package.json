@@ -1,46 +1,46 @@
 {
-    "name": "@obsidian_blogger/build_system",
-    "version": "0.3.1",
-    "description": "Post build system",
-    "author": "danpacho",
-    "license": "MIT",
-    "type": "module",
-    "keywords": [],
-    "sideEffects": false,
-    "publishConfig": {
-        "access": "public"
-    },
-    "files": [
-        "dist"
-    ],
-    "main": "./dist/index.js",
-    "module": "./dist/index.mjs",
-    "types": "./dist/index.d.ts",
-    "scripts": {
-        "build": "tsup",
-        "build:fast": "tsup --no-dts",
-        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
-        "format": "prettier --write \"./{src,tests}/**/*\"",
-        "test": "vitest",
-        "test:ci": "vitest run",
-        "lint:ts": "tsc --noEmit"
-    },
-    "dependencies": {
-        "@obsidian_blogger/helpers": "workspace:^",
-        "@obsidian_blogger/plugin_api": "workspace:^",
-        "chokidar": "^4.0.3",
-        "glob": "^11.0.1",
-        "gray-matter": "^4.0.3",
-        "mdast-util-from-markdown": "^2.0.2",
-        "mdast-util-to-markdown": "^2.1.2",
-        "rehype": "^13.0.2",
-        "remark": "^15.0.1",
-        "remark-frontmatter": "^5.0.0",
-        "remark-html": "^16.0.1",
-        "unified": "^11.0.5",
-        "unist-util-filter": "^5.0.1",
-        "unist-util-find": "^3.0.0",
-        "unist-util-visit": "^5.0.0",
-        "vfile": "^6.0.3"
-    }
+  "name": "@obsidian_blogger/build_system",
+  "version": "0.3.1",
+  "description": "Post build system",
+  "author": "danpacho",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "build:fast": "tsup --no-dts",
+    "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+    "format": "prettier --write \"./{src,tests}/**/*\"",
+    "test": "vitest",
+    "test:ci": "vitest run",
+    "lint:ts": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@obsidian_blogger/helpers": "workspace:^",
+    "@obsidian_blogger/plugin_api": "workspace:^",
+    "chokidar": "^4.0.3",
+    "glob": "^11.0.1",
+    "gray-matter": "^4.0.3",
+    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-to-markdown": "^2.1.2",
+    "rehype": "^13.0.2",
+    "remark": "^15.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-html": "^16.0.1",
+    "unified": "^11.0.5",
+    "unist-util-filter": "^5.0.1",
+    "unist-util-find": "^3.0.0",
+    "unist-util-visit": "^5.0.0",
+    "vfile": "^6.0.3"
+  }
 }

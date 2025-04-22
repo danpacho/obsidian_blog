@@ -1,5 +1,5 @@
-import { BuildBridgeStorage } from '@obsidian_blogger/plugin/bridge'
-import { Bridge } from '@obsidian_blogger/plugin/constants'
+import { BuildBridgeStorage } from '@obsidian_blogger/plugin_api/bridge'
+import { Bridge } from '@obsidian_blogger/plugin_api/constants'
 import React, { useEffect, useRef, useState } from 'react'
 import { useObsidianSetting } from '../hooks/use.setting'
 

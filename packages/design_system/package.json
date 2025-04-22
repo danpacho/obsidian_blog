@@ -1,57 +1,57 @@
 {
-    "name": "@obsidian_blogger/design_system",
-    "version": "0.2.1",
-    "type": "module",
-    "description": "Design system for blogger",
-    "private": false,
-    "keywords": [],
-    "sideEffects": true,
-    "publishConfig": {
-        "access": "public"
+  "name": "@obsidian_blogger/design_system",
+  "version": "0.2.1",
+  "type": "module",
+  "description": "Design system for blogger",
+  "private": false,
+  "keywords": [],
+  "sideEffects": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./*": {
+      "import": {
+        "types": "./dist/*.d.ts",
+        "default": "./dist/*.js"
+      },
+      "require": {
+        "types": "./dist/*.d.cts",
+        "default": "./dist/*.cjs"
+      }
     },
-    "files": [
-        "dist"
-    ],
-    "main": "./dist/index.cjs",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        "./*": {
-            "import": {
-                "types": "./dist/*.d.ts",
-                "default": "./dist/*.js"
-            },
-            "require": {
-                "types": "./dist/*.d.cts",
-                "default": "./dist/*.cjs"
-            }
-        },
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            },
-            "require": {
-                "types": "./dist/index.d.cts",
-                "default": "./dist/index.cjs"
-            }
-        }
-    },
-    "scripts": {
-        "build": "tsup",
-        "build:fast": "tsup --no-dts",
-        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
-        "gen": "npx create-tailwind-type --base node_modules/tailwindcss --no-arbitrary-value --disable-variants -f src/tools/tailwind.ts"
-    },
-    "dependencies": {
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "tailwindest": "^3.2.0"
-    },
-    "devDependencies": {
-        "@obsidian_blogger/helpers": "workspace:^",
-        "@types/react": "^19.0.12",
-        "@types/react-dom": "^19.0.4",
-        "tailwindcss": "^4.1.4"
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:fast": "tsup --no-dts",
+    "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+    "gen": "npx create-tailwind-type --base node_modules/tailwindcss --no-arbitrary-value --disable-variants -f src/tools/tailwind.ts"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindest": "^3.2.0"
+  },
+  "devDependencies": {
+    "@obsidian_blogger/helpers": "workspace:^",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "tailwindcss": "^4.1.4"
+  }
 }

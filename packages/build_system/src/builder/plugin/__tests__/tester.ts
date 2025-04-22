@@ -1,5 +1,5 @@
 import { IO } from '@obsidian_blogger/helpers/io'
-import { PluginConfigStorage } from '@obsidian_blogger/plugin/bridge'
+import { PluginConfigStorage } from '@obsidian_blogger/plugin_api/bridge'
 import { BuildSystem } from '../../../index'
 import { MetaEngine } from '../../../meta/engine'
 import type { FileTreeNode } from '../../../parser/node'

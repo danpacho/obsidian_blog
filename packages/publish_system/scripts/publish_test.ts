@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
-import { Bridge } from '@obsidian_blogger/plugin'
+import { Bridge } from '@obsidian_blogger/plugin_api'
 import { CorePlugins, PublishSystem } from '../src'
 
 const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const

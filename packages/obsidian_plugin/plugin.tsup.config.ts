@@ -34,9 +34,9 @@ export default defineConfig((options) => ({
         ...builtins,
     ],
     noExternal: [
-        '@obsidian_blogger/plugin',
-        '@obsidian_blogger/plugin/constants',
-        '@obsidian_blogger/plugin/arg_parser',
+        '@obsidian_blogger/plugin_api',
+        '@obsidian_blogger/plugin_api/constants',
+        '@obsidian_blogger/plugin_api/arg_parser',
         '@obsidian_blogger/design_system',
         '@obsidian_blogger/design_system/components',
         '@obsidian_blogger/design_system/hooks',

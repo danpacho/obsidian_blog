@@ -17,7 +17,7 @@ import type {
     PluginDynamicSchemaType,
     PluginInterfaceDynamicConfig,
     PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/plugin'
+} from '@obsidian_blogger/plugin_api'
 import { loadPrism } from 'obsidian'
 import { useEffect, useMemo, useState } from 'react'
 import { type UserPluginConfigSetter } from '../build.view'

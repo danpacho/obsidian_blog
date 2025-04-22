@@ -7,8 +7,8 @@ import {
     ShellExecutor,
     type ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
-import { Bridge } from '@obsidian_blogger/plugin'
-import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin/constants'
+import { Bridge } from '@obsidian_blogger/plugin_api'
+import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin_api/constants'
 import type { PublishSystemPluginAdapter } from './publish.system.interface'
 import { Publisher } from './publisher/publisher'
 export interface PublishSystemConstructor {

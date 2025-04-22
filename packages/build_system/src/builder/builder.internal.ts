@@ -1,4 +1,7 @@
-import { type PluginExecutionResponse, Runner } from '@obsidian_blogger/plugin'
+import {
+    type PluginExecutionResponse,
+    Runner,
+} from '@obsidian_blogger/plugin_api'
 import type { FileTreeNode, FileTreeParser, FolderNode } from '../parser'
 import type { BuildCacheManager, BuildStore, BuildStoreList } from './core'
 import type {

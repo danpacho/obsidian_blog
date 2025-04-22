@@ -10,7 +10,7 @@ import {
 import {
     PluginInterface,
     PluginInterfaceStaticConfig,
-} from '@obsidian_blogger/plugin'
+} from '@obsidian_blogger/plugin_api'
 
 export type PublishPluginDynamicConfig = {
     /**

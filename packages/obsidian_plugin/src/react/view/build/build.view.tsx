@@ -12,19 +12,19 @@ import {
     type PluginConfig,
     type PluginDynamicConfigSchema,
     type PluginInterfaceDynamicConfig,
-} from '@obsidian_blogger/plugin'
+} from '@obsidian_blogger/plugin_api'
 import {
     DynamicConfigParser,
     DynamicConfigParserError,
     type PluginDynamicConfigPrimitiveType,
-} from '@obsidian_blogger/plugin/arg_parser'
+} from '@obsidian_blogger/plugin_api/arg_parser'
 import type {
     BuildBridgeHistoryRecord,
     BuildBridgeHistoryValue,
     BuildBridgeStorage,
     PluginConfigStorage,
-} from '@obsidian_blogger/plugin/bridge'
-import { Bridge } from '@obsidian_blogger/plugin/constants'
+} from '@obsidian_blogger/plugin_api/bridge'
+import { Bridge } from '@obsidian_blogger/plugin_api/constants'
 import React, { useCallback, useEffect, useState } from 'react'
 import { DynamicConfigViewer } from './components'
 import { Decoder, type DecoderAdapter } from './core'

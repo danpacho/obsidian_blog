@@ -1,7 +1,7 @@
 import type {
     PluginDynamicConfigSchema,
     PluginExecutionResponse,
-} from '@obsidian_blogger/plugin'
+} from '@obsidian_blogger/plugin_api'
 import type { FileTreeNode } from '../../parser'
 import type { BuildInformation } from '../core'
 import {

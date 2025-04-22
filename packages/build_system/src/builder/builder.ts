@@ -2,8 +2,8 @@ import { Logger } from '@obsidian_blogger/helpers/logger'
 import {
     type PluginLoadInformation,
     PluginManager,
-} from '@obsidian_blogger/plugin'
-import { Bridge } from '@obsidian_blogger/plugin/constants'
+} from '@obsidian_blogger/plugin_api'
+import { Bridge } from '@obsidian_blogger/plugin_api/constants'
 import { MarkdownProcessor } from '../md/processor'
 import type { FolderNode } from '../parser/node'
 import type { FileTreeParser } from '../parser/parser'

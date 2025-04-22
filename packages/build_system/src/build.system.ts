@@ -1,6 +1,6 @@
 import { IO, Logger } from '@obsidian_blogger/helpers'
-import { Bridge } from '@obsidian_blogger/plugin'
-import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin/constants'
+import { Bridge } from '@obsidian_blogger/plugin_api'
+import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin_api/constants'
 import { Builder, type BuilderConstructor } from './builder'
 import type { BuildSystemPluginAdapter } from './builder/plugin'
 import { FileTreeParser, type FileTreeParserConstructor } from './parser'
