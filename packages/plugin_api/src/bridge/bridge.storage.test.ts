@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { BuildBridgeStorage } from './bridge.storage'
 describe('BridgeStorage', () => {
     const storage = BuildBridgeStorage.create({
-        bridgeRoot: `${process.cwd()}/packages/plugin/src/bridge/__fixtures__`,
+        bridgeRoot: `${process.cwd()}/packages/plugin_api/src/bridge/__fixtures__`,
         storePrefix: 'store/build',
         configNames: [
             'build_system::build_contents',
