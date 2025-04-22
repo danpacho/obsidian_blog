@@ -27,7 +27,7 @@
         "lint:ts": "tsc --noEmit"
     },
     "dependencies": {
-        "@obsidian_blogger/plugin": "workspace:^",
+        "@obsidian_blogger/plugin_api": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
         "detect-package-manager": "^3.0.2",
         "fast-glob": "^3.3.2"

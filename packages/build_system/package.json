@@ -26,8 +26,8 @@
         "lint:ts": "tsc --noEmit"
     },
     "dependencies": {
-        "@obsidian_blogger/plugin": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
+        "@obsidian_blogger/plugin_api": "workspace:^",
         "chokidar": "^4.0.3",
         "glob": "^11.0.1",
         "gray-matter": "^4.0.3",

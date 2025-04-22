@@ -24,7 +24,7 @@
     "dependencies": {
         "@obsidian_blogger/design_system": "workspace:^",
         "@obsidian_blogger/helpers": "workspace:^",
-        "@obsidian_blogger/plugin": "workspace:^",
+        "@obsidian_blogger/plugin_api": "workspace:^",
         "builtin-modules": "^5.0.0",
         "obsidian": "1.8.7",
         "react": "^19.0.0",
