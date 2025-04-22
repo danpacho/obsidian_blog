@@ -41,7 +41,7 @@
         "pkg:init": "pnpm test:ci && changeset",
         "pkg:version": "changeset version",
         "pkg:publish": "changeset publish",
-        "pre-commit": "lint-staged"
+        "pre-commit": "pnpm prettier:fix && pnpm eslint:fix"
     },
     "devDependencies": {
         "@changesets/cli": "^2.29.2",
