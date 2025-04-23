@@ -5,9 +5,9 @@ describe('BridgeStorage', () => {
         bridgeRoot: `${process.cwd()}/packages/plugin_api/src/bridge/__fixtures__`,
         storePrefix: 'store/build',
         configNames: [
-            'build_system::build_contents',
-            'build_system::build_tree',
-            'build_system::walk_tree',
+            `build_system__build_contents`,
+            `build_system__build_tree`,
+            `build_system__walk_tree`,
         ],
     })
 
@@ -23,7 +23,7 @@ describe('BridgeStorage', () => {
     })
 
     it('should modify the dynamic config for include, exclude', async () => {
-        const config = storage.config('build_system::build_contents')
+        const config = storage.config('build_system__build_contents')
         await config.updateAllDynamicConfigByUserConfig({
             'obsidian-reference': {
                 $$load_status$$: 'include',
@@ -32,7 +32,7 @@ describe('BridgeStorage', () => {
     })
 
     it('should inquire configs', () => {
-        const res = storage.config('build_system::build_contents').storageRecord
+        const res = storage.config('build_system__build_contents').storageRecord
         expect(res).toEqual({
             'obsidian-reference': {
                 staticConfig: {
@@ -60,10 +60,10 @@ describe('BridgeStorage', () => {
     it('should inquire history', () => {
         const historyKeys = [...storage.history.storage.keys()]
         expect(historyKeys).toStrictEqual([
-            'build_system::internal',
-            'build_system::build_tree',
-            'build_system::walk_tree',
-            'build_system::build_contents',
+            'build_system__internal',
+            'build_system__build_tree',
+            'build_system__walk_tree',
+            'build_system__build_contents',
         ])
     })
 })

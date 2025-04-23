@@ -1,5 +1,5 @@
 {
-    "build_system::internal": [
+    "build_system__internal": [
         {
             "jobName": "sync-build-store",
             "status": "success",
@@ -49,8 +49,8 @@
             "execTime": 0
         }
     ],
-    "build_system::build_tree": [],
-    "build_system::walk_tree": [
+    "build_system__build_tree": [],
+    "build_system__walk_tree": [
         {
             "jobName": "meta-validator",
             "status": "success",
@@ -148,7 +148,7 @@
             "execTime": 0
         }
     ],
-    "build_system::build_contents": [
+    "build_system__build_contents": [
         {
             "jobName": "obsidian-reference",
             "status": "success",
