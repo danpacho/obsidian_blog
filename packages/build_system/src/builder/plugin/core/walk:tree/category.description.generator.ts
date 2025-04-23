@@ -33,7 +33,7 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
         return {
             name: 'category-description-generator',
             description:
-                'Generate category description from {{description}}.md',
+                'Generate category description from {{descriptionFileName}}',
             dynamicConfigSchema: {
                 categoryMeta: {
                     type: {
