@@ -1,6 +1,6 @@
 import { type PluginDynamicConfigPrimitiveType } from '../arg_parser'
 
-const DIVIDER = '::' as const
+const DIVIDER = '__' as const
 
 const PREFIX = {
     buildSystem: `build_system${DIVIDER}`,
