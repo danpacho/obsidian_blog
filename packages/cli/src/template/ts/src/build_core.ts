@@ -125,6 +125,7 @@ export const Builder = new BuildSystem({
             // CorePlugins. you can remove it and modify the plugins
             new CorePlugins.MetaValidatorPlugin(),
             new CorePlugins.MetaBuilderPlugin(),
+            new CorePlugins.MetaImgPathMatcherPlugin(),
             new CorePlugins.StaticParamBuilderPlugin(),
             new CorePlugins.PaginationBuilderPlugin(),
             new CorePlugins.SeriesInfoGeneratorPlugin(),

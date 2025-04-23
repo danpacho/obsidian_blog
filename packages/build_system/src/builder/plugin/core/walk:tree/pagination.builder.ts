@@ -25,7 +25,8 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
     public defineStaticConfig(): PaginationBuilderStaticConfig {
         return {
             name: 'pagination-builder',
-            description: 'Generate pagination meta information for the content',
+            description:
+                'Generate pagination meta information for the content. It should be called after StaticParamBuilderPlugin.',
             dynamicConfigSchema: {
                 contentMeta: {
                     type: {
