@@ -45,7 +45,7 @@ export const ProgressButton = ({
     startProgress,
     afterStatusChange,
     disabled,
-    idleRecoverTime = 1000,
+    idleRecoverTime = 2500,
     ...buttonProps
 }: ProgressButtonProps) => {
     const [{ status, error }, setProgressStatus] = controller
@@ -81,6 +81,10 @@ export const ProgressButton = ({
                     setProgressStatus('error')
                     if (progressResponse.error instanceof Error) {
                         error.current = progressResponse.error
+                    } else {
+                        error.current = new Error('progress error', {
+                            cause: progressResponse.error,
+                        })
                     }
                     onError?.(progressResponse.error)
                 }
