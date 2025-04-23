@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.1.2
+
+### Patch Changes
+
+- Change bridge root prefix char for window support
+
 ## 0.1.1
 
 ### Patch Changes
