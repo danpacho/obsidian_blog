@@ -153,9 +153,15 @@ export class FileTreeParser {
                         name: folder.fileName,
                         depth: childDepth,
                     }) ?? true
-                if (!isValidFolder) continue
-
-                if (parentInfo) folder.setParentInfo(parentInfo)
+                if (!isValidFolder) {
+                    continue
+                }
+                if (this.exclude(folder.fileName)) {
+                    continue
+                }
+                if (parentInfo) {
+                    folder.setParentInfo(parentInfo)
+                }
                 const nodeChildrenList = await this.generateTree(path, folder)
                 if (nodeChildrenList) {
                     parentRoot?.children.push(nodeChildrenList)
@@ -168,19 +174,31 @@ export class FileTreeParser {
                     name,
                     depth: childDepth,
                 }) ?? true
-            if (!isValidFile) continue
+            if (!isValidFile) {
+                continue
+            }
+
+            if (this.exclude(name)) {
+                continue
+            }
 
             if (TextFileNode.is(extension)) {
                 const textNode = new TextFileNode(path, childDepth)
-                if (parentInfo) textNode.setParentInfo(parentInfo)
+                if (parentInfo) {
+                    textNode.setParentInfo(parentInfo)
+                }
                 parentRoot?.children.push(textNode)
             } else if (ImageFileNode.is(extension)) {
                 const imageNode = new ImageFileNode(path, childDepth)
-                if (parentInfo) imageNode.setParentInfo(parentInfo)
+                if (parentInfo) {
+                    imageNode.setParentInfo(parentInfo)
+                }
                 parentRoot?.children.push(imageNode)
             } else if (AudioFileNode.is(extension)) {
                 const audioNode = new AudioFileNode(path, childDepth)
-                if (parentInfo) audioNode.setParentInfo(parentInfo)
+                if (parentInfo) {
+                    audioNode.setParentInfo(parentInfo)
+                }
                 parentRoot?.children.push(audioNode)
             }
         }
@@ -211,8 +229,8 @@ export class FileTreeParser {
     public static defaultExclude = [/^\.\w+/, /^\./]
 
     private exclude(
-        pattern: string | Array<string> | RegExp,
-        fileName: string
+        fileName: string,
+        pattern: string | Array<string> | RegExp = []
     ) {
         const excludeResult: boolean = [
             ...FileTreeParser.defaultExclude,
@@ -238,7 +256,7 @@ export class FileTreeParser {
         siblingsIndex: number | undefined = undefined
     ): Promise<void> {
         if (!node) return
-        if (exclude && this.exclude(exclude, node.fileName)) {
+        if (this.exclude(node.fileName, exclude)) {
             return
         }
 
@@ -277,7 +295,7 @@ export class FileTreeParser {
         exclude: string | RegExp | Array<string> | undefined = undefined
     ): Promise<void> {
         if (!node) return
-        if (exclude && this.exclude(exclude, node.fileName)) {
+        if (this.exclude(node.fileName, exclude)) {
             return
         }
 
