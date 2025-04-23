@@ -19,14 +19,15 @@ type ReferenceMap = Map<
     Array<{ origin: string; build: string; buildReplaced: string }>
 >
 
-export class MetaImgPathMatcher extends WalkTreePlugin<
+export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
     MetaImgPathMatcherStaticConfig,
     MetaImgPathMatcherDynamicConfig
 > {
     public defineStaticConfig(): MetaImgPathMatcherStaticConfig {
         return {
             name: 'meta-img-path-matcher',
-            description: 'Match obsidian image path in metadata',
+            description:
+                'Match obsidian image path(e.g., ![[img.png]], ...) in metadata',
         }
     }
 
@@ -141,7 +142,7 @@ export class MetaImgPathMatcher extends WalkTreePlugin<
         const metaEntries = Object.entries(meta.data.meta)
         const metaHasImg = metaEntries.some(([, value]) => {
             if (typeof value === 'string') {
-                return MetaImgPathMatcher.IMG_REGEX.test(value)
+                return MetaImgPathMatcherPlugin.IMG_REGEX.test(value)
             }
             return false
         })
@@ -157,8 +158,8 @@ export class MetaImgPathMatcher extends WalkTreePlugin<
             (acc, [key, value]) => {
                 if (typeof value !== 'string') return acc
 
-                if (MetaImgPathMatcher.IMG_REGEX.test(value)) {
-                    const fileName = MetaImgPathMatcher.IMG_REGEX.exec(
+                if (MetaImgPathMatcherPlugin.IMG_REGEX.test(value)) {
+                    const fileName = MetaImgPathMatcherPlugin.IMG_REGEX.exec(
                         String(value)
                     )
                     if (!fileName) return acc
