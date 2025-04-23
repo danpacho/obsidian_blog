@@ -1,2 +1,2 @@
-export * from './build:contents'
-export * from './walk:tree'
+export * from './build_contents'
+export * from './walk_tree'
