@@ -1,8 +1,10 @@
 /* eslint-disable no-console */
-import { FileChangeInfo, watch } from 'fs/promises'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
 import { PluginRunnerExecutionResponse } from '../plugin.runner'
 import { PluginConfigStorage } from './plugin.config.storage'
+
+import { watch as fsWatch, watchFile, unwatchFile, FSWatcher } from 'node:fs'
+import { basename } from 'node:path'
 
 export type BuildBridgeHistoryValue = PluginRunnerExecutionResponse
 export type BuildBridgeHistoryRecord = Record<string, BuildBridgeHistoryValue>
@@ -15,7 +17,19 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     private readonly $config: Map<Keys[number], PluginConfigStorage>
     private readonly $history: JsonStorage<BuildBridgeHistoryValue>
 
-    private _initialized: boolean = false
+    private _initialized = false
+
+    /* ─────────── watcher state ─────────── */
+    private _fsWatcher: FSWatcher | null = null // event-driven watcher
+    private _retryTimer: NodeJS.Timeout | null = null // retry → polling
+    private _debounceTimer: NodeJS.Timeout | null = null // debouncer
+    private readonly _debounceMs = 10
+    private readonly _pollInterval = 10
+    private _usingPolling = false
+
+    private readonly _watcherSubscribers = new Set<
+        (newHistory: typeof this.$history.storageRecord) => void | Promise<void>
+    >()
 
     private constructor(
         public readonly options: {
@@ -29,32 +43,20 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         this.$history = options.historyStorage
     }
 
-    /**
-     * Retrieves the configuration storage for a given name.
-     * @param name - The name of the configuration.
-     */
+    /* ─────────── public API ─────────── */
+
+    /** Returns the config storage for a given name. */
     public config(name: Keys[number]): PluginConfigStorage {
         return this.$config.get(name)!
     }
 
-    /**
-     * Retrieves the job history storage.
-     */
+    /** Exposes the history storage. */
     public get history(): JsonStorage<BuildBridgeHistoryValue> {
         return this.$history
     }
-    private _watcher: null | AsyncIterable<FileChangeInfo<string>> = null
-
-    private readonly _watcherSubscribers = new Set<
-        (newHistory: typeof this.$history.storageRecord) => void | Promise<void>
-    >()
 
     /**
-     * Creates an instance of `BuildBridgeStorage`.
-     * @param {string} options.bridgeRoot - Root directory for the bridge.
-     * @param {string} options.storePrefix - Prefix for the store directory.
-     * @param {Keys} options.configNames - Names of the configurations.
-     * @returns The instance of `BuildBridgeStorage`.
+     * Builds a fully-wired instance.
      */
     public static create<const Keys extends readonly string[]>(options: {
         bridgeRoot: string
@@ -62,7 +64,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         configNames: Keys
     }): BuildBridgeStorage<Keys> {
         const configStorageMap = new Map<Keys[number], PluginConfigStorage>()
-
         for (const name of options.configNames) {
             configStorageMap.set(
                 name,
@@ -72,7 +73,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
                 })
             )
         }
-
         return new BuildBridgeStorage<Keys>({
             bridgeRoot: options.bridgeRoot,
             storePrefix: options.storePrefix,
@@ -85,83 +85,123 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     }
 
     /**
-     * Subscribes a function to be called when the job history changes.
-     * @param subscriber - The function to call when the job history changes.
+     * Subscribe to history-change events.
      */
     public subscribeHistory(
         subscriber: (
             newHistory: typeof this.$history.storageRecord
         ) => void | Promise<void>
-    ) {
+    ): () => void {
         this._watcherSubscribers.add(subscriber)
+        return () => {
+            this._watcherSubscribers.delete(subscriber)
+        }
     }
 
-    private _watchRetryCount: number = 0
-
     /**
-     * Watches the job history file for changes and notifies subscribers.
+     * Starts watching the history file (idempotent).
      */
-    public async watchHistory(): Promise<void> {
-        if (this._watcher) {
-            console.info(`Watcher is already active`)
+    public watchHistory(): void {
+        if (this._fsWatcher || this._usingPolling) {
+            console.info('History watcher already active')
             return
         }
-        if (this._watchRetryCount > 50) {
-            console.error(`Failed to watch history after 50 retries`)
-            return
-        }
-        try {
-            this._watcher = watch(this.$history.options.root, {
-                persistent: true,
-                recursive: false,
-            })
 
-            for await (const event of this._watcher) {
-                if (event.eventType === 'change') {
+        const filePath = this.$history.options.root
+        const short = basename(filePath)
+
+        const fire = async () => {
+            /* debounce bursty events (editors often save twice) */
+            clearTimeout(this._debounceTimer!)
+            this._debounceTimer = setTimeout(async () => {
+                try {
                     await this.$history.load()
                     const history = this.$history.storageRecord
-                    for (const subscriber of this._watcherSubscribers) {
-                        await subscriber(history)
+                    console.log(history)
+                    for (const fn of this._watcherSubscribers) {
+                        await fn(history)
                     }
+                } catch (err) {
+                    console.error('Error reloading history:', err)
                 }
-            }
+            }, this._debounceMs)
+        }
+
+        /* Primary: event-driven watcher */
+        try {
+            this._fsWatcher = fsWatch(filePath, (ev) => {
+                if (ev === 'change') fire()
+            })
+
+            this._fsWatcher.on('error', (err) => {
+                console.error(`fs.watch error on ${short}:`, err)
+                this._switchToPolling(fire)
+            })
+
+            console.info(`Started fs.watch on ${short}`)
         } catch (err) {
-            console.error(
-                `Stopped watching ${this.$history.options.root}\n${JSON.stringify(err, null, 4)}`
+            console.warn(
+                `fs.watch failed on ${short}, falling back → polling`,
+                err
             )
-            this.stopWatchingHistory()
-            this._watchRetryCount++
-            await this.watchHistory()
+            this._switchToPolling(fire)
         }
     }
 
     /**
-     * Stops watching the job history file.
+     * Stops whichever watcher is active.
      */
-    public stopWatchingHistory() {
-        if (!this._watcher) {
-            console.info(`Watcher is not active`)
-            return
+    public stopWatchingHistory(): void {
+        const filePath = this.$history.options.root
+        const short = basename(filePath)
+
+        if (this._fsWatcher) {
+            this._fsWatcher.close()
+            this._fsWatcher = null
+            console.info(`Stopped fs.watch on ${short}`)
         }
 
-        this._watcher = null
-        console.info(`Stopped watching ${this.$history.options.root}`)
+        if (this._usingPolling) {
+            unwatchFile(filePath)
+            this._usingPolling = false
+            console.info(`Stopped fs.watchFile on ${short}`)
+        }
+
+        clearTimeout(this._retryTimer!)
+        clearTimeout(this._debounceTimer!)
+        this._retryTimer = this._debounceTimer = null
     }
 
     /**
-     * Loads all configurations and job history into memory.
+     * Loads every config + history once.
      */
     public async load(): Promise<void> {
         if (this._initialized) {
-            console.info(`Already initialized`)
+            console.info('BuildBridgeStorage already initialized')
             return
         }
-
-        const configs = Array.from(this.$config.values())
-        for (const config of configs) {
-            await config.load()
-        }
-        await this.$history.load()
+        await Promise.all([
+            ...Array.from(this.$config.values()).map((c) => c.load()),
+            this.$history.load(),
+        ])
         this._initialized = true
+    }
+
+    /* ─────────── internal helpers ─────────── */
+
+    /** Swap to `fs.watchFile` when `fs.watch` breaks or isn’t available. */
+    private _switchToPolling(onChange: () => void) {
+        const filePath = this.$history.options.root
+        if (this._fsWatcher) {
+            this._fsWatcher.close()
+            this._fsWatcher = null
+        }
+        if (this._usingPolling) return
+
+        watchFile(filePath, { interval: this._pollInterval }, (curr, prev) => {
+            if (curr.mtimeMs !== prev.mtimeMs) onChange()
+        })
+        this._usingPolling = true
+        console.info(`Now watching (polling) ${basename(filePath)}`)
     }
 }
