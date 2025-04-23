@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { MetaImgPathMatcher } from '../core/walk:tree/meta.img.path.matcher'
+import { MetaImgPathMatcherPlugin } from '../core/walk:tree/meta.img.path.matcher'
 import { Tester } from './tester'
 
 describe('MetaImgPathMatcher', () => {
     it('should match image path in metadata', async () => {
         const { buildFiles } = await Tester.pipe({
             plugin: {
-                'walk:tree': new MetaImgPathMatcher(),
+                'walk:tree': new MetaImgPathMatcherPlugin(),
             },
         })
         const meta = buildFiles.contents
