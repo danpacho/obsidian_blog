@@ -1,5 +1,15 @@
 # @obsidian_blogger/plugin
 
+## 0.3.3
+
+### Patch Changes
+
+- Minor update for better stability
+- Updated dependencies
+    - @obsidian_blogger/design_system@0.2.3
+    - @obsidian_blogger/helpers@0.3.2
+    - @obsidian_blogger/plugin_api@0.1.1
+
 ## 0.3.2
 
 ### Patch Changes

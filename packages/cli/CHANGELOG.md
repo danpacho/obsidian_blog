@@ -1,5 +1,11 @@
 # create-obsidian-blogger
 
+## 0.3.2
+
+### Patch Changes
+
+- Minor update for better stability
+
 ## 0.3.1
 
 ### Patch Changes

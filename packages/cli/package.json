@@ -1,6 +1,6 @@
 {
     "name": "create-obsidian-blogger",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "description": "Obsidian CI/CD bridge generator for Obsidian Blogger",
     "author": "danpacho",
     "license": "MIT",

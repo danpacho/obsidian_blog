@@ -1,5 +1,11 @@
 # @obsidian_blogger/design_system
 
+## 0.2.3
+
+### Patch Changes
+
+- Minor update for better stability
+
 ## 0.2.2
 
 ### Patch Changes
