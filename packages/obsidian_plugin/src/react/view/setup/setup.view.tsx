@@ -88,6 +88,7 @@ const ConfigInput = ({
     const isError = errorMessages.length > 0
 
     const message = isError ? 'Error' : isValid ? 'Saved' : 'Save'
+
     return (
         <div key={id} className="w-full pt-2 pb-4">
             <div className="flex w-full flex-col items-start justify-start gap-2">
@@ -138,6 +139,8 @@ const ConfigInput = ({
                                 setIsValid(false)
                                 if (e instanceof Error) {
                                     setErrorMessages([e.message, input])
+                                } else {
+                                    setErrorMessages([JSON.stringify(e), input])
                                 }
                             }
                         }}
@@ -326,62 +329,74 @@ export function SetupView() {
         setInitialStatus()
     }, [loaded])
 
-    const buttonText = () => {
-        if (installProgress === 'idle') {
-            return installStatus === 'invalid'
-                ? 'invalid settings'
-                : installStatus === 'reinstall'
-                  ? 'Reinstall'
-                  : 'install'
-        }
-        return installProgress === 'installing' ? (
-            <>
-                <Loader />
-                <span className="animate-pulse text-blue-300">
-                    installing...
-                </span>
-            </>
-        ) : installProgress === 'install_success' ? (
-            'success'
-        ) : installProgress === 'install_failed' ? (
-            'error'
-        ) : (
-            'install'
-        )
-    }
+    const [messages, setMessages] = useState<Array<string>>([])
 
     const buttonType = () => {
-        if (installProgress === 'idle') {
-            return installStatus === 'invalid'
-                ? 'disabled'
-                : installStatus === 'reinstall'
-                  ? 'warn'
-                  : 'normal'
+        switch (installProgress) {
+            case 'idle': {
+                return installStatus === 'invalid'
+                    ? 'disabled'
+                    : installStatus === 'reinstall'
+                      ? 'warn'
+                      : 'normal'
+            }
+            case 'installing':
+                return 'disabled'
+            case 'install_success':
+                return 'success'
+            case 'install_failed':
+                return 'error'
+            default:
+                return 'normal'
         }
-        return installProgress === 'installing'
-            ? 'disabled'
-            : installProgress === 'install_success'
-              ? 'success'
-              : installProgress === 'install_failed'
-                ? 'error'
-                : 'normal'
     }
 
     const tooltipContent = () => {
-        if (installProgress === 'idle') {
-            return installStatus === 'invalid'
-                ? 'Please fill in the required fields correctly'
-                : installStatus === 'reinstall'
-                  ? 'Warning: Reinstalling will overwrite the existing bridge'
-                  : 'Install the bridge at bridge_root'
+        switch (installProgress) {
+            case 'idle': {
+                return installStatus === 'invalid'
+                    ? 'Please fill in the required fields correctly'
+                    : installStatus === 'reinstall'
+                      ? 'Warning: Reinstalling will overwrite the existing bridge'
+                      : 'Install the bridge at bridge_root'
+            }
+            case 'installing':
+                return 'Installing the bridge package'
+            case 'install_success':
+                return 'Installation successful'
+            case 'install_failed':
+                return 'Installation failed'
+            default:
+                return 'Install the bridge at bridge_root'
         }
-        return installProgress === 'installing'
-            ? 'Installing the bridge package'
-            : installProgress === 'install_success'
-              ? 'Installation successful'
-              : installProgress === 'install_failed'
-                ? 'Installation failed'
-                : 'Install the bridge at bridge_root'
+    }
+
+    const buttonText = () => {
+        switch (installProgress) {
+            case 'idle': {
+                return installStatus === 'invalid'
+                    ? 'Invalid settings'
+                    : installStatus === 'reinstall'
+                      ? 'Re-install'
+                      : 'Install'
+            }
+            case 'install_success':
+                return 'success'
+            case 'install_failed':
+                return `error, ${messages.join(', ')}`
+            case 'installing': {
+                return (
+                    <>
+                        <Loader />
+                        <span className="animate-pulse text-blue-300">
+                            {messages.join(', ')}
+                        </span>
+                    </>
+                )
+            }
+            default:
+                return 'install'
+        }
     }
 
     return (
@@ -417,8 +432,10 @@ export function SetupView() {
                             setInstallProgress('installing')
 
                             try {
+                                setMessages(['remove previous dir'])
                                 await Io.removeDir(bridge_install_root)
 
+                                setMessages(['create new bridge'])
                                 const installResult = await createBloggerBridge(
                                     node_bin,
                                     {
@@ -434,13 +451,17 @@ export function SetupView() {
 
                                 if (isError) {
                                     setInstallProgress('install_failed')
+                                    setMessages([installResult.stderr])
                                 } else {
                                     setInstallProgress('install_success')
                                     moveToBuildView()
                                 }
                             } catch (e) {
+                                setMessages([JSON.stringify(e, null, 4)])
                                 setInstallProgress('install_failed')
                             }
+
+                            setMessages([])
                         }}
                     >
                         {buttonText()}
