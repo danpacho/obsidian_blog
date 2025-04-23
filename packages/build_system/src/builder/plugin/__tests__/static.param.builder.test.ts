@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { StaticParamBuilderPlugin } from '../core/walk:tree/static.param.builder'
 import { Tester } from './tester'
+import { StaticParamBuilderPlugin } from '../core'
 
 describe('StaticParamBuilderPlugin', () => {
     it('should inject static params to the content', async () => {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PaginationBuilderPlugin } from '../core'
-import { StaticParamBuilderPlugin } from '../core/walk:tree/static.param.builder'
+import { PaginationBuilderPlugin, StaticParamBuilderPlugin } from '../core'
 import { Tester } from './tester'
 
 describe('StaticParamBuilderPlugin', () => {
