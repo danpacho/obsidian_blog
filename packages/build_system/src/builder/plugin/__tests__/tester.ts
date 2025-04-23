@@ -106,15 +106,15 @@ const createBuildSystem = (
 const setupPluginConfigStorage = (distFolder: string) => {
     const walkTreeConfigStorage = new PluginConfigStorage({
         name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system::walk_tree.json`,
+        root: `${distFolder}/bridge/.store/build/build_system__walk_tree.json`,
     })
     const buildTreeConfigStorage = new PluginConfigStorage({
         name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system::build_tree.json`,
+        root: `${distFolder}/bridge/.store/build/build_system__build_tree.json`,
     })
     const buildContentsConfigStorage = new PluginConfigStorage({
         name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system::build_contents.json`,
+        root: `${distFolder}/bridge/.store/build/build_system__build_contents.json`,
     })
 
     return {
