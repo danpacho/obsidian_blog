@@ -72,19 +72,23 @@ export function BuildView() {
         )
     }
 
+    if (!settings) {
+        return null
+    }
+
     return (
         <div className="relative flex w-full flex-col gap-4 pb-10">
             <PluginExecutionView
                 type="Build"
                 storage={storage.build!}
                 storageKeys={BUILD_STORAGE_KEYS}
-                {...settings!}
+                {...settings}
             />
             <PluginExecutionView
                 type="Publish"
                 storage={storage.publish!}
                 storageKeys={PUBLISH_STORAGE_KEYS}
-                {...settings!}
+                {...settings}
             />
 
             <Routing.Link to="setup" className="absolute bottom-0 right-0">
@@ -161,76 +165,117 @@ const PluginExecutionView = ({
         useState<BuildBridgeHistoryRecord | null>(null)
 
     useEffect(() => {
-        storage.subscribeHistory((newHistory) => {
+        const unsubscribe = storage.subscribeHistory((newHistory) => {
             setAllPluginHistory(newHistory)
         })
+        storage.watchHistory()
+
+        return () => {
+            unsubscribe()
+            storage.stopWatchingHistory()
+        }
     }, [])
 
     return (
         <div className="flex w-full flex-col items-start justify-between gap-y-2 divide-y divide-stone-400/20">
-            <div className="flex flex-col items-start justify-center gap-y-2">
-                <Text.Header>{type} plugins</Text.Header>
-                <ProgressButton
-                    idleRecoverTime={500}
-                    controller={[progress, setProgress]}
-                    onStatusChange={(status) => {
-                        switch (status) {
-                            case 'idle':
-                                return 'Run'
-                            case 'progress':
-                                return (
-                                    <>
-                                        <Loader />
-                                        Running...
-                                    </>
-                                )
-                            case 'success':
-                                return 'Success'
-                            case 'error':
-                                return 'Error'
-                        }
-                    }}
-                    startProgress={async () => {
-                        const pluginExecutionResponse = await Promise.race([
-                            storage.watchHistory(),
-                            ExecutePlugin({
-                                ...settings,
-                                command: `run:${type.toLowerCase() as 'build' | 'publish'}`,
-                            }),
-                        ])
-                        storage.stopWatchingHistory()
-
-                        if (!pluginExecutionResponse)
-                            return {
-                                success: false,
-                                error: new Error('Plugin execution failed'),
+            <div className="flex flex-col items-start justify-center w-full">
+                <div className="flex flex-row items-center justify-start w-full gap-x-2 py-2">
+                    <Text.Header>{type} plugins</Text.Header>
+                    <ProgressButton
+                        idleRecoverTime={2500}
+                        controller={[progress, setProgress]}
+                        onStatusChange={(status) => {
+                            switch (status) {
+                                case 'idle':
+                                    return 'Run'
+                                case 'progress':
+                                    return (
+                                        <>
+                                            <Loader />
+                                            Running...
+                                        </>
+                                    )
+                                case 'success':
+                                    return 'Success'
+                                case 'error':
+                                    return 'Error'
                             }
+                        }}
+                        startProgress={async () => {
+                            try {
+                                const pluginExecutionResponse =
+                                    await ExecutePlugin({
+                                        ...settings,
+                                        command: `run:${type.toLowerCase() as 'build' | 'publish'}`,
+                                    })
 
-                        const isError =
-                            pluginExecutionResponse === undefined ||
-                            ('error_code' in pluginExecutionResponse &&
-                                pluginExecutionResponse.stderr !== '')
+                                if (!pluginExecutionResponse)
+                                    return {
+                                        success: false,
+                                        error: new Error(
+                                            'Plugin execution failed'
+                                        ),
+                                    }
 
-                        if (isError) {
-                            return {
-                                success: false,
-                                error: pluginExecutionResponse
-                                    ? new Error(pluginExecutionResponse.stderr)
-                                    : new Error(
-                                          'Node bin or bridge install root is not set',
-                                          {
-                                              cause: settings,
-                                          }
-                                      ),
+                                const isError =
+                                    pluginExecutionResponse === undefined ||
+                                    ('error_code' in pluginExecutionResponse &&
+                                        pluginExecutionResponse.stderr !== '')
+
+                                if (isError) {
+                                    return {
+                                        success: false,
+                                        error: pluginExecutionResponse
+                                            ? new Error(
+                                                  pluginExecutionResponse.stderr
+                                              )
+                                            : new Error(
+                                                  'Node bin or bridge install root is not set',
+                                                  {
+                                                      cause: settings,
+                                                  }
+                                              ),
+                                    }
+                                }
+
+                                return {
+                                    success: true,
+                                    data: undefined,
+                                }
+                            } catch (e) {
+                                return {
+                                    success: false,
+                                    error: e,
+                                }
                             }
-                        }
+                        }}
+                    />
+                </div>
 
-                        return {
-                            success: true,
-                            data: undefined,
-                        }
-                    }}
-                />
+                {progress.error.current && (
+                    <div className="bg-black rounded-xs border flex flex-col gap-y-2 border-neutral-800 p-2 w-full overflow-x-scroll">
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {progress.error.current.message}
+                        </Text.Description>
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {JSON.stringify(
+                                progress.error.current.cause,
+                                null,
+                                4
+                            )}
+                        </Text.Description>
+                    </div>
+                )}
             </div>
 
             <HistoryContext.Provider value={allPluginHistory}>
@@ -534,9 +579,7 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                     transitionProperty: 'transition-all',
                                     transitionTimingFunction: 'ease-linear',
                                     transform: 'transform-gpu',
-                                    rotate: isActive
-                                        ? 'rotate-90'
-                                        : 'rotate-0',
+                                    rotate: isActive ? 'rotate-90' : 'rotate-0',
                                     opacity: isActive
                                         ? 'opacity-100'
                                         : 'opacity-85',
@@ -553,7 +596,7 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 }}
                             >
                                 {runningState.pending && (
-                                    <Loader  color="yellow" size="sm" />
+                                    <Loader color="yellow" size="sm" />
                                 )}
                                 {!runningState.pending && '▶'}
                             </Button>
@@ -663,7 +706,7 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 style="border"
                                 tw={{
                                     margin: 'mt-2',
-                                    padding: ['px-3','py-2.5'],
+                                    padding: ['px-3', 'py-2.5'],
                                     maxWidth: 'max-w-full',
                                     width: 'w-full',
                                     overflow: 'overflow-x-scroll',
