@@ -40,6 +40,7 @@ import {
 import { Routing } from '~/react/routing'
 import { Is, Shell } from '~/utils'
 import { MergeRecord } from '~/utils/merge.record'
+import { tw } from '@obsidian_blogger/design_system/tools'
 
 export function BuildView() {
     const storage = useStorage()
@@ -107,8 +108,7 @@ const ExecutePlugin = async ({
 }) => {
     if (!node_bin || !bridge_install_root) return
 
-    const npmPath = `${node_bin}/npm`
-    const buildResult = await Shell.spawn$(npmPath, ['run', 'build'], {
+    const buildResult = await Shell.spawn$('npm', ['run', 'build'], {
         cwd: bridge_install_root,
         env: {
             PATH: `${process.env.PATH}:${node_bin}`,
@@ -120,7 +120,7 @@ const ExecutePlugin = async ({
 
     if (isBuildError) return
 
-    const executionResult = await Shell.spawn$(npmPath, ['run', command], {
+    const executionResult = await Shell.spawn$('npm', ['run', command], {
         cwd: bridge_install_root,
         env: {
             PATH: `${process.env.PATH}:${node_bin}`,
@@ -798,8 +798,23 @@ const PluginHistoryViewer = ({
     const { jobName, status, execTime, endedAt, startedAt, error, response } =
         history
 
+    const container = tw.def([
+        [
+            'w-full',
+            'rounded',
+            'border',
+            'p-1.5',
+            'transition-colors',
+            'duration-500',
+        ],
+        status === 'failed' && 'border-red-400',
+        status === 'pending' && 'border-yellow-400',
+        status === 'started' && 'border-blue-400',
+        status === 'success' && 'border-blue-400',
+    ])
+
     return (
-        <Accordion.Container className="w-full rounded border border-stone-400/20 p-1.5">
+        <Accordion.Container className={container}>
             <Accordion.Item
                 initialOpen
                 accordionId={`${jobName}-history`}
@@ -844,7 +859,7 @@ const PluginHistoryViewer = ({
                         }
                     />
 
-                    <Accordion.Container className="w-full overflow-hidden">
+                    <Accordion.Container className={`w-full overflow-hidden`}>
                         <Accordion.Item
                             className="w-full"
                             accordionId={`${jobName}-response-or-error`}
