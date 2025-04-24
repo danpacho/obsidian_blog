@@ -1,40 +1,40 @@
 {
-  "name": "@obsidian_blogger/obsidian_plugin",
-  "version": "0.3.4",
-  "description": "Obsidian plugin for extract vault to contents.",
-  "author": "danpacho",
-  "license": "MIT",
-  "keywords": [],
-  "sideEffects": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build:script": "tsup --config=script.tsup.config.ts",
-    "build": "tsup --config=plugin.tsup.config.ts",
-    "build:fast": "tsup --config=plugin.tsup.config.ts --no-dts",
-    "dev": "concurrently \"pnpm build:script\" \"pnpm build:fast --sourcemap --clean=false --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
-  },
-  "dependencies": {
-    "@obsidian_blogger/design_system": "workspace:^",
-    "@obsidian_blogger/helpers": "workspace:^",
-    "@obsidian_blogger/plugin_api": "workspace:^",
-    "builtin-modules": "^5.0.0",
-    "obsidian": "1.8.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@types/react": "^19.0.12",
-    "@types/react-dom": "^19.0.4",
-    "@tailwindcss/cli": "^4.1.4",
-    "tailwindcss": "^4.1.4",
-    "watcher": "^2.3.1"
-  }
+    "name": "@obsidian_blogger/obsidian_plugin",
+    "version": "0.3.4",
+    "description": "Obsidian plugin for extract vault to contents.",
+    "author": "danpacho",
+    "license": "MIT",
+    "keywords": [],
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist"
+    ],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build:script": "tsup --config=script.tsup.config.ts",
+        "build": "tsup --config=plugin.tsup.config.ts",
+        "build:fast": "tsup --config=plugin.tsup.config.ts --no-dts",
+        "dev": "pnpm build:script && concurrently \"pnpm build:fast --sourcemap --clean=false --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
+    },
+    "dependencies": {
+        "@obsidian_blogger/design_system": "workspace:^",
+        "@obsidian_blogger/helpers": "workspace:^",
+        "@obsidian_blogger/plugin_api": "workspace:^",
+        "builtin-modules": "^5.0.0",
+        "obsidian": "1.8.7",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.0.12",
+        "@types/react-dom": "^19.0.4",
+        "@tailwindcss/cli": "^4.1.4",
+        "tailwindcss": "^4.1.4",
+        "watcher": "^2.3.1"
+    }
 }
