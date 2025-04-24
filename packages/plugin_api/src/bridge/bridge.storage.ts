@@ -117,7 +117,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
                 try {
                     await this.$history.load()
                     const history = this.$history.storageRecord
-                    console.log(history)
                     for (const fn of this._watcherSubscribers) {
                         await fn(history)
                     }
