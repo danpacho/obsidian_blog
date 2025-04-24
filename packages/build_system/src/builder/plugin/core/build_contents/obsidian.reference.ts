@@ -260,8 +260,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             }))
 
         this.referenceUpdateTextFileList = buildStore.filter(
-            ({ file_type, build_state }) =>
-                file_type === 'TEXT_FILE' && build_state !== 'CACHED'
+            ({ file_type }) => file_type === 'TEXT_FILE'
         )
 
         const buildAssetPath = this.$buildPath.assets
