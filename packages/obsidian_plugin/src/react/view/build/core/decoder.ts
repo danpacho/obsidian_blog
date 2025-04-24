@@ -8,6 +8,33 @@ export type DecoderAdapter = (
     value: PluginDynamicConfigPrimitiveType
 ) => PluginDynamicConfigPrimitiveType
 
+// const isRegExpString = (value: string): boolean => {
+//     try {
+//         const matches = value.match(/^\/(.*)\/([gimsuy]*)$/)
+//         return matches !== null
+//     } catch {
+//         return false
+//     }
+// }
+
+const parseRegExpString = (
+    value: PluginDynamicConfigPrimitiveType
+): RegExp | null => {
+    if (!Is.string(value) || value === '') return null
+
+    // g, i, m, s, u, y = global, ignoreCase, multiline, dotAll, unicode, sticky
+    const matches = value.match(/^\/(.*)\/([gimsuy]*)$/)
+
+    if (!matches) return null
+
+    const pattern = matches[1]
+    const flags = matches[2]
+
+    if (!pattern) return null
+
+    return new RegExp(pattern, flags)
+}
+
 /**
  * Decode input value into the correct type
  * @param schemaInfo Schema information
@@ -20,19 +47,7 @@ export const Decoder = (
 ) => {
     switch (schemaInfo.type) {
         case 'RegExp': {
-            if (!Is.string(value) || value === '') return null
-
-            // g, i, m, s, u, y = global, ignoreCase, multiline, dotAll, unicode, sticky
-            const matches = value.match(/^\/(.*)\/([gimsuy]*)$/)
-
-            if (!matches) return null
-
-            const pattern = matches[1]
-            const flags = matches[2]
-
-            if (!pattern) return null
-
-            return new RegExp(pattern, flags)
+            return parseRegExpString(value)
         }
         case 'NULL':
             return null
