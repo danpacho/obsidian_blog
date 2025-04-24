@@ -3,6 +3,7 @@ import { FileReader, type IO } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginDependencies } from '../plugin/build.plugin'
 import type { BuildInformation } from './store'
+import { posix, win32 } from 'path'
 /**
  *  A unique identifier for a node
  */
@@ -90,13 +91,27 @@ export class BuildInfoGenerator {
         return `${name}_${updatedCount}.${extension}`
     }
 
-    private getSafeRoutePath(path: string): string {
-        const safePath = this.getBuildPath(
-            `/${path.split('/').filter(Boolean).join('/')}`
-        )
-        return safePath
-    }
+    private getSafeRoutePath(route: string): string {
+        // 1) unify separators
+        const unified = route.replace(/\\/g, '/')
 
+        // 2) split & drop any empty pieces
+        const segments = unified.split('/').filter(Boolean)
+
+        let safeRoute: string
+        if (process.platform === 'win32') {
+            // Windows: back-slashes, no leading slash
+            safeRoute = win32.join(...segments)
+            safeRoute = win32.normalize(safeRoute)
+        } else {
+            // macOS/Linux: forward-slashes, ensure leading slash
+            safeRoute = posix.join('/', ...segments)
+            safeRoute = posix.normalize(safeRoute)
+        }
+
+        // 3) hand off to your build logic
+        return this.getBuildPath(safeRoute)
+    }
     private encodeHashUUID(inputString: string): UUID {
         const hash = createHash('sha256').update(inputString).digest('hex')
         const uuid: UUID = [...hash]
