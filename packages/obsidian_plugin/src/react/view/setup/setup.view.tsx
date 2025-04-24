@@ -30,19 +30,16 @@ interface InstallConfig {
  * npx create-obsidian-blogger
  *    "${bridge_root}"
  *    "${obsidian_vault_root}"
- *    "${blog_root}/static/assets"
+ *    "${blog_root}/static/assets"e
  *    "${blog_root}/static/md"
  * ```
  */
 const createBloggerBridge = async (nodeBin: string, config: InstallConfig) => {
-    const nodePath = `${nodeBin}/node`
-    const npxPath = `${nodeBin}/npx`
-
     const configValues = Object.values(config)
 
     const installResponse = await Shell.spawn$(
-        nodePath,
-        [npxPath, 'create-obsidian-blogger', 'create', ...configValues],
+        'npx',
+        ['create-obsidian-blogger', 'create', ...configValues],
         {
             env: {
                 PATH: `${process.env.PATH}:${nodeBin}`,
