@@ -20,11 +20,10 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     private _initialized = false
 
     /* ─────────── watcher state ─────────── */
-    private _fsWatcher: FSWatcher | null = null // event-driven watcher
-    private _retryTimer: NodeJS.Timeout | null = null // retry → polling
-    private _debounceTimer: NodeJS.Timeout | null = null // debouncer
-    private readonly _debounceMs = 10
-    private readonly _pollInterval = 10
+    private _fsWatcher: FSWatcher | null = null
+    private _debounceTimer: NodeJS.Timeout | null = null
+    private readonly _debounceMs = 5 // trailing debounce
+    private readonly _pollInterval = 5
     private _usingPolling = false
 
     private readonly _watcherSubscribers = new Set<
@@ -93,9 +92,7 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         ) => void | Promise<void>
     ): () => void {
         this._watcherSubscribers.add(subscriber)
-        return () => {
-            this._watcherSubscribers.delete(subscriber)
-        }
+        return () => this._watcherSubscribers.delete(subscriber)
     }
 
     /**
@@ -110,40 +107,53 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
         const filePath = this.$history.options.root
         const short = basename(filePath)
 
-        const fire = async () => {
-            /* debounce bursty events (editors often save twice) */
-            clearTimeout(this._debounceTimer!)
-            this._debounceTimer = setTimeout(async () => {
+        /* helper – retry-until-valid loader */
+        const safeLoad = async () => {
+            const maxRetries = 5
+            for (let i = 0; i < maxRetries; i++) {
                 try {
                     await this.$history.load()
-                    const history = this.$history.storageRecord
-                    for (const fn of this._watcherSubscribers) {
-                        await fn(history)
-                    }
+                    return
                 } catch (err) {
-                    console.error('Error reloading history:', err)
+                    // most likely JSON half-written – wait & try again
+                    if (i === maxRetries - 1) throw err
+                    await new Promise((r) => setTimeout(r, 5))
                 }
-            }, this._debounceMs)
+            }
         }
 
-        /* Primary: event-driven watcher */
-        try {
-            this._fsWatcher = fsWatch(filePath, (ev) => {
-                if (ev === 'change') fire()
-            })
+        /* broadcast with a brand-new object reference */
+        const emitHistory = async () => {
+            try {
+                await safeLoad()
+                const cloned = structuredClone(this.$history.storageRecord)
+                for (const fn of this._watcherSubscribers) await fn(cloned)
+            } catch (err) {
+                console.error('Error reloading history:', err)
+            }
+        }
 
+        /* LEADING call + trailing debounce */
+        const onFsEvent = () => {
+            void emitHistory() // leading edge
+            clearTimeout(this._debounceTimer!)
+            this._debounceTimer = setTimeout(emitHistory, this._debounceMs) // trailing
+        }
+
+        /* Primary watcher */
+        try {
+            this._fsWatcher = fsWatch(filePath, onFsEvent) // reacts to both change & rename
             this._fsWatcher.on('error', (err) => {
                 console.error(`fs.watch error on ${short}:`, err)
-                this._switchToPolling(fire)
+                this._switchToPolling(onFsEvent)
             })
-
             console.info(`Started fs.watch on ${short}`)
         } catch (err) {
             console.warn(
                 `fs.watch failed on ${short}, falling back → polling`,
                 err
             )
-            this._switchToPolling(fire)
+            this._switchToPolling(onFsEvent)
         }
     }
 
@@ -166,9 +176,8 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
             console.info(`Stopped fs.watchFile on ${short}`)
         }
 
-        clearTimeout(this._retryTimer!)
         clearTimeout(this._debounceTimer!)
-        this._retryTimer = this._debounceTimer = null
+        this._debounceTimer = null
     }
 
     /**
