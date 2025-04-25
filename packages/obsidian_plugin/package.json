@@ -19,7 +19,8 @@
         "build:script": "tsup --config=script.tsup.config.ts",
         "build": "tsup --config=plugin.tsup.config.ts",
         "build:fast": "tsup --config=plugin.tsup.config.ts --no-dts",
-        "dev": "pnpm build:script && concurrently \"pnpm build:fast --sourcemap --clean=false --watch\" \"node ./dist/hot_reload.mjs --parallel\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
+        "hotreload": "node ./dist/hot_reload.mjs",
+        "dev": "pnpm build:script && concurrently \"pnpm build:fast --sourcemap --clean=false --watch\" \"pnpm hotreload\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
     },
     "dependencies": {
         "@obsidian_blogger/design_system": "workspace:^",
@@ -35,6 +36,8 @@
         "@types/react-dom": "^19.0.4",
         "@tailwindcss/cli": "^4.1.4",
         "tailwindcss": "^4.1.4",
-        "watcher": "^2.3.1"
+        "watcher": "^2.3.1",
+        "concurrently": "^8.0.0",
+        "dotenv": "^16.0.0"
     }
 }
