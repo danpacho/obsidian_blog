@@ -387,7 +387,9 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
                 build_state === 'UPDATED' || build_state === 'ADDED'
         )
 
-        if (config?.disableCache) return totalTargetReport
+        if (config?.disableCache) {
+            return totalTargetReport
+        }
 
         if (pluginCacheChecker) {
             return totalTargetReport.filter((report, i, allReports) =>

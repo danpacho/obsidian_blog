@@ -1,5 +1,13 @@
 # @obsidian_blogger/plugin
 
+## 0.3.5
+
+### Patch Changes
+
+- Update plugin api bridge storage polling behavior, and change obsidian plugin window support
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.1.3
+
 ## 0.3.4
 
 ### Patch Changes

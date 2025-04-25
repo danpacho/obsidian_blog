@@ -1,5 +1,13 @@
 # @obsidian_blogger/build_system
 
+## 0.3.5
+
+### Patch Changes
+
+- Update obsidian reference plugin caching behavior, remove direct access for cache strategy
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.1.3
+
 ## 0.3.4
 
 ### Patch Changes
