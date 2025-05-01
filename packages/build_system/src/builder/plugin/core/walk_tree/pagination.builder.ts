@@ -67,6 +67,13 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
+    private omit(obj: Record<string, unknown>, keyToOmit: string) {
+        // “[keyToOmit]: _” means “grab obj[keyToOmit] into a variable called _”
+        // “...rest” then collects *all other* own-enumerable props into ‘rest’
+        const { [keyToOmit]: _, ...rest } = obj
+        return rest
+    }
+
     /**
      * Extract the metadata from a text-file node, returning href/title/description
      * for pagination usage.
@@ -106,6 +113,7 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         return {
             success: true,
             data: {
+                ...data.meta,
                 href,
                 title,
                 description,
@@ -163,10 +171,22 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         const originalMeta = metaDataResult.data.meta
         const paginationMeta = {
             prev: prevPaginationMeta.success
-                ? prevPaginationMeta.data
+                ? this.omit(
+                      prevPaginationMeta.data as unknown as Record<
+                          string,
+                          unknown
+                      >,
+                      'pagination'
+                  )
                 : undefined,
             next: nextPaginationMeta.success
-                ? nextPaginationMeta.data
+                ? this.omit(
+                      nextPaginationMeta.data as unknown as Record<
+                          string,
+                          unknown
+                      >,
+                      'pagination'
+                  )
                 : undefined,
         }
 
