@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.3.6
+
+### Patch Changes
+
+- Update pagination builder core plugin behavior, generate all metadata except "pagination"(self) field
+
 ## 0.3.5
 
 ### Patch Changes
