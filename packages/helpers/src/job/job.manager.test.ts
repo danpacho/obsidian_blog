@@ -363,4 +363,26 @@ describe('JobManager', () => {
         expect(job2After?.status).toBe('success')
         expect(job2After?.response).toBe('Job 2 response')
     })
+
+    it('should handle exception and report errors', async () => {
+        jobManager.registerJob({
+            name: 'job1',
+            executionType: 'async',
+            execute: async () => {
+                return 'Job 1 response'
+            },
+        })
+        jobManager.registerJob({
+            name: 'job2',
+            execute: async () => {
+                throw new Error('job 2 has error', {
+                    cause: ['job2', 'arg'],
+                })
+            },
+        })
+        await jobManager.processJobs()
+
+        expect(jobManager.history.length).toBe(2)
+        expect(jobManager.history[1]!.error).toBeInstanceOf(Error)
+    })
 })
