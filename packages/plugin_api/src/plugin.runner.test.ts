@@ -6,6 +6,7 @@ import {
     PluginShape,
 } from './plugin.interface'
 import { PluginRunner } from './plugin.runner'
+import { JobError } from 'packages/helpers/src/job'
 
 describe('PluginRunner', () => {
     class Runner extends PluginRunner {
@@ -91,6 +92,35 @@ describe('PluginRunner', () => {
         }
     }
 
+    class ErrorPlugin extends PluginInterface<
+        PluginInterfaceStaticConfig,
+        {
+            buildParams: Array<number>
+        }
+    > {
+        protected defineStaticConfig(): PluginInterfaceStaticConfig {
+            return {
+                name: 'error plugin',
+                description: 'Plugin description',
+            }
+        }
+
+        public async execute(): Promise<PluginExecutionResponse> {
+            return [
+                {
+                    jobName: 'bulk-job-success',
+                    status: 'success',
+                },
+
+                {
+                    jobName: 'bulk-job-failed',
+                    status: 'failed',
+                    error: new JobError('Error occurred', new Error('error')),
+                },
+            ]
+        }
+    }
+
     it('should create a new instance of PluginProcessManager', () => {
         expect(runner).toBeInstanceOf(PluginRunner)
     })
@@ -105,7 +135,8 @@ describe('PluginRunner', () => {
     })
 
     it('should catch errors', async () => {
-        const res = await runner.run([new Plugin(), new Plugin2()])
+        const res = await runner.run([new Plugin(), new ErrorPlugin()])
         expect(res.length).toBe(4)
+        expect(res.map((e) => e.error).filter(Boolean).length).toBe(1)
     })
 })
