@@ -9,6 +9,7 @@ import {
     writeFile,
 } from 'node:fs/promises'
 import { pipeline } from 'node:stream'
+import { dirname } from 'node:path'
 import type { PromiseCallbacks, Promisify } from '../promisify'
 
 export type WriteStreamOption =
@@ -21,18 +22,24 @@ export type WriteStreamOption =
 export class FileWriter {
     public constructor() {}
 
-    public async checkFileExists(filePath: string): Promise<boolean> {
+    /**
+     * Check whether a file or directory exists.
+     */
+    public async exists(target: string): Promise<boolean> {
         try {
-            await access(filePath, constants.F_OK)
+            await access(target, constants.F_OK)
             return true
         } catch {
             return false
         }
     }
+
     /**
-     * Writes data to a file.
-     * @param filePath The path to the file.
-     * @param file The text to write to the file.
+     * Writes data to a file, creating any missing folders on the path.
+     *
+     * @param filePath - Full path (including filename) to write.
+     * @param data     - Buffer|string data to write.
+     * @param handler  - Optional success/error callbacks.
      */
     public async write({
         filePath,
@@ -40,38 +47,32 @@ export class FileWriter {
         handler,
     }: {
         filePath: string
-        data: Parameters<typeof writeFile>[1]
+        data: Uint8Array | string
         handler?: PromiseCallbacks<AbortController, Error>
-    }): Promisify<AbortController> {
+    }): Promise<Promisify<AbortController>> {
         const controller = new AbortController()
         const { signal } = controller
 
-        const targetFolder = filePath.split('/').slice(0, -1).join('/')
-        try {
-            const targetFolderExists = await this.checkFileExists(targetFolder)
-            if (!targetFolderExists) await this.createFolder(targetFolder)
+        // 1) Figure out the directory portion in a cross-platform way
+        const dir = dirname(filePath)
 
+        try {
+            // 2) Ensure the directory exists (recursive=true is idempotent)
+            await mkdir(dir, { recursive: true })
+
+            // 3) Write the file
             await writeFile(filePath, data, {
                 encoding: 'utf-8',
                 signal,
             })
-            await this.checkFileExists(filePath)
 
             handler?.onSuccess?.(controller)
-
-            return {
-                success: true,
-                data: controller,
-            }
+            return { success: true, data: controller }
         } catch (error) {
             if (error instanceof Error) handler?.onError?.(error)
-            return {
-                success: false,
-                error,
-            }
+            return { success: false, error }
         }
     }
-
     /**
      * Writes a stream to a file and supports aborting the operation.
      * @param filePath The path to the file where the stream will be written.
@@ -116,7 +117,7 @@ export class FileWriter {
 
         const targetFolder = filePath.split('/').slice(0, -1).join('/')
         try {
-            const targetFolderExists = await this.checkFileExists(targetFolder)
+            const targetFolderExists = await this.exists(targetFolder)
             if (!targetFolderExists) await this.createFolder(targetFolder)
 
             const writeStream: WriteStream = this.writeStreamPure({
@@ -147,7 +148,7 @@ export class FileWriter {
                 if (error instanceof Error) handler?.onError?.(error)
             })
 
-            await this.checkFileExists(filePath)
+            await this.exists(filePath)
 
             handler?.onSuccess?.(controller)
 
@@ -176,7 +177,7 @@ export class FileWriter {
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
         try {
-            const isFileAlreadyExist = await this.checkFileExists(folderPath)
+            const isFileAlreadyExist = await this.exists(folderPath)
             if (isFileAlreadyExist) {
                 handler?.onSuccess?.(folderPath)
                 return {
