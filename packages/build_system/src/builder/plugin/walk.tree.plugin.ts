@@ -1,17 +1,15 @@
-import type {
-    PluginDynamicConfigSchema,
-    PluginExecutionResponse,
-} from '@obsidian_blogger/plugin_api'
+import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin_api'
 import type { FileTreeNode, WalkOption } from '../../parser'
 import type { BuildInformation } from '../core'
 import {
     BuildPlugin,
+    type BuildPluginExecutionResponse,
+    type BuildPluginResponse,
     type BuildPluginDependencies,
     type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
 } from './build.plugin'
 import type { PluginCachePipelines } from './cache.interface'
-
 /**
  * Configuration options for the WalkTreePlugin.
  */
@@ -140,11 +138,12 @@ export abstract class WalkTreePlugin<
     public async execute(
         _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['treeCachePipeline']
-    ): Promise<PluginExecutionResponse> {
+    ): Promise<BuildPluginExecutionResponse> {
         this.$jobManager.registerJob({
             name: 'walk:tree',
             prepare: async () => {
                 this.$logger.updateName(this.name)
+                this.walk = this.walk.bind(this)
             },
             execute: async () => {
                 const parser = this.getRunTimeDependency('parser')
@@ -157,7 +156,7 @@ export abstract class WalkTreePlugin<
                     exclude: this.defaultDynamicConfig?.exclude ?? [],
                 }
 
-                this.walk = this.walk.bind(this)
+                const error: BuildPluginResponse['error'] = []
 
                 await parser.walk(
                     async (node, context) => {
@@ -172,7 +171,20 @@ export abstract class WalkTreePlugin<
                         ) {
                             return
                         }
-                        await this.walk(node, context)
+                        // Execute plugin
+                        try {
+                            await this.walk(node, context)
+                        } catch (e) {
+                            error.push({
+                                filepath: node.fileName,
+                                error:
+                                    e instanceof Error
+                                        ? e
+                                        : new Error('unknown error', {
+                                              cause: [e, node],
+                                          }),
+                            })
+                        }
                     },
                     walkRoot
                         ? {
@@ -181,7 +193,10 @@ export abstract class WalkTreePlugin<
                           }
                         : defaultWalkOptions
                 )
-                return
+                return {
+                    error,
+                    history: this.$logger.getHistory(),
+                }
             },
         })
 
