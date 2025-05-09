@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
-import { PluginRunnerExecutionResponse } from '../plugin.runner'
 import { PluginConfigStorage } from './plugin.config.storage'
+import type { PluginRunnerExecutionResponse } from '../plugin.runner'
 
 import { watch as fsWatch, watchFile, unwatchFile, FSWatcher } from 'node:fs'
 import { basename } from 'node:path'
@@ -100,7 +100,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      */
     public watchHistory(): void {
         if (this._fsWatcher || this._usingPolling) {
-            console.info('History watcher already active')
             return
         }
 
@@ -147,7 +146,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
                 console.error(`fs.watch error on ${short}:`, err)
                 this._switchToPolling(onFsEvent)
             })
-            console.info(`Started fs.watch on ${short}`)
         } catch (err) {
             console.warn(
                 `fs.watch failed on ${short}, falling back → polling`,
@@ -162,18 +160,15 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      */
     public stopWatchingHistory(): void {
         const filePath = this.$history.options.root
-        const short = basename(filePath)
 
         if (this._fsWatcher) {
             this._fsWatcher.close()
             this._fsWatcher = null
-            console.info(`Stopped fs.watch on ${short}`)
         }
 
         if (this._usingPolling) {
             unwatchFile(filePath)
             this._usingPolling = false
-            console.info(`Stopped fs.watchFile on ${short}`)
         }
 
         clearTimeout(this._debounceTimer!)
@@ -210,6 +205,5 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
             if (curr.mtimeMs !== prev.mtimeMs) onChange()
         })
         this._usingPolling = true
-        console.info(`Now watching (polling) ${basename(filePath)}`)
     }
 }
