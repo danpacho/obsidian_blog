@@ -3,6 +3,7 @@ import type {
     BuildContentsPlugin,
     BuildContentsPluginDependencies,
     BuildContentsPluginStaticConfig,
+    BuildContentsUpdateInformation,
     BuildTreePlugin,
     BuildTreePluginDependencies,
     BuildTreePluginDynamicConfig,
@@ -24,7 +25,7 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<
             BuildTreePluginDynamicConfig
         >[],
         deps: BuildTreePluginDependencies
-    ): Promise<this['history']> {
+    ) {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
@@ -36,7 +37,9 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<
                     return await plugin.execute(controller, deps.cachePipeline)
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job.response ?? []) {
+                        await plugin.cleanup?.(res)
+                    }
                 },
             })
         }
@@ -66,10 +69,16 @@ export class WalkTreePluginRunner extends Runner.PluginRunner<
                     await plugin.prepare?.()
                 },
                 execute: async (controller) => {
-                    return await plugin.execute(controller, deps.cachePipeline)
+                    const res = await plugin.execute(
+                        controller,
+                        deps.cachePipeline
+                    )
+                    return res
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job.response ?? []) {
+                        await plugin.cleanup?.(res)
+                    }
                 },
             })
         }
@@ -84,13 +93,52 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
     BuildContentsPlugin,
     BuildContentsPluginDependencies
 > {
+    private async write(
+        buildContentsInformationList: BuildContentsUpdateInformation[],
+        deps: BuildContentsPluginDependencies
+    ): Promise<void> {
+        const {
+            io: { writer },
+            logger,
+        } = deps
+
+        // 1) Flatten all of your per-file write‐jobs into a single array of Promises
+        const writeTasks: Promise<void>[] = buildContentsInformationList
+            .flat()
+            .map(async ({ writePath, newContent }) => {
+                try {
+                    const result = await writer.write({
+                        data: newContent,
+                        filePath: writePath,
+                    })
+
+                    if (!result.success) {
+                        logger.error(
+                            `Failed to modify contents at ${writePath}`
+                        )
+                    }
+                } catch (err) {
+                    // catch any unexpected writer errors (e.g. FS exceptions)
+                    logger.error(
+                        `Error writing contents at ${writePath}: ${
+                            (err as Error).message
+                        }`,
+                        err
+                    )
+                }
+            })
+
+        // 2) Await them all in parallel
+        await Promise.all(writeTasks)
+    }
+
     public async run(
         pluginPipes: BuildContentsPlugin<
             BuildContentsPluginStaticConfig,
             BuildPluginDynamicConfig
         >[],
         deps: BuildContentsPluginDependencies
-    ): Promise<this['history']> {
+    ) {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
@@ -104,33 +152,20 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
                         deps.cachePipeline
                     )
 
-                    const target = buildedContents[0]?.response
-                    if (!target) return
+                    const buildContentsInformationList = buildedContents
+                        .map((e) => e.response?.contentsUpdateInfo)
+                        .filter((e) => e !== undefined)
 
-                    for (const { writePath, newContent } of target) {
-                        const updatedTextFile = await deps.io.writer.write({
-                            data: newContent,
-                            filePath: writePath,
-                        })
-
-                        if (!updatedTextFile.success) {
-                            deps.logger.error(
-                                `Failed to modify contents at ${writePath}`
-                            )
-                        }
+                    if (buildContentsInformationList.length !== 0) {
+                        await this.write(buildContentsInformationList, deps)
                     }
 
-                    return buildedContents.map((job) => {
-                        return {
-                            ...job,
-                            response: job.response?.map(
-                                (response) => response.writePath
-                            ),
-                        }
-                    })
+                    return buildedContents
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job.response ?? []) {
+                        await plugin.cleanup?.(res)
+                    }
                 },
             })
         }
