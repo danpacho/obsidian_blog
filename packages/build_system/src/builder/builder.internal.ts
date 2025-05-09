@@ -1,7 +1,4 @@
-import {
-    type PluginExecutionResponse,
-    Runner,
-} from '@obsidian_blogger/plugin_api'
+import { InferPluginConfig, Runner } from '@obsidian_blogger/plugin_api'
 import type { FileTreeNode, FileTreeParser, FolderNode } from '../parser'
 import type { BuildCacheManager, BuildStore, BuildStoreList } from './core'
 import type {
@@ -11,6 +8,7 @@ import type {
 } from './plugin'
 import {
     BuildPlugin,
+    type BuildPluginResponse,
     type BuildPluginDependencies,
     type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
@@ -72,53 +70,73 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
     }
 
     public async execute(
-        controller: { stop: () => void; resume: () => void },
+        _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['treeCachePipeline']
-    ): Promise<PluginExecutionResponse> {
+    ) {
         this.$jobManager.registerJob({
             name: 'build:internal',
             prepare: async () => {
                 this.$logger.updateName(this.name)
+                this.procedure = this.procedure.bind(this)
             },
             execute: async () => {
                 const parser = this.getRunTimeDependency('parser')
                 const cacheManager = this.getRunTimeDependency('cacheManager')
 
-                try {
-                    const originalAST = await this.getAST(parser)
-                    if (!originalAST) return
+                const error: BuildPluginResponse['error'] = []
 
-                    this.procedure = this.procedure.bind(this)
+                const originalAST = await this.getAST(parser)
+                if (!originalAST) {
+                    error.push({
+                        error: new Error('original AST is not prepared.', {
+                            cause: this.staticConfig,
+                        }),
+                    })
+                    return {
+                        error,
+                        history: this.$logger.getHistory(),
+                    }
+                }
 
-                    await parser.walk(
-                        async (node, context) => {
-                            if (
-                                cachePipe({
-                                    node,
-                                    context,
-                                    cacheManager,
-                                    config: {
-                                        disableCache:
-                                            this.staticConfig.disableCache ??
-                                            false,
-                                    },
-                                })
-                            ) {
-                                return
-                            }
-                            await this.procedure(node, context)
-                        },
-                        {
-                            type: 'DFS',
-                            skipFolderNode:
-                                this.staticConfig.skipFolderNode ?? true,
-                            walkRoot: originalAST,
+                await parser.walk(
+                    async (node, context) => {
+                        if (
+                            cachePipe({
+                                node,
+                                context,
+                                cacheManager,
+                                config: {
+                                    disableCache:
+                                        this.staticConfig.disableCache ?? false,
+                                },
+                            })
+                        ) {
+                            return
                         }
-                    )
-                    return
-                } catch (e) {
-                    this.$logger.error('Failed to walk through the tree')
-                    controller.stop()
+                        try {
+                            await this.procedure(node, context)
+                        } catch (e) {
+                            error.push({
+                                filepath: node.fileName,
+                                error:
+                                    e instanceof Error
+                                        ? e
+                                        : new Error('unknown error', {
+                                              cause: [e, node],
+                                          }),
+                            })
+                        }
+                    },
+                    {
+                        type: 'DFS',
+                        skipFolderNode:
+                            this.staticConfig.skipFolderNode ?? true,
+                        walkRoot: originalAST,
+                    }
+                )
+                return {
+                    error,
+                    history: this.$logger.getHistory(),
                 }
             },
             cleanup: async (job) => {
@@ -182,7 +200,7 @@ export class SyncBuildStore extends BuilderInternalPlugin {
 
         if (!update.success) {
             this.$logger.error(update.error.message)
-            return
+            throw update.error
         }
 
         node.injectBuildInfo(update.data)
@@ -222,6 +240,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             this.$logger.error(
                 `Failed to copy ${absolutePath} to ${buildInfo.build_path.build}`
             )
+            throw cpResult.error
         }
     }
 
@@ -234,6 +253,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             )
             if (!removeResult.success) {
                 this.$logger.error(`Failed to remove ${target}`)
+                throw removeResult.error
             }
         }
 
@@ -241,6 +261,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         if (!save.success) {
             this.$logger.error('Failed to save build report')
+            throw save.error
         }
     }
 }
@@ -262,7 +283,7 @@ export class InjectBuildInfoToGeneratedTree extends BuilderInternalPlugin {
         })
         if (!generatedBuildInfo.success) {
             this.$logger.error(generatedBuildInfo.error.message)
-            return
+            throw generatedBuildInfo.error
         }
 
         node.injectBuildInfo({
@@ -281,7 +302,7 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
     public async run(
         pluginPipes: BuilderInternalPlugin[],
         context: BuilderInternalPluginDependencies
-    ): Promise<this['history']> {
+    ) {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
@@ -296,7 +317,9 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
                     )
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job.response ?? []) {
+                        await plugin.cleanup?.(res)
+                    }
                 },
             })
         }
@@ -335,7 +358,7 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
         if (config?.disableCache) return false
 
         const fileName = node.fileName
-        const excludeResult: boolean = [
+        const shouldBeExcluded: boolean = [
             ...BuilderPluginCachePipelines.defaultExclude,
             config?.exclude ?? [],
         ].some((pattern) => {
@@ -348,7 +371,7 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
             return pattern.some((patternName) => patternName === fileName)
         })
 
-        if (excludeResult) return false
+        if (shouldBeExcluded) return false
 
         const status = cacheManager.checkStatus(buildInfo.id)
 
