@@ -24,7 +24,9 @@ export class PublishPluginRunner extends Runner.PluginRunner<
                     return await plugin.execute(controller, prepared)
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job?.response ?? []) {
+                        await plugin.cleanup?.(res)
+                    }
                 },
             })
         }
