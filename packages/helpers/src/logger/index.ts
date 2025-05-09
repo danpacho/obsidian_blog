@@ -1,5 +1,8 @@
-import boxen, { Options } from 'boxen'
-import c from 'chalk'
+// src/logger/index.ts
+import boxen, { Options as BoxenOptions } from 'boxen'
+import chalk from 'chalk'
+import util from 'node:util'
+import { Stack } from '../stack'
 
 export interface LoggerConstructor {
     name: string
@@ -7,113 +10,164 @@ export interface LoggerConstructor {
     tabSize?: number
     useDate?: boolean
 }
-interface LogOption {
+export interface LogOption {
     enter?: boolean
     depth?: number
     prefix?: 'base' | 'full' | 'none'
 }
 
+type LogLevel = 'log' | 'info' | 'warn' | 'error'
+
+export interface LogHistory {
+    /**
+     * Log depth
+     */
+    level: LogLevel
+    /**
+     * Log messages
+     */
+    message: string | Array<string>
+}
+
 /* eslint-disable no-console */
 export class Logger {
-    public constructor(options: LoggerConstructor | undefined = undefined) {
-        if (options) {
-            const { spaceSize, tabSize, name } = options
-            this._tabSize = tabSize ?? 4
-            this._spaceSize = spaceSize ?? 1
-            this.name = name
-            this._useDate = options.useDate ?? false
-        }
-    }
-    private name: string = 'Logger'
-    private _useDate: boolean = false
-    private _tabSize: number = 4
-    private _spaceSize: number = 1
-    private join(...stringVector: string[]): string {
-        return stringVector.join(this.spaceStr)
-    }
-    private $c: typeof c = c
-    public get c(): typeof c {
-        return this.$c
-    }
-    private $log(messages: string[], enter: boolean = false) {
-        console.log(
-            enter ? this.enter(this.join(...messages)) : this.join(...messages)
-        )
+    private name = 'Logger'
+    private useDate = false
+    private tabSize = 4
+    private spaceSize = 1
+
+    public constructor(opts?: LoggerConstructor) {
+        if (!opts) return
+        this.name = opts.name
+        this.spaceSize = opts.spaceSize ?? this.spaceSize
+        this.tabSize = opts.tabSize ?? this.tabSize
+        this.useDate = opts.useDate ?? this.useDate
     }
 
-    public log(
-        message: string,
-        options: LogOption = {
-            enter: false,
-            depth: 0,
-            prefix: 'base',
-        }
-    ) {
-        const { enter, depth } = options
-        const depthStr =
-            depth && depth > 0 ? `${this.tabStr.repeat(depth)}` : ''
-        const logMessage =
-            options.prefix === 'full' ? `${this.name}: ${message}` : message
-        this.$log(
-            options.prefix === 'none'
-                ? [logMessage]
-                : [depthStr, this.c.gray('›'), logMessage],
-            enter
-        )
+    private messageStack: Stack<LogHistory> = new Stack()
+
+    /**
+     * @returns logging history
+     */
+    public getHistory(): Array<LogHistory> {
+        return this.messageStack.stack
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  helpers                                                           */
+    /* ------------------------------------------------------------------ */
+    private get tabStr() {
+        return ' '.repeat(this.tabSize)
+    }
+    private get spaceStr() {
+        return ' '.repeat(this.spaceSize)
+    }
+
+    private isLogOption = (v: unknown): v is LogOption =>
+        !!v &&
+        typeof v === 'object' &&
+        ['enter', 'depth', 'prefix'].some((k) => k in (v as LogOption))
+
+    /** Deterministic object formatting (no ANSI, controllable depth). */
+    private fmt = (arg: unknown, depth?: number) =>
+        typeof arg === 'string'
+            ? arg
+            : util.inspect(arg, { depth, colors: false })
+
+    private join = (...parts: string[]) => parts.join(this.spaceStr)
+
+    private withDate = (txt: string) =>
+        this.useDate ? `${new Date().toISOString()}${this.spaceStr}${txt}` : txt
+
+    private write = (level: LogLevel, txt: string, enter = false) =>
+        (console[level] as (msg: string) => void)(enter ? `${txt}\n` : txt)
+
+    /* ------------------------------------------------------------------ */
+    /*  public API                                                        */
+    /* ------------------------------------------------------------------ */
+    public log(...params: Array<unknown | LogOption>): void {
+        let opts: LogOption | undefined
+        if (this.isLogOption(params.at(-1))) opts = params.pop() as LogOption
+
+        const { enter = false, depth, prefix = 'base' } = opts ?? {}
+        const rendered = params
+            .map((p) => this.fmt(p, depth))
+            .join(this.spaceStr)
+        const depthStr = depth && depth > 0 ? this.tabStr.repeat(depth) : ''
+
+        const msg =
+            prefix === 'none'
+                ? rendered
+                : this.join(
+                      depthStr,
+                      chalk.gray('›'),
+                      prefix === 'full' ? `${this.name}: ${rendered}` : rendered
+                  )
+
+        this.messageStack.push({
+            level: 'log',
+            message: rendered,
+        })
+        this.write('log', this.withDate(msg), enter)
     }
 
     public updateName(name: string) {
+        // clear message stack when logger changed.
+        this.messageStack.clear()
         this.name = name
     }
-    public box(message: string, options?: Options) {
-        this.$log([boxen(message, options)])
+
+    public box(msg: string, opts?: BoxenOptions) {
+        this.write('log', boxen(msg, opts))
     }
-    public info(message: string) {
-        console.info(
-            this.join(
-                this.c.bgBlueBright.bold.black(` INFO `),
-                this.c.blue(this.name),
-                message
-            )
+
+    /**
+     * Get `chalk` instance
+     */
+    public get c() {
+        return chalk
+    }
+
+    /* ---- tagged helpers --------------------------------------------- */
+    private tagged(
+        label: string,
+        labelStyler: (s: string) => string,
+        msgStyler: (s: string) => string,
+        level: LogLevel,
+        parts: unknown[]
+    ) {
+        const rendered = parts.map((p) => this.fmt(p))
+        const txt = this.join(
+            labelStyler(` ${label} `),
+            msgStyler(this.name),
+            ...rendered
+        )
+        this.messageStack.push({ level: level, message: rendered })
+        this.write(level, this.withDate(txt))
+    }
+
+    public info(...m: unknown[]) {
+        this.tagged(
+            'INFO',
+            chalk.bgBlueBright.bold.black,
+            chalk.blue,
+            'info',
+            m
         )
     }
-    public warn(message: string) {
-        console.warn(
-            this.join(
-                this.c.bgYellow.bold.black(` WARN `),
-                this.c.yellow(this.name),
-                message
-            )
-        )
+    public warn(...m: unknown[]) {
+        this.tagged('WARN', chalk.bgYellow.bold.black, chalk.yellow, 'warn', m)
     }
-    public error(message: string) {
-        console.error(
-            this.join(
-                this.c.bgRed.bold.black(` ERROR `),
-                this.c.red(this.name),
-                message
-            )
-        )
+    public error(...m: unknown[]) {
+        this.tagged('ERROR', chalk.bgRed.bold.black, chalk.red, 'error', m)
     }
-    public success(message: string) {
-        console.log(
-            this.join(
-                this.c.bgGreen.bold.black(` SUCCESS `),
-                this.c.green(this.name),
-                message
-            )
-        )
+    public success(...m: unknown[]) {
+        this.tagged('SUCCESS', chalk.bgGreen.bold.black, chalk.green, 'log', m)
     }
-    public tab(message?: string) {
-        this.$log([this.tabStr, message ?? ''])
-    }
-    public enter(message: string) {
-        return `${message}\n`
-    }
-    public get tabStr(): string {
-        return ' '.repeat(this._tabSize)
-    }
-    public get spaceStr(): string {
-        return ' '.repeat(this._spaceSize)
+
+    /* ---- structural helpers ----------------------------------------- */
+    public tab(...msgs: unknown[]) {
+        const txt = `${this.tabStr}${msgs.map((m) => this.fmt(m)).join(this.spaceStr)}`
+        this.write('log', this.withDate(txt))
     }
 }
