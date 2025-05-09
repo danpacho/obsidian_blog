@@ -83,6 +83,15 @@ describe('PluginInterface', () => {
             PluginInterfaceStaticConfig,
             {
                 someConfig: string
+            },
+            {
+                deps: []
+            },
+            {
+                prepare: void
+                response: Array<{
+                    name: string
+                }>
             }
         > {
             protected defineStaticConfig(): PluginInterfaceStaticConfig {
