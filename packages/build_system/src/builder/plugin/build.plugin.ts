@@ -1,7 +1,10 @@
 import {
     PluginInterface,
+    type PluginExecutionResponse,
     type PluginInterfaceStaticConfig,
 } from '@obsidian_blogger/plugin_api'
+import type { LogHistory } from '@obsidian_blogger/helpers/logger'
+
 import {
     MetaEngine,
     type MetaEngineConstructor,
@@ -27,6 +30,20 @@ export interface BuildPluginDependencies extends BuilderConstructor {
     buildInfoGenerator: BuildInfoGenerator
 }
 
+export interface BuildPluginResponse {
+    /**
+     * Error stacks
+     */
+    error: Array<{ error: Error; filepath?: string }>
+    /**
+     * History of log messages
+     */
+    history: Array<LogHistory>
+}
+
+export type BuildPluginExecutionResponse =
+    PluginExecutionResponse<BuildPluginResponse>
+
 /**
  * Abstract class representing a build plugin.
  */
@@ -34,7 +51,16 @@ export abstract class BuildPlugin<
     Static extends BuildPluginStaticConfig,
     Dynamic extends BuildPluginDynamicConfig = BuildPluginDynamicConfig,
     Dependencies extends BuildPluginDependencies = BuildPluginDependencies,
-> extends PluginInterface<Static, Dynamic, Dependencies> {
+    Response extends unknown = unknown,
+> extends PluginInterface<
+    Static,
+    Dynamic,
+    Dependencies,
+    {
+        prepare: void
+        response: BuildPluginResponse & Response
+    }
+> {
     /**
      * Creates a meta engine with the specified engine components(`generator`, `parser`).
      * @param engineComponents - The engine components for creating the meta engine.
