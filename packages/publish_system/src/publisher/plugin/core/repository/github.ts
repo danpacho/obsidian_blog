@@ -1,8 +1,9 @@
 import {
-    type RepositoryDynamicConfig,
     RepositoryPlugin,
+    type RepositoryDynamicConfig,
     type RepositoryStaticConfig,
 } from '../../repository'
+import type { PublishPluginResponse } from '../../publish.plugin'
 
 export interface GithubRepositoryDynamicConfig extends RepositoryDynamicConfig {
     branch: string
@@ -57,42 +58,106 @@ export class GithubRepository extends RepositoryPlugin<
             {
                 name: 'git-check-remote-origin',
                 execute: async ({ stop }) => {
-                    const remoteOriginFounded: boolean =
-                        (await this.$git?.remote())?.stdout !== ''
+                    const error: PublishPluginResponse['error'] = []
+                    try {
+                        const gitRemote = await this.$git?.remote()
+                        const remoteOriginFounded: boolean =
+                            gitRemote?.stdout !== ''
 
-                    if (remoteOriginFounded === false) {
-                        this.$logger.error('No remote origin found')
-                        stop()
+                        if (remoteOriginFounded === false) {
+                            this.invokeError(error, {
+                                e: new Error('no remote origin found'),
+                                message: 'no remote origin found',
+                                commandResult: gitRemote,
+                            })
+                            stop()
+                        }
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                            stdout: gitRemote.stdout,
+                        }
+                    } catch (e) {
+                        this.invokeError(error, {
+                            e,
+                            message: 'git remote execution error',
+                        })
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
                     }
-
-                    return remoteOriginFounded
                 },
             },
             {
                 name: 'git-add',
                 execute: async () => {
-                    if (addPattern) {
-                        return await this.$git?.addByPattern(addPattern)
-                    } else {
-                        return await this.$git?.addAll()
+                    const error: PublishPluginResponse['error'] = []
+                    let exec: PublishPluginResponse['error'][number]['command']
+                    try {
+                        if (addPattern) {
+                            exec = await this.$git?.addByPattern(addPattern)
+                        } else {
+                            exec = await this.$git?.addAll()
+                        }
+                    } catch (e) {
+                        this.invokeError(error, {
+                            e,
+                            message: 'git add execution error',
+                            commandResult: exec,
+                        })
+                    } finally {
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
                     }
                 },
             },
             {
                 name: 'git-commit',
                 execute: async () => {
+                    const error: PublishPluginResponse['error'] = []
+                    let exec: PublishPluginResponse['error'][number]['command']
                     const commit = `${commitPrefix}: ${commitMessage}`
-                    const committed = await this.$git?.commit(commit)
-                    return committed
+                    try {
+                        exec = await this.$git?.commit(commit)
+                    } catch (e) {
+                        this.invokeError(error, {
+                            e,
+                            message: 'git commit execution error',
+                            commandResult: exec,
+                        })
+                    } finally {
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
+                    }
                 },
-                cleanup: async (job) => {
-                    this.$logger.info(`Commit\n${job.response?.stdout}`)
+                cleanup: async () => {
+                    this.$logger.info(`Commit success`)
                 },
             },
             {
                 name: 'git-push',
                 execute: async () => {
-                    return await this.$git?.push(branch)
+                    const error: PublishPluginResponse['error'] = []
+                    let exec: PublishPluginResponse['error'][number]['command']
+                    try {
+                        exec = await this.$git?.push(branch)
+                    } catch (e) {
+                        this.invokeError(error, {
+                            e,
+                            message: 'git push execution error',
+                            commandResult: exec,
+                        })
+                    } finally {
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
+                    }
                 },
                 cleanup: async () => {
                     this.$logger.success('Pushed to remote successfully')

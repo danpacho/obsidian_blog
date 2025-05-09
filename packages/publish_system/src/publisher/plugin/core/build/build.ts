@@ -1,4 +1,8 @@
 import { BuildScriptPlugin, type BuildScriptStaticConfig } from '../../build'
+import type {
+    PublishCommandResult,
+    PublishPluginResponse,
+} from '../../publish.plugin'
 
 export class BlogBuilder extends BuildScriptPlugin {
     protected defineStaticConfig(): BuildScriptStaticConfig {
@@ -23,24 +27,60 @@ export class BlogBuilder extends BuildScriptPlugin {
     }
 
     private async build() {
+        const error: PublishPluginResponse['error'] = []
+
         this.$jobManager.registerJobs([
             {
                 name: 'detect-package-manager',
-                execute: async () =>
-                    await this.detectPackageManager(this.dynamicConfig.cwd),
+                execute: async () => {
+                    try {
+                        await this.detectPackageManager(this.dynamicConfig.cwd)
+                    } catch (e) {
+                        this.invokeError(error, {
+                            e,
+                            message: 'package manager detection failed',
+                        })
+                    } finally {
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
+                    }
+                },
             },
             {
                 name: 'build',
                 execute: async () => {
-                    const buildResult = await this.pkg()
-                    if (!buildResult.success) {
-                        this.$logger.error('Build failed')
-                        this.$logger.log(JSON.stringify(buildResult, null, 2))
-                        return buildResult
+                    let exec: PublishCommandResult | null = null
+                    try {
+                        const buildResult = await this.pkg()
+                        if (buildResult.success) {
+                            exec = buildResult.data
+                        } else {
+                            throw buildResult.error
+                        }
+                    } catch (e) {
+                        this.invokeError(
+                            error,
+                            exec
+                                ? {
+                                      e,
+                                      message: 'build failed',
+                                      commandResult: exec,
+                                  }
+                                : {
+                                      e,
+                                      message: 'build failed',
+                                  }
+                        )
+                    } finally {
+                        this.$logger.success('Build succeeded')
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                            stdout: exec?.stdout,
+                        }
                     }
-
-                    this.$logger.success('Build succeeded')
-                    return buildResult
                 },
             },
         ])
