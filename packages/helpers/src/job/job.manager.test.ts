@@ -18,7 +18,6 @@ describe('JobManager', () => {
         })
         jobManager.registerJob({
             name: 'job2',
-            executionType: 'async',
             execute: async () => {
                 return 'Job 2 response'
             },
@@ -367,7 +366,6 @@ describe('JobManager', () => {
     it('should handle exception and report errors', async () => {
         jobManager.registerJob({
             name: 'job1',
-            executionType: 'async',
             execute: async () => {
                 return 'Job 1 response'
             },
