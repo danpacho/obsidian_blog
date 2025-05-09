@@ -1,14 +1,15 @@
-import type { Job } from '@obsidian_blogger/helpers/job'
 import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin_api'
-import { MarkdownProcessor } from '../../md/processor'
 import type { BuildInformation, BuildStoreList } from '../core'
 import {
     BuildPlugin,
-    BuildPluginDependencies,
+    type BuildPluginDependencies,
+    type BuildPluginResponse,
     type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
 } from './build.plugin'
 import type { PluginCachePipelines } from './cache.interface'
+import { MarkdownProcessor } from '../../md/processor'
+
 export interface BuildContentsPluginStaticConfig
     extends BuildPluginStaticConfig {}
 export type BuildContentsDynamicConfig = BuildPluginDynamicConfig
@@ -18,11 +19,24 @@ export interface BuildContentsPluginDependencies
     buildStoreList: BuildStoreList
     cachePipeline: PluginCachePipelines['buildContentsCachePipeline']
 }
+
+export type BuildContentsUpdateInformation = Array<{
+    newContent: string
+    writePath: string
+}>
+
 export abstract class BuildContentsPlugin<
     Static extends
         BuildContentsPluginStaticConfig = BuildContentsPluginStaticConfig,
     Dynamic extends BuildContentsDynamicConfig = BuildContentsDynamicConfig,
-> extends BuildPlugin<Static, Dynamic, BuildContentsPluginDependencies> {
+> extends BuildPlugin<
+    Static,
+    Dynamic,
+    BuildContentsPluginDependencies,
+    {
+        contentsUpdateInfo: BuildContentsUpdateInformation
+    }
+> {
     public override baseDynamicConfigSchema(): PluginDynamicConfigSchema {
         return {
             disableCache: {
@@ -76,26 +90,12 @@ export abstract class BuildContentsPlugin<
      */
     public abstract buildContents(context: {
         buildStore: BuildStoreList
-    }): Promise<
-        Array<{
-            newContent: string
-            writePath: string
-        }>
-    >
+    }): Promise<BuildContentsUpdateInformation>
 
     public async execute(
         _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['buildContentsCachePipeline']
-    ): Promise<
-        [
-            Job<
-                {
-                    newContent: string
-                    writePath: string
-                }[]
-            >,
-        ]
-    > {
+    ) {
         this.$jobManager.registerJob({
             name: 'build:contents',
             prepare: async () => {
@@ -112,22 +112,35 @@ export abstract class BuildContentsPlugin<
                 return cachedStore
             },
             execute: async (_, cachedStore: BuildStoreList) => {
-                const newContents = await this.buildContents({
-                    buildStore: cachedStore,
-                })
-                return newContents
+                const error: BuildPluginResponse['error'] = []
+                const updateInformation: BuildContentsUpdateInformation = []
+                try {
+                    updateInformation.push(
+                        ...(await this.buildContents({
+                            buildStore: cachedStore,
+                        }))
+                    )
+                } catch (e) {
+                    error.push({
+                        error:
+                            e instanceof Error
+                                ? e
+                                : new Error('build contents error', {
+                                      cause: e,
+                                  }),
+                    })
+                } finally {
+                    return {
+                        contentsUpdateInfo: updateInformation,
+                        error,
+                        history: this.$logger.getHistory(),
+                    }
+                }
             },
         })
 
         await this.$jobManager.processJobs()
 
-        return this.$jobManager.history as [
-            Job<
-                {
-                    newContent: string
-                    writePath: string
-                }[]
-            >,
-        ]
+        return this.$jobManager.history
     }
 }
