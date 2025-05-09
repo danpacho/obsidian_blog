@@ -3,7 +3,7 @@ import {
     Job,
     JobManager,
     type JobManagerConstructor,
-    type JobRegistrationShape,
+    type JobRegistration,
 } from '@obsidian_blogger/helpers/job'
 import {
     DynamicConfigParser,
@@ -113,7 +113,11 @@ export interface PluginInterfaceDependencies {}
 export type PluginShape = PluginInterface<
     PluginInterfaceStaticConfig,
     PluginInterfaceDynamicConfig | null,
-    PluginInterfaceDependencies | null
+    PluginInterfaceDependencies | null,
+    {
+        prepare: unknown
+        response: unknown
+    }
 >
 
 /**
@@ -142,11 +146,18 @@ export type PluginConfig<
  * type Configs = InferInferPluginConfig<MyPluginClass>
  * ```
  */
-export type InferPluginConfig<Plugin extends PluginShape> =
-    Plugin extends PluginInterface<infer Static, infer Dynamic>
+export type InferPluginConfig<Plugin> =
+    Plugin extends PluginInterface<
+        infer Static,
+        infer Dynamic,
+        infer Dependencies,
+        infer JobConfig
+    >
         ? {
               staticConfig: Static
               dynamicConfig: Dynamic
+              dependencies: Dependencies
+              jobConfig: JobConfig
           }
         : never
 
@@ -160,11 +171,26 @@ export abstract class PluginInterface<
         PluginInterfaceStaticConfig = PluginInterfaceStaticConfig,
     DynamicConfig extends PluginInterfaceDynamicConfig | null = null,
     Dependencies extends PluginInterfaceDependencies | null = null,
-> implements JobRegistrationShape
+    PluginJobConfig extends {
+        response: any
+        prepare: any
+    } = {
+        response: unknown
+        prepare: unknown
+    },
+> implements
+        JobRegistration<PluginJobConfig['response'], PluginJobConfig['prepare']>
 {
+    /** 👇 phantom field – never touched at run-time */
+    protected readonly __marker!: {
+        static: StaticConfig
+        dynamic: DynamicConfig
+        dependencies: Dependencies
+        job: PluginJobConfig
+    }
     protected static readonly $dynamicConfigParser: DynamicConfigParser =
         new DynamicConfigParser()
-    protected readonly $jobManager: JobManager<unknown>
+    protected readonly $jobManager: JobManager<PluginJobConfig['response']>
     /**
      * Gets the history of plugin executions.
      */
@@ -539,7 +565,7 @@ export abstract class PluginInterface<
          * - Plugin itself by return data of `prepare` method
          */
         context: unknown
-    ): Promise<PluginExecutionResponse<unknown>>
+    ): Promise<PluginExecutionResponse<PluginJobConfig['response']>>
 
     /**
      * Lifecycle hooks for the job registration.
@@ -547,7 +573,7 @@ export abstract class PluginInterface<
      * A function that is **executed before** the job starts.
      * It returns a promise that resolves to the prepared calculation and will be passed to the `execute` function.
      */
-    public prepare?(): Promise<unknown>
+    public prepare?(): Promise<PluginJobConfig['prepare']>
 
     /**
      * Lifecycle hooks for the job registration.
@@ -557,7 +583,7 @@ export abstract class PluginInterface<
      * @returns A promise that resolves when the after-job tasks are completed.
      */
     public cleanup?(
-        job: PluginExecutionResponse<unknown>[number]
+        job: PluginExecutionResponse<PluginJobConfig['response']>[number]
     ): Promise<void>
 }
 
