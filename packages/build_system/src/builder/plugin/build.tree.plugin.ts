@@ -3,6 +3,8 @@ import type { FileTreeNode, WalkOption } from '../../parser'
 import type { BuildInformation } from '../core'
 import {
     BuildPlugin,
+    type BuildPluginResponse,
+    type BuildPluginExecutionResponse,
     type BuildPluginDependencies,
     type BuildPluginDynamicConfig,
     type BuildPluginStaticConfig,
@@ -138,11 +140,12 @@ export abstract class BuildTreePlugin<
     public async execute(
         _: { stop: () => void; resume: () => void },
         cachePipe: PluginCachePipelines['treeCachePipeline']
-    ) {
+    ): Promise<BuildPluginExecutionResponse> {
         this.$jobManager.registerJob({
             name: 'build:tree',
             prepare: async () => {
                 this.$logger.updateName(this.name)
+                this.walk = this.walk.bind(this)
             },
             execute: async () => {
                 const parser = this.getRunTimeDependency('parser')
@@ -155,7 +158,7 @@ export abstract class BuildTreePlugin<
                     exclude: this.dynamicConfig?.exclude ?? [],
                 }
 
-                this.walk = this.walk.bind(this)
+                const error: BuildPluginResponse['error'] = []
 
                 await parser.walk(
                     async (node, context) => {
@@ -170,7 +173,20 @@ export abstract class BuildTreePlugin<
                         ) {
                             return
                         }
-                        await this.walk(node, context)
+                        // Execute plugin
+                        try {
+                            await this.walk(node, context)
+                        } catch (e) {
+                            error.push({
+                                filepath: node.fileName,
+                                error:
+                                    e instanceof Error
+                                        ? e
+                                        : new Error('unknown error', {
+                                              cause: [e, node],
+                                          }),
+                            })
+                        }
                     },
                     walkRoot
                         ? {
@@ -179,6 +195,11 @@ export abstract class BuildTreePlugin<
                           }
                         : defaultWalkOption
                 )
+
+                return {
+                    error,
+                    history: this.$logger.getHistory(),
+                }
             },
         })
 
