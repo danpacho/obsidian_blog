@@ -3,43 +3,11 @@ import {
     PluginExecutionResponse,
     PluginInterface,
     PluginInterfaceStaticConfig,
-    PluginShape,
 } from './plugin.interface'
 import { PluginRunner } from './plugin.runner'
 import { JobError } from 'packages/helpers/src/job'
 
 describe('PluginRunner', () => {
-    class Runner extends PluginRunner {
-        private _count: Array<number> = []
-        public get count(): Array<number> {
-            return this._count
-        }
-
-        public async run(pluginPipes: PluginShape[]) {
-            for (const plugin of pluginPipes) {
-                this.$pluginRunner.registerJob({
-                    name: plugin.name,
-                    prepare: async () => {
-                        this._count.push(1)
-                        return await plugin.prepare?.()
-                    },
-                    execute: async (controller, prepared) => {
-                        const res = await plugin.execute(controller, prepared)
-                        return res
-                    },
-                    cleanup: async (job) => {
-                        this._count.pop()
-                        await plugin.cleanup?.(job)
-                    },
-                })
-            }
-            await this.$pluginRunner.processJobs()
-
-            return this.history
-        }
-    }
-    const runner = new Runner()
-
     class Plugin extends PluginInterface<
         PluginInterfaceStaticConfig,
         {
@@ -120,6 +88,34 @@ describe('PluginRunner', () => {
             ]
         }
     }
+
+    class Runner extends PluginRunner<Plugin | Plugin2 | ErrorPlugin> {
+        private _count: Array<number> = []
+        public get count(): Array<number> {
+            return this._count
+        }
+
+        public async run(pluginPipes: Array<Plugin | Plugin2 | ErrorPlugin>) {
+            for (const plugin of pluginPipes) {
+                this.$pluginRunner.registerJob({
+                    name: plugin.name,
+                    prepare: async () => {
+                        this._count.push(1)
+                        return await plugin.prepare?.()
+                    },
+                    execute: async () => await plugin.execute(),
+                    cleanup: async (job) => {
+                        this._count.pop()
+                        await plugin.cleanup?.(job)
+                    },
+                })
+            }
+            await this.$pluginRunner.processJobs()
+
+            return this.history
+        }
+    }
+    const runner = new Runner()
 
     it('should create a new instance of PluginProcessManager', () => {
         expect(runner).toBeInstanceOf(PluginRunner)
