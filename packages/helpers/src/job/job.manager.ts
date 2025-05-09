@@ -87,7 +87,7 @@ export interface JobRegistration<JobResponse, JobPrepare> {
              */
             resume: () => void
         },
-        preparedCalculation: JobPrepare
+        preparedCalculation: JobPrepare | undefined
     ): Promise<JobResponse>
 
     /**
@@ -100,7 +100,7 @@ export interface JobRegistration<JobResponse, JobPrepare> {
     cleanup?(job: Job<JobResponse>): Promise<void>
 }
 
-type TypedJob<JobTuple> = JobTuple extends readonly [
+export type TypedJob<JobTuple> = JobTuple extends readonly [
     infer FirstJob,
     ...infer RestJobs,
 ]
@@ -150,9 +150,9 @@ export interface JobManagerConstructor {
 /**
  * Represents a job manager that manages the execution of jobs.
  */
-export class JobManager<JobResponse = unknown> {
+export class JobManager<JobResponse = unknown, JobPrepare = unknown> {
     private readonly $history: Stack<Job<JobResponse>>
-    private readonly $jobQueue: Queue<JobRegistrationShape>
+    private readonly $jobQueue: Queue<JobRegistration<JobResponse, JobPrepare>>
 
     private _jobCount: number = 0
     private _jobRemaining: number = 0
@@ -247,7 +247,7 @@ export class JobManager<JobResponse = unknown> {
      * Registers a job for processing.
      * @param job - The job to register.
      */
-    public registerJob<const Job extends JobRegistrationShape>(job: Job): void {
+    public registerJob(job: JobRegistration<JobResponse, JobPrepare>): void {
         this.$jobQueue.enqueue(job)
         this._jobCount += 1
         this._jobRemaining += 1
@@ -258,8 +258,8 @@ export class JobManager<JobResponse = unknown> {
      * Registers multiple jobs for processing.
      * @param jobs - The jobs to register.
      */
-    public registerJobs<const JobTuple extends readonly JobRegistrationShape[]>(
-        jobs: TypedJob<JobTuple>
+    public registerJobs(
+        jobs: Array<JobRegistration<JobResponse, JobPrepare>>
     ): void {
         jobs.forEach((job) => this.registerJob(job))
     }
@@ -355,7 +355,7 @@ export class JobManager<JobResponse = unknown> {
         }
     }
 
-    private jobSucceeded(job: Job, jobResponse: unknown): void {
+    private jobSucceeded(job: Job, jobResponse: JobResponse): void {
         const endDate = new Date()
         if (job) {
             job.status = 'success'
