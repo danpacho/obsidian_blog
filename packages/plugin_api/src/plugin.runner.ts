@@ -1,20 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-    type Job,
     JobManager,
+    type Job,
     type JobManagerConstructor,
     type JobSubscriber,
 } from '@obsidian_blogger/helpers/job'
 import type {
-    PluginInterfaceDependencies,
     PluginShape,
+    InferPluginConfig,
+    PluginInterfaceDependencies,
 } from './plugin.interface'
 import type { PluginExecutionResponse } from './plugin.interface'
 
-export type PluginRunnerExecutionResponse = PluginExecutionResponse<Job>
-export class PluginRunnerJobManager extends JobManager<PluginRunnerExecutionResponse> {
+export type PluginRunnerExecutionResponse<Response = unknown> =
+    PluginExecutionResponse<Response>
+export class PluginRunnerJobManager<Response = unknown> extends JobManager<
+    PluginRunnerExecutionResponse<Response>
+> {
     protected override jobSuccessStatusCalculation(
-        pluginResponse: PluginRunnerExecutionResponse
+        pluginResponse: PluginRunnerExecutionResponse<Response>
     ): boolean {
         const isError = pluginResponse.some(({ status }) => status === 'failed')
         return !isError
@@ -29,7 +33,9 @@ export abstract class PluginRunner<
     RuntimeDependencies extends
         PluginInterfaceDependencies | null = PluginInterfaceDependencies | null,
 > {
-    protected readonly $pluginRunner: PluginRunnerJobManager
+    protected readonly $pluginRunner: PluginRunnerJobManager<
+        InferPluginConfig<Plugin>['jobConfig']['response']
+    >
 
     /**
      * Creates an instance of PluginProcessManager.
@@ -43,14 +49,24 @@ export abstract class PluginRunner<
      * Subscribes to job progress.
      * @param subscriber - subscriber function.
      */
-    public subscribe(subscriber: JobSubscriber<Job>) {
+    public subscribe(
+        subscriber: JobSubscriber<
+            Job<InferPluginConfig<Plugin>['jobConfig']['response']>
+        >
+    ) {
         return this.$pluginRunner.subscribeJobProgress(subscriber)
     }
 
     /**
      * Gets the history of plugin executions.
      */
-    public get history() {
+    public get history(): Array<
+        Job<
+            PluginRunnerExecutionResponse<
+                InferPluginConfig<Plugin>['jobConfig']['response']
+            >
+        >
+    > {
         return this.$pluginRunner.history
     }
 
@@ -71,7 +87,9 @@ export abstract class PluginRunner<
                     return await plugin.execute(controller, prepared)
                 },
                 cleanup: async (job) => {
-                    await plugin.cleanup?.(job)
+                    for (const res of job.response) {
+                        await plugin.cleanup?.(job)
+                    }
                 },
             })
         }
