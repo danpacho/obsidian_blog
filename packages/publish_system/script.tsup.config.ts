@@ -14,4 +14,5 @@ export default defineConfig({
     target: 'esnext',
     dts: false,
     outDir: 'dist',
+    external: ['fs', 'path', 'dotenv'],
 })
