@@ -176,7 +176,9 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
 
         if (!injectPath) {
             this.$logger.error(`build path not defined: ${node.absolutePath}`)
-            return
+            throw new Error(`build path not defined: ${node.absolutePath}`, {
+                cause: node,
+            })
         }
 
         const absSplit = injectPath.origin.split('/')
@@ -225,6 +227,14 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
             this.$logger.success(
                 `injected series meta: name ${seriesInfo.series}, at ${injectPath.build}`
             )
+        }
+
+        if (!updateBuild.success) {
+            throw updateBuild.error
+        }
+
+        if (!updateOrigin.success) {
+            throw updateOrigin.error
         }
     }
 }

@@ -97,7 +97,9 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
         if (node.category === 'FOLDER') return
         if (!siblings) return
         const metaRes = await this.meta.extractFromFile(node.absolutePath)
-        if (!metaRes.success) return
+        if (!metaRes.success) {
+            throw metaRes.error
+        }
 
         const meta = metaRes.data.meta
         if ('series' in meta === false || typeof meta.series !== 'string')

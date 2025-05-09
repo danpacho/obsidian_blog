@@ -165,7 +165,9 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
         )
         if (!metaDataResult.success) {
             this.$logger.warn(`No meta data found for ${node.absolutePath}`)
-            return
+            throw new Error(`No meta data found for ${node.absolutePath}`, {
+                cause: node,
+            })
         }
 
         const originalMeta = metaDataResult.data.meta
@@ -206,7 +208,7 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
             this.$logger.warn(
                 `Failed to inject pagination meta: ${node.absolutePath}`
             )
-            return
+            throw injectResult.error
         }
 
         this.$logger.success(

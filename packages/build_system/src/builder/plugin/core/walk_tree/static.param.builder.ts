@@ -321,6 +321,8 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
 
         if (staticParamUpdate.success) {
             this.$logger.success(`injected static params to ${finalBuildPath}`)
+        } else {
+            throw staticParamUpdate.error
         }
     }
 }

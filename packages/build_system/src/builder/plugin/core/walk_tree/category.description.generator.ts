@@ -182,5 +182,13 @@ export class CategoryDescriptionGeneratorPlugin extends WalkTreePlugin<
             )
             return
         }
+
+        if (!collectionRecord.success) {
+            throw collectionRecord.error
+        }
+
+        if (!descriptionDelete.success) {
+            throw descriptionDelete.error
+        }
     }
 }

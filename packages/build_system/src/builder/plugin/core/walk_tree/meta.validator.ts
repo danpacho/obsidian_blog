@@ -98,7 +98,12 @@ export class MetaValidatorPlugin extends WalkTreePlugin<
             this.$logger.error(
                 `Meta invalid: default meta generation error at ${build_path.origin}`
             )
-            return
+            throw new Error(
+                `Meta invalid: default meta generation error at ${build_path.origin}`,
+                {
+                    cause: node,
+                }
+            )
         }
 
         const defaultGeneration = await this.meta.update({
@@ -110,6 +115,7 @@ export class MetaValidatorPlugin extends WalkTreePlugin<
             this.$logger.error(
                 `Meta invalid: default meta injection error at ${build_path.origin}`
             )
+            throw defaultGeneration.error
         } else {
             this.$logger.info(
                 `Meta invalid: default meta injection success at ${build_path.origin}`

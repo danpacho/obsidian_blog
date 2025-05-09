@@ -122,12 +122,14 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         if (node.category !== 'TEXT_FILE') return
         if (!this.referenceMap) {
             this.$logger.error('referenceMap is not initialized')
-            return
+            throw new Error('referenceMap is not initialized')
         }
 
         if (!node.buildInfo) {
             this.$logger.error(`build path not defined: ${node.absolutePath}`)
-            return
+            throw new Error(`build path not defined: ${node.absolutePath}`, {
+                cause: node,
+            })
         }
 
         const meta = await this.$meta.extractFromFile(
@@ -136,7 +138,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
 
         if (!meta.success) {
             this.$logger.error(`Meta invalid: ${meta.error}`)
-            return
+            throw meta.error
         }
 
         const metaEntries = Object.entries(meta.data.meta)
@@ -181,6 +183,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
 
         if (!updateResponse.success) {
             this.$logger.error(`Meta invalid: ${updateResponse.error}`)
+            throw updateResponse.error
         } else {
             this.$logger.info(
                 `Meta Img Path Matched: ${node.buildInfo.build_path.build}`
