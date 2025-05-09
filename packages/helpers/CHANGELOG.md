@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.4.0
+
+### Minor Changes
+
+- Stabilize plugin interface and enhance type-safety for plugin responses
+
 ## 0.3.2
 
 ### Patch Changes

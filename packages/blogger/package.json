@@ -1,7 +1,7 @@
 {
   "name": "blogger",
   "productName": "blogger",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Blogger App",
   "keywords": [],
   "main": ".vite/build/main.js",

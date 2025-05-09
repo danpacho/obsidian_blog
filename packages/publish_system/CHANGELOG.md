@@ -1,5 +1,17 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.0
+
+### Minor Changes
+
+- Stabilize plugin interface and enhance type-safety for plugin responses
+
+### Patch Changes
+
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.4.0
+    - @obsidian_blogger/plugin_api@0.2.0
+
 ## 0.3.5
 
 ### Patch Changes
