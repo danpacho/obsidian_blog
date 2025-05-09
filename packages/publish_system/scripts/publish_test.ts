@@ -2,12 +2,20 @@
 import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
 import { Bridge } from '@obsidian_blogger/plugin_api'
 import { CorePlugins, PublishSystem } from '../src'
+import { config } from 'dotenv'
+import path from 'path'
 
-const BLOG_ROOT = '/Users/june/Documents/project/blogger_astro_blog' as const
+const envPath = path.resolve(process.cwd(), '../../.env')
+config({ path: envPath })
+
+const BLOG_ROOT = process.env.PUBLISH_TEST_ROOT
+if (!BLOG_ROOT) {
+    console.error(`Missing BLOG_ROOT in .env at ${envPath}`)
+    process.exit(1)
+}
 
 const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
     const roots = publisher.$configBridgeStorage.configStoreRoot
-
     const bridgeForBuildScript = new Bridge.PluginConfigStorage({
         name: 'bridge',
         root: roots[0]!.root as string,
@@ -21,6 +29,13 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
         root: roots[2]!.root as string,
     })
 
+    //@ts-ignore
+    await bridgeForDeploy.init()
+    //@ts-ignore
+    await bridgeForBuildScript.init()
+    //@ts-ignore
+    await bridgeForRepository.init()
+
     const shell = new ShellExecutor()
 
     const dynamicConfigs = {
@@ -28,6 +43,7 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
             dynamicConfig: {
                 cwd: BLOG_ROOT,
                 command: ['build'],
+                $$load_status$$: 'include',
             },
         },
         github: {
@@ -39,12 +55,14 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
                     .toISOString()
                     .replace(/:/g, '_')}`,
                 gitPath: (await shell.exec$('which git')).stdout,
+                $$load_status$$: 'include',
             },
         },
         vercel: {
             dynamicConfig: {
                 cwd: BLOG_ROOT,
                 someConfig: 'someValue',
+                $$load_status$$: 'include',
             },
         },
     }
@@ -78,19 +96,18 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
  */
 const publish = async () => {
     const io = new IO()
+
+    // 1. Initialize publisher system
     const publisher = new PublishSystem({
         bridgeRoot: `${process.cwd()}/scripts`,
-    })
-
-    // 1. [Assume] User writes the config, inject at bridge storage
-    await injectDynamicConfigFromObsidian(publisher)
-
-    // 2. Scripts uses the plugins, <static>
-    publisher.use({
+    }).use({
         buildScript: [new CorePlugins.BlogBuilder()],
         repository: [new CorePlugins.GithubRepository()],
         deploy: [new CorePlugins.VercelDeploy()],
     })
+
+    // 2. [Assume] User writes the config, inject at bridge storage
+    await injectDynamicConfigFromObsidian(publisher)
 
     // 3. [Assume] Blog is updated
     const uniqueID = new Date().toISOString().replace(/:/g, '_')
