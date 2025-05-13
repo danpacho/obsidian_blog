@@ -97,8 +97,10 @@ export class GithubRepository extends RepositoryPlugin<
                     try {
                         if (addPattern) {
                             exec = await this.$git?.addByPattern(addPattern)
+                            this.$logger.info(`Add ${addPattern} success`)
                         } else {
                             exec = await this.$git?.addAll()
+                            this.$logger.info(`Add all success`)
                         }
                     } catch (e) {
                         this.invokeError(error, {
@@ -122,6 +124,7 @@ export class GithubRepository extends RepositoryPlugin<
                     const commit = `${commitPrefix}: ${commitMessage}`
                     try {
                         exec = await this.$git?.commit(commit)
+                        this.$logger.info(`Commit success`)
                     } catch (e) {
                         this.invokeError(error, {
                             e,
@@ -135,9 +138,6 @@ export class GithubRepository extends RepositoryPlugin<
                         }
                     }
                 },
-                cleanup: async () => {
-                    this.$logger.info(`Commit success`)
-                },
             },
             {
                 name: 'git-push',
@@ -146,6 +146,7 @@ export class GithubRepository extends RepositoryPlugin<
                     let exec: PublishPluginResponse['error'][number]['command']
                     try {
                         exec = await this.$git?.push(branch)
+                        this.$logger.success('Pushed to remote successfully')
                     } catch (e) {
                         this.invokeError(error, {
                             e,
@@ -158,9 +159,6 @@ export class GithubRepository extends RepositoryPlugin<
                             history: this.$logger.getHistory(),
                         }
                     }
-                },
-                cleanup: async () => {
-                    this.$logger.success('Pushed to remote successfully')
                 },
             },
         ])

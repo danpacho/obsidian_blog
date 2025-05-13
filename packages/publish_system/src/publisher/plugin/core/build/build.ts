@@ -59,6 +59,7 @@ export class BlogBuilder extends BuildScriptPlugin {
                         } else {
                             throw buildResult.error
                         }
+                        this.$logger.success('Build succeeded')
                     } catch (e) {
                         this.invokeError(
                             error,
@@ -74,7 +75,6 @@ export class BlogBuilder extends BuildScriptPlugin {
                                   }
                         )
                     } finally {
-                        this.$logger.success('Build succeeded')
                         return {
                             error,
                             history: this.$logger.getHistory(),
