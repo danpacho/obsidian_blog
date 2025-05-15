@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.4.1
+
+### Patch Changes
+
+- Update exported interface of build/publish plugins
+
 ## 0.4.0
 
 ### Minor Changes
