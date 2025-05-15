@@ -1,4 +1,4 @@
-import { InferPluginConfig, Runner } from '@obsidian_blogger/plugin_api'
+import { Runner } from '@obsidian_blogger/plugin_api'
 import type { FileTreeNode, FileTreeParser, FolderNode } from '../parser'
 import type { BuildCacheManager, BuildStore, BuildStoreList } from './core'
 import type {
@@ -337,6 +337,25 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
      * @description Exclude files that start with a `.`(dot)
      */
     public static defaultExclude = [/^\.\w+/, /^\./]
+    private static excludeByFilename(
+        fileName: string,
+        exclude?: Array<string>
+    ): boolean {
+        const shouldBeExcluded: boolean = [
+            ...BuilderPluginCachePipelines.defaultExclude,
+            exclude ?? [],
+        ].some((pattern) => {
+            if (typeof pattern === 'string') {
+                return pattern === fileName
+            }
+            if (pattern instanceof RegExp) {
+                return pattern.test(fileName)
+            }
+            return pattern.some((patternName) => patternName === fileName)
+        })
+
+        return shouldBeExcluded
+    }
 
     public override treeCachePipeline(args: {
         cacheManager: BuildCacheManager
@@ -358,18 +377,8 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
         if (config?.disableCache) return false
 
         const fileName = node.fileName
-        const shouldBeExcluded: boolean = [
-            ...BuilderPluginCachePipelines.defaultExclude,
-            config?.exclude ?? [],
-        ].some((pattern) => {
-            if (typeof pattern === 'string') {
-                return pattern === fileName
-            }
-            if (pattern instanceof RegExp) {
-                return pattern.test(fileName)
-            }
-            return pattern.some((patternName) => patternName === fileName)
-        })
+        const shouldBeExcluded: boolean =
+            BuilderPluginCachePipelines.excludeByFilename(fileName)
 
         if (shouldBeExcluded) return false
 
@@ -404,11 +413,13 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
     }): BuildStoreList {
         const { config, store, pluginCacheChecker } = args
 
-        const totalTargetReport = store.getStoreList('current')
-        const updateTargetReport = totalTargetReport.filter(
-            ({ build_state }) =>
-                build_state === 'UPDATED' || build_state === 'ADDED'
-        )
+        const totalTargetReport = store
+            .getStoreList('current')
+            .filter(({ file_name }) => {
+                const excludeFileStatus =
+                    BuilderPluginCachePipelines.excludeByFilename(file_name)
+                return !excludeFileStatus
+            })
 
         if (config?.disableCache) {
             return totalTargetReport
@@ -423,6 +434,11 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
                 })
             )
         }
+
+        const updateTargetReport = totalTargetReport.filter(
+            ({ build_state }) =>
+                build_state === 'UPDATED' || build_state === 'ADDED'
+        )
 
         return updateTargetReport
     }
