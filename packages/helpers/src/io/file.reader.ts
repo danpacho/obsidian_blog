@@ -173,6 +173,11 @@ export class FileReader {
         return ext ? ext.slice(1) : undefined // drop the dot
     }
 
+    public static getFileNameWithExtension(filePath: string): string {
+        const base = path.basename(filePath) // "baz.md"
+        return base
+    }
+
     /* ------------------------------------------------------------------ */
     /** Return the base filename without its extension.
      *      "/foo/bar/baz.md" → "baz"   |   "README" → "README"          */
