@@ -5,6 +5,7 @@ import {
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
+import { FileReader } from '@obsidian_blogger/helpers/io'
 
 export type MetaImgPathMatcherStaticConfig = WalkTreePluginStaticConfig
 export type MetaImgPathMatcherDynamicConfig = WalkTreePluginDynamicConfig
@@ -31,10 +32,6 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         }
     }
 
-    private getFileName(path: string): string | null {
-        const pathSplit = path.split('/')
-        return pathSplit[pathSplit.length - 1] ?? null
-    }
     /**
      * Build a Map from the final filename to an array of references that share this filename.
      *
@@ -56,7 +53,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         const referenceMap: ReferenceMap = new Map()
 
         for (const ref of imageReference) {
-            const pureFilename = this.getFileName(ref.origin)
+            const pureFilename = FileReader.getFileName(ref.origin)
             if (!pureFilename) continue
 
             const entry = referenceMap.get(pureFilename) || []
@@ -95,7 +92,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
     }
 
     private resolveAssetPath(link: string): string | null {
-        const pureFilename = this.getFileName(link)
+        const pureFilename = FileReader.getFileName(link)
         if (!pureFilename) return null
 
         const possibleRefs = this.referenceMap?.get(pureFilename)

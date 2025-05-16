@@ -7,6 +7,9 @@ import {
     BuildContentsPlugin,
     type BuildContentsPluginStaticConfig,
 } from '../../build.contents.plugin'
+import { FileReader } from '@obsidian_blogger/helpers/io'
+
+import path from 'node:path'
 
 type ImageReference = Array<{
     origin: string
@@ -27,32 +30,38 @@ type ObsidianReferencePluginOptions = {
 // Matches e.g. ![[img.png]] inside text nodes
 const EMBED_LINK_REGEX = /!\[\[([^[\]]+)\]\]/g
 
-const getFileName = (link: string): string | null => {
-    const split = link.split('/')
-    return split[split.length - 1] ?? null
-}
+/* ───────────────────────────────────────────────────────────────────────────
+ *  1.  Normalise any path-like string to POSIX form so “\” never appears.
+ * ─────────────────────────────────────────────────────────────────────────── */
+const toPosix = (p: string): string =>
+    path
+        .normalize(p) // collapses “.”, “..”, duplicate seps
+        .split(path.sep)
+        .join('/') // force forward slashes everywhere
 
+/* ───────────────────────────────────────────────────────────────────────────
+ *  3.  Resolve markdown/HTML asset path → build path, regardless of OS.
+ * ─────────────────────────────────────────────────────────────────────────── */
 const resolveAssetPath = (
     link: string,
     referenceMap: ObsidianReferencePluginOptions['referenceMap']
 ): string | null => {
-    const pureFilename = getFileName(link)
+    const pureFilename = FileReader.getFileName(link)
     if (!pureFilename) return null
 
     const possibleRefs = referenceMap.get(pureFilename)
-    if (!possibleRefs || possibleRefs.length === 0) return null
+    if (!possibleRefs?.length) return null
 
-    if (possibleRefs.length === 1) {
-        return possibleRefs[0]!.buildReplaced
-    }
+    /* Fast exit when only one match exists */
+    if (possibleRefs.length === 1) return possibleRefs[0]!.buildReplaced
 
-    const queriedLink = link.startsWith('./') ? link.slice(2) : link
-    const found = possibleRefs.find((ref) => ref.origin.includes(queriedLink))
-    if (found) {
-        return found.buildReplaced
-    }
+    /* Multiple refs → compare normalised origins */
+    const queried = toPosix(link.replace(/^\.\//, '')) // strip leading “./”
+    const found = possibleRefs.find((ref) =>
+        toPosix(ref.origin).includes(queried)
+    )
 
-    return null
+    return found ? found.buildReplaced : null
 }
 
 export const RemarkObsidianReferencePlugin: Plugin<
@@ -120,8 +129,8 @@ export const RemarkObsidianReferencePlugin: Plugin<
                     }
 
                     // Determine extension and produce appropriate HTML
-                    const extension =
-                        (getFileName(link) ?? '').split('.').pop() || ''
+                    const extension = FileReader.getExtension(link)
+
                     if (ImageFileNode.is(extension)) {
                         return [
                             {
@@ -199,10 +208,6 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         }
     }
 
-    private getFileName(path: string): string | null {
-        const pathSplit = path.split('/')
-        return pathSplit[pathSplit.length - 1] ?? null
-    }
     /**
      * Build a Map from the final filename to an array of references that share this filename.
      *
@@ -225,7 +230,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             new Map()
 
         for (const ref of imageReference) {
-            const pureFilename = this.getFileName(ref.origin)
+            const pureFilename = FileReader.getFileName(ref.origin)
             if (!pureFilename) continue
 
             const entry = referenceMap.get(pureFilename) || []

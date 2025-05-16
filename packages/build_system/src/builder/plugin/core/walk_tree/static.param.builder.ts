@@ -1,3 +1,14 @@
+/******************************************************************************************
+ * Static-Param-Builder  –  cross-platform refactor
+ *
+ *  ▸ The only change is **removing OS-dependent path handling**.
+ *  ▸ All build-path manipulations now go through Node’s `path` utilities and are
+ *    converted to **POSIX style** (`/`) before further processing, so Windows “\”
+ *    never leak into your web-href logic.
+ *
+ *  ⬇️  Paste straight into `static-param-builder.plugin.ts`
+ ******************************************************************************************/
+import path from 'node:path' // ← NEW
 import { FileReader } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
@@ -13,6 +24,9 @@ import {
 
 type RecordShape = Record<string, string>
 
+/* ------------------------------------------------------------------------ */
+/*                         CONFIG & TYPE DECLARATIONS                       */
+/* ------------------------------------------------------------------------ */
 export interface StaticParamBuilderConfig
     extends Partial<ContentMetaGeneratorOptions> {
     /**
@@ -127,8 +141,40 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         }
     }
 
+    /* -------------------------------------------------------------------- */
+    /*                🔑  HELPER:  OS-agnostic POSIX path string            */
+    /* -------------------------------------------------------------------- */
+    /** Convert *any* filesystem path to a POSIX-style string (`/` only). */
+    private toPosix(p: string): string {
+        return p.split(path.sep).join('/')
+    }
+
+    /**
+     * Return a POSIX string of `to` relative to `from`
+     * (works even if separators differ).
+     */
+    private relativePosix(from: string, to: string): string {
+        return this.toPosix(path.relative(from, to))
+    }
+
+    /** `/foo/bar/baz.ext` → `['foo','bar','baz']` (separator-agnostic) */
+    private splitToPurePath(p: string): string[] {
+        return this.toPosix(p)
+            .split('/')
+            .filter(Boolean)
+            .map(FileReader.getFileName)
+    }
+
+    /** build `{ key1: value, key2: value }` from key list */
+    private createRecord(keys: string[], value: string): RecordShape {
+        return keys.reduce<RecordShape>(
+            (acc, key) => ({ ...acc, [key]: value }),
+            {}
+        )
+    }
+
     private _paramAnalyzer: ParamAnalyzer | undefined
-    private get paramAnalyzer() {
+    private get paramAnalyzer(): ParamAnalyzer {
         if (!this._paramAnalyzer) {
             this._paramAnalyzer = new ParamAnalyzer(
                 this.dynamicConfig.paramAnalyzer
@@ -136,6 +182,7 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         }
         return this._paramAnalyzer
     }
+
     private _analyzed: ReturnType<ParamAnalyzer['analyzeParam']> | undefined
     private get analyzed() {
         if (!this._analyzed) {
@@ -153,59 +200,44 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         )
     }
 
-    private splitToPurePath(path: string): Array<string> {
-        return path.split('/').filter(Boolean).map(FileReader.getPureFileName)
-    }
-
-    private createRecord(keys: string[], value: string): RecordShape {
-        return keys.reduce<RecordShape>(
-            (acc, key) => ({ ...acc, [key]: value }),
-            {}
-        )
-    }
-
-    private _paramBuildStore: Record<string, Array<string>> = {}
-    private get paramBuildStore(): Record<string, Array<string>> {
-        return this._paramBuildStore
-    }
-    private addParams(paramEntry: Array<[string, string]>): void {
+    private _paramBuildStore: Record<string, string[]> = {}
+    private addParams(paramEntry: [string, string][]): void {
         paramEntry.forEach(([key, value]) => {
-            if (!this.paramBuildStore[key]) {
-                this.paramBuildStore[key] = []
-            }
-            this.paramBuildStore[key].push(value)
+            if (!this._paramBuildStore[key]) this._paramBuildStore[key] = []
+            this._paramBuildStore[key].push(value)
         })
     }
-    private getParamBuildStore(key: string): Array<string> {
-        return this.paramBuildStore[key] ?? []
+    private getParamBuildStore(key: string): string[] {
+        return this._paramBuildStore[key] ?? []
     }
 
     private static get PAGE_SYMBOL() {
         return '$page'
     }
 
+    /* -------------------------------------------------------------------- */
+    /*                            MAIN WALK LOGIC                           */
+    /* -------------------------------------------------------------------- */
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
-        const finalBuildPath: string | undefined =
-            node.buildInfo?.build_path.build
+        const finalBuildPath = node.buildInfo?.build_path.build
         if (!finalBuildPath) return
 
         const paramBuildPath = finalBuildPath.replace(
             this.$buildPath.contents,
             ''
         )
-        const buildList: Array<string> = this.splitToPurePath(paramBuildPath)
-        const staticParamsContainer: RecordShape = this.createRecord(
+
+        const buildList = this.splitToPurePath(paramBuildPath)
+        const staticParamsContainer = this.createRecord(
             this.analyzed.dynamicParams,
             ''
         )
 
         const staticParamsInfo = this.analyzed.result.reduce<{
             params: RecordShape
-            store: {
-                nonDynamic: Array<string>
-            }
+            store: { nonDynamic: string[] }
             listPointer: number
         }>(
             (acc, curr) => {
@@ -213,7 +245,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                     acc.store.nonDynamic.push(curr.dividerName)
                     return acc
                 }
-
                 const { paramName } = curr
 
                 if (paramName === StaticParamBuilderPlugin.PAGE_SYMBOL) {
@@ -225,7 +256,7 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                     const foundedPath = buildList[acc.listPointer]
                     if (!foundedPath) return acc
 
-                    const buildPath: string = [
+                    const buildPath = [
                         ...acc.store.nonDynamic,
                         foundedPath,
                     ].join('/')
@@ -236,11 +267,9 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
                     return acc
                 }
 
-                const restPath: Array<string> = buildList.slice(acc.listPointer)
-                const buildPathList: Array<string> = [
-                    ...acc.store.nonDynamic,
-                    ...restPath,
-                ]
+                const restPath = buildList.slice(acc.listPointer)
+                const buildPathList = [...acc.store.nonDynamic, ...restPath]
+
                 acc.listPointer += buildPathList.length
                 acc.params[paramName] = buildPathList.join('/')
                 acc.store.nonDynamic = []
@@ -248,60 +277,54 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             },
             {
                 params: staticParamsContainer,
-                store: {
-                    nonDynamic: [],
-                },
+                store: { nonDynamic: [] },
                 listPointer: 0,
             }
         )
 
         this.addParams(Object.entries(staticParamsInfo.params))
 
-        const getPaginatedParams = () => {
-            return this.analyzed.result.reduce<RecordShape>((acc, curr) => {
-                if (!curr.isDynamicParam) return acc
+        /* ---------------------------- pagination --------------------------- */
+        const paginatedParams = this.analyzed.result.reduce<RecordShape>(
+            (acc, curr) => {
                 if (
-                    curr.isDynamicParam &&
-                    curr.paramName === StaticParamBuilderPlugin.PAGE_SYMBOL
-                ) {
-                    const targetPageParam = acc[curr.paramName]
+                    !curr.isDynamicParam ||
+                    curr.paramName !== StaticParamBuilderPlugin.PAGE_SYMBOL
+                )
+                    return acc
 
-                    if (!targetPageParam) return acc
+                const targetPageParam = acc[curr.paramName]
+                if (!targetPageParam) return acc
 
-                    const targetPageNum = Math.ceil(
-                        this.getParamBuildStore(curr.paramName).length /
-                            this.dynamicConfig.maxPage!
-                    )
-
-                    acc['page'] = targetPageNum.toString()
-
-                    delete acc[curr.paramName]
-                }
+                const total = Math.ceil(
+                    this.getParamBuildStore(curr.paramName).length /
+                        this.dynamicConfig.maxPage!
+                )
+                acc['page'] = total.toString()
+                delete acc[curr.paramName]
                 return acc
-            }, staticParamsInfo.params)
-        }
+            },
+            staticParamsInfo.params
+        )
 
-        const paginatedParams = getPaginatedParams()
-
+        /* ------------------------- build final href ----------------------- */
         const href = this.analyzed.result
-            .reduce<Array<string>>(
+            .reduce<string[]>(
                 (acc, curr) => {
                     if (!curr.isDynamicParam) return acc
 
                     const { paramName } = curr
-
                     if (paramName === StaticParamBuilderPlugin.PAGE_SYMBOL) {
                         const pageNum = paginatedParams['page']
-                        if (pageNum) {
-                            acc.push(pageNum)
-                        } else {
+                        if (!pageNum) {
                             throw new Error(
                                 `page param is not found in the paginatedParams`
                             )
                         }
+                        acc.push(pageNum)
+                    } else {
+                        acc.push(staticParamsInfo.params[paramName]!)
                     }
-
-                    acc.push(staticParamsInfo.params[paramName]!)
                     return acc
                 },
                 this.dynamicConfig.prefix! === ''
@@ -311,6 +334,7 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             .filter(Boolean)
             .join('/')
 
+        /* --------------------------- meta inject --------------------------- */
         const staticParamUpdate = await this.meta.update({
             injectPath: finalBuildPath,
             meta: {

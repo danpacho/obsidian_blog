@@ -77,7 +77,7 @@ export class BuildInfoGenerator {
     private buildPathStore = new Map<string, number>()
 
     private getBuildPath(path: string): string {
-        const name = FileReader.getPureFileName(path)
+        const name = FileReader.getFileName(path)
         const extension = FileReader.getExtension(path)
         const assembled = `${name}.${extension}`
         const count = this.buildPathStore.get(assembled)
@@ -219,7 +219,7 @@ export class BuildInfoGenerator {
 
         const resultId: string = generatedRoute
             ? `${id}_${generatedRoute}`
-            : `${id}_${FileReader.getPureFileName(assetNode.fileName)}`
+            : `${id}_${FileReader.getFileName(assetNode.fileName)}`
 
         const buildPath: string = this.getSafeRoutePath(
             `${this.options.buildPath.assets}/${prefix}/${resultId}.${assetNode.fileExtension}`
