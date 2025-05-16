@@ -6,6 +6,9 @@ import {
 import type { NodeType } from '../../parser/node'
 import type { NodeId } from './info.generator'
 
+import { existsSync, realpathSync } from 'node:fs'
+import path from 'node:path'
+
 /**
  * Represents the build information for a specific file.
  */
@@ -165,6 +168,20 @@ export class BuildStore {
     }
 
     /**
+     * Canonicalize a path so the same file always yields the same string
+     */
+    private canonicalPath(p: string): string {
+        const exists = existsSync(p)
+        let out = exists ? realpathSync.native(p) : path.resolve(p)
+
+        out = path.normalize(out) // fix “..”, “.”, slashes
+        if (process.platform === 'win32') out = out.toLowerCase() // case-fold
+        if (out.length > 1) out = out.replace(/[\\/]+$/, '') // trim trailing /
+
+        return out
+    }
+
+    /**
      * Finds a build information item by its build path.
      * @param buildPath The build path to search for.
      * @param target The target to search in ('current' or 'prev').
@@ -172,25 +189,21 @@ export class BuildStore {
      */
     public findByBuildPath(
         buildPath: string,
-        {
-            target,
-        }: {
-            target: 'current' | 'prev'
-        }
+        { target }: { target: 'current' | 'prev' }
     ): Stateful<BuildInformation, Error> {
+        const wanted = this.canonicalPath(buildPath)
+
         const buildInformation = this.getStoreList(target).find(
-            (report) => report.build_path.build === buildPath
+            (report) => this.canonicalPath(report.build_path.build) === wanted
         )
+
         if (!buildInformation) {
             return {
                 success: false,
                 error: new Error(`build path ${buildPath} does not exist`),
             }
         }
-        return {
-            success: true,
-            data: buildInformation,
-        }
+        return { success: true, data: buildInformation }
     }
 
     /**
