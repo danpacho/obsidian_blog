@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.4.2
+
+### Patch Changes
+
+- Fix findByBuildPath for os dependent path ruleset
+
 ## 0.4.1
 
 ### Patch Changes

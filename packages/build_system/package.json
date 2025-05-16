@@ -1,6 +1,6 @@
 {
   "name": "@obsidian_blogger/build_system",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Post build system",
   "author": "danpacho",
   "license": "MIT",
