@@ -77,7 +77,7 @@ export abstract class FileTreeNode {
         public readonly category: NodeType = 'UNKNOWN_FILE',
         public label: string | undefined = undefined
     ) {
-        this.fileName = FileTreeNode.getFileName(absolutePath)
+        this.fileName = FileReader.getFileNameWithExtension(absolutePath)
     }
 
     /**
@@ -86,16 +86,6 @@ export abstract class FileTreeNode {
      */
     public setLabel(label: string): void {
         this.label = label
-    }
-
-    private static getFileName(basePath: string): string {
-        const pathList = basePath.split('/')
-
-        const fileNameTarget = pathList[pathList.length - 1]
-        if (!fileNameTarget) {
-            throw new Error('File name not found')
-        }
-        return fileNameTarget
     }
 
     /**
