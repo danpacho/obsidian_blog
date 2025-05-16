@@ -1,7 +1,10 @@
+import path from 'node:path'
 import { ReadStream, createReadStream, statSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { glob, globSync } from 'glob'
+
 import type { PromiseCallbacks, Promisify, Stateful } from '../promisify'
+
 export interface DirectoryNode {
     name: string
     path: string
@@ -162,16 +165,21 @@ export class FileReader {
         }
     }
 
-    public static getExtension(path: string): string | undefined {
-        const parts = path.split('.')
-        return parts.length > 1 ? parts.pop() : undefined
+    /* ------------------------------------------------------------------ */
+    /** Return the file-extension *without* the leading dot, or `undefined`
+     *  when no extension exists (e.g. `/foo/README`). Works on any OS. */
+    public static getExtension(filePath: string): string | undefined {
+        const ext = path.extname(filePath) // → ".md" | ""
+        return ext ? ext.slice(1) : undefined // drop the dot
     }
 
-    public static getPureFileName(fileName: string): string {
-        return fileName.replace(
-            `.${String(FileReader.getExtension(fileName)) ?? ''}`,
-            ''
-        )
+    /* ------------------------------------------------------------------ */
+    /** Return the base filename without its extension.
+     *      "/foo/bar/baz.md" → "baz"   |   "README" → "README"          */
+    public static getFileName(filePath: string): string {
+        const base = path.basename(filePath) // "baz.md"
+        const ext = path.extname(base) // ".md" | ""
+        return ext ? base.slice(0, -ext.length) : base // "baz"
     }
 
     public async readDir(
