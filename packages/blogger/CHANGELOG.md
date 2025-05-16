@@ -1,5 +1,13 @@
 # blogger
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.4.1
+    - @obsidian_blogger/design_system@0.2.3
+
 ## 1.0.5
 
 ### Patch Changes

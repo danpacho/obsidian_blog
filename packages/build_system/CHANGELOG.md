@@ -1,5 +1,14 @@
 # @obsidian_blogger/build_system
 
+## 0.4.3
+
+### Patch Changes
+
+- Fix os-dependent file system path reading error via refactored FileReader static method
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.4.1
+    - @obsidian_blogger/plugin_api@0.2.1
+
 ## 0.4.2
 
 ### Patch Changes
