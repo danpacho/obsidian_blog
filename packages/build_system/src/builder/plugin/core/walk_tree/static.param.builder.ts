@@ -149,14 +149,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         return p.split(path.sep).join('/')
     }
 
-    /**
-     * Return a POSIX string of `to` relative to `from`
-     * (works even if separators differ).
-     */
-    private relativePosix(from: string, to: string): string {
-        return this.toPosix(path.relative(from, to))
-    }
-
     /** `/foo/bar/baz.ext` → `['foo','bar','baz']` (separator-agnostic) */
     private splitToPurePath(p: string): string[] {
         return this.toPosix(p)
@@ -215,9 +207,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         return '$page'
     }
 
-    /* -------------------------------------------------------------------- */
-    /*                            MAIN WALK LOGIC                           */
-    /* -------------------------------------------------------------------- */
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
@@ -284,7 +273,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
 
         this.addParams(Object.entries(staticParamsInfo.params))
 
-        /* ---------------------------- pagination --------------------------- */
         const paginatedParams = this.analyzed.result.reduce<RecordShape>(
             (acc, curr) => {
                 if (
@@ -307,7 +295,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             staticParamsInfo.params
         )
 
-        /* ------------------------- build final href ----------------------- */
         const href = this.analyzed.result
             .reduce<string[]>(
                 (acc, curr) => {
@@ -334,7 +321,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
             .filter(Boolean)
             .join('/')
 
-        /* --------------------------- meta inject --------------------------- */
         const staticParamUpdate = await this.meta.update({
             injectPath: finalBuildPath,
             meta: {
