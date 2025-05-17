@@ -504,6 +504,12 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                     } else if ($$load_status$$ === 'include') {
                         setPluginIncluded(true)
                     }
+                } else {
+                    await configStorage.updateSinglePluginLoadStatus(
+                        pluginName,
+                        'include'
+                    )
+                    setPluginIncluded(true)
                 }
             } else {
                 await configStorage.updateSinglePluginLoadStatus(
