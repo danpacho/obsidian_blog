@@ -3,7 +3,8 @@ import { FileReader, type IO } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginDependencies } from '../plugin/build.plugin'
 import type { BuildInformation } from './store'
-import { posix, win32 } from 'path'
+import path, { posix, win32 } from 'path'
+
 /**
  *  A unique identifier for a node
  */
@@ -76,42 +77,45 @@ export class BuildInfoGenerator {
 
     private buildPathStore = new Map<string, number>()
 
-    private getBuildPath(path: string): string {
-        const name = FileReader.getFileName(path)
-        const extension = FileReader.getExtension(path)
-        const assembled = `${name}.${extension}`
-        const count = this.buildPathStore.get(assembled)
-        if (!count) {
-            this.buildPathStore.set(path, 1)
-            return path
-        }
+    private getBuildPath(assembledName: string): string {
+        const count = this.buildPathStore.get(assembledName) || 0
+        this.buildPathStore.set(assembledName, count + 1)
 
-        const updatedCount = count + 1
-        this.buildPathStore.set(path, updatedCount)
-        return `${name}_${updatedCount}.${extension}`
+        return count === 0
+            ? assembledName
+            : assembledName.replace(
+                  /^(.*)\.([^.]*)$/,
+                  (_, name, ext) => `${name}_${count + 1}.${ext}`
+              )
     }
 
-    private getSafeRoutePath(route: string): string {
+    private getSafeRoutePath(...routes: Array<string>): string {
         // 1) unify separators
-        const unified = route.replace(/\\/g, '/')
+        const route = path.join(...routes)
+        const normalizedRoute = path.normalize(route)
+
+        const DIVIDER = '|' as const
+        const unified = normalizedRoute.replaceAll(path.sep, DIVIDER)
 
         // 2) split & drop any empty pieces
-        const segments = unified.split('/').filter(Boolean)
+        const routeSegments = unified.split(DIVIDER).filter(Boolean)
 
         let safeRoute: string
         if (process.platform === 'win32') {
             // Windows: back-slashes, no leading slash
-            safeRoute = win32.join(...segments)
+            safeRoute = win32.join(...routeSegments)
             safeRoute = win32.normalize(safeRoute)
         } else {
             // macOS/Linux: forward-slashes, ensure leading slash
-            safeRoute = posix.join('/', ...segments)
+            safeRoute = posix.join('/', ...routeSegments)
             safeRoute = posix.normalize(safeRoute)
         }
 
-        // 3) hand off to your build logic
-        return this.getBuildPath(safeRoute)
+        const buildPath = this.getBuildPath(safeRoute)
+
+        return buildPath
     }
+
     private encodeHashUUID(inputString: string): UUID {
         const hash = createHash('sha256').update(inputString).digest('hex')
         const uuid: UUID = [...hash]
@@ -153,7 +157,9 @@ export class BuildInfoGenerator {
         )
 
         const buildPath = this.getSafeRoutePath(
-            `${this.options.buildPath.contents}/${generatedRoute}/${contentNode.fileName}`
+            this.options.buildPath.contents,
+            generatedRoute,
+            contentNode.fileName
         )
         const path = {
             build: buildPath,
@@ -222,7 +228,9 @@ export class BuildInfoGenerator {
             : `${id}_${FileReader.getFileName(assetNode.fileName)}`
 
         const buildPath: string = this.getSafeRoutePath(
-            `${this.options.buildPath.assets}/${prefix}/${resultId}.${assetNode.fileExtension}`
+            this.options.buildPath.assets,
+            prefix,
+            `${resultId}.${assetNode.fileExtension}`
         )
         return {
             id,
