@@ -234,6 +234,9 @@ export class LoadConfigBridgeStorage {
         }
     }
 
+    /**
+     * **Update dynamic config by UI(injected)**
+     */
     private async saveUpdatedPluginConfigs({
         name,
         pluginPipes,
@@ -246,7 +249,32 @@ export class LoadConfigBridgeStorage {
             pipes: Array<PluginShape>
         ) => {
             await pluginManager.$config.load()
+
+            const registeredPluginNames = pipes.map((e) => e.name)
+
+            const dbRemovingTargetPluginNames = Object.entries(
+                pluginManager.$config.storageRecord
+            )
+                .filter(([_, config]) => {
+                    if (
+                        config.dynamicConfig &&
+                        '$$load_status$$' in config.dynamicConfig
+                    ) {
+                        return (
+                            config.dynamicConfig['$$load_status$$'] ===
+                            'include'
+                        )
+                    }
+                    return false
+                })
+                .map(([key]) => key)
+                .filter(
+                    (dbRegisteredPluginName) =>
+                        !registeredPluginNames.includes(dbRegisteredPluginName)
+                )
+
             for (const pipe of pipes) {
+                // pipe written staticConfig
                 const { name, staticConfig } = pipe
                 const dynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig ?? null
@@ -254,6 +282,11 @@ export class LoadConfigBridgeStorage {
                     staticConfig,
                     dynamicConfig,
                 })
+            }
+
+            // remove non-registered plugins
+            for (const rmName of dbRemovingTargetPluginNames) {
+                await pluginManager.$config.remove(rmName)
             }
         }
 
