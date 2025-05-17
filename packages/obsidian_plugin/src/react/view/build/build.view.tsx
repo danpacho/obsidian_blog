@@ -10,6 +10,7 @@ import {
 import { Promisify } from '@obsidian_blogger/helpers/promisify'
 import {
     type PluginConfig,
+    type PluginExecutionResponse,
     type PluginDynamicConfigSchema,
     type PluginInterfaceDynamicConfig,
 } from '@obsidian_blogger/plugin_api'
@@ -20,7 +21,6 @@ import {
 } from '@obsidian_blogger/plugin_api/arg_parser'
 import type {
     BuildBridgeHistoryRecord,
-    BuildBridgeHistoryValue,
     BuildBridgeStorage,
     PluginConfigStorage,
 } from '@obsidian_blogger/plugin_api/bridge'
@@ -36,49 +36,119 @@ import {
     PUBLISH_STORAGE_KEYS,
     type PublishStorageKeys,
     useStorage,
+    useSyncStorage,
 } from '~/react/provider'
 import { Routing } from '~/react/routing'
-import { Is, Shell } from '~/utils'
+import { Is } from '~/utils'
+import { ExecutePlugin } from '~/utils/exec'
 import { MergeRecord } from '~/utils/merge.record'
 import { tw } from '@obsidian_blogger/design_system/tools'
+import { LogHistory } from '@obsidian_blogger/helpers/logger'
+import { CommandResult } from '@obsidian_blogger/helpers/shell'
 
 export function BuildView() {
     const storage = useStorage()
-    const { loaded: settingLoaded, settings } = useObsidianSetting()
+    const { loaded, settings } = useObsidianSetting()
+    const [progress, setProgress] = useProgressStatus()
+
+    const { sync } = useSyncStorage()
 
     useEffect(() => {
         storage.build?.load()
         storage.publish?.load()
     }, [])
 
-    if (!storage.loaded || !settingLoaded) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center">
-                <Label
-                    color="blue"
-                    size="lg"
-                    tw={{
-                        display: 'flex',
-                        flexDirection: 'flex-row',
-                        gap: 'gap-2',
-                        alignItems: 'items-center',
-                        justifyContent: 'justify-center',
-                        borderRadius: 'rounded-lg',
-                        animation: 'animate-pulse',
-                    }}
-                >
-                    Loading... <Loader />
-                </Label>
-            </div>
-        )
-    }
-
     if (!settings) {
         return null
     }
 
+    // if (!storage.loaded || !settingLoaded) {
+    //     return (
+    //         <div className="flex h-screen w-full items-center justify-center">
+    //             <Label
+    //                 color="blue"
+    //                 size="lg"
+    //                 tw={{
+    //                     display: 'flex',
+    //                     flexDirection: 'flex-row',
+    //                     gap: 'gap-2',
+    //                     alignItems: 'items-center',
+    //                     justifyContent: 'justify-center',
+    //                     borderRadius: 'rounded-lg',
+    //                     animation: 'animate-pulse',
+    //                 }}
+    //             >
+    //                 Loading... <Loader />
+    //             </Label>
+    //         </div>
+    //     )
+    // }
+
     return (
         <div className="relative flex w-full flex-col gap-4 pb-10">
+            <div className="absolute top-2 right-0">
+                <ProgressButton
+                    idleRecoverTime={5000}
+                    controller={[progress, setProgress]}
+                    onStatusChange={(status) => {
+                        switch (status) {
+                            case 'idle':
+                                return 'Sync Plugin 💾'
+                            case 'progress':
+                                return (
+                                    <>
+                                        <Loader />
+                                        Syncing...
+                                    </>
+                                )
+                            case 'success':
+                                return 'Sync completed'
+                            case 'error':
+                                return 'Sync failed'
+                        }
+                    }}
+                    startProgress={async () => {
+                        try {
+                            const res = await sync()
+                            return {
+                                success: true,
+                                data: res,
+                            }
+                        } catch (e) {
+                            return {
+                                success: false,
+                                error: e,
+                            }
+                        }
+                    }}
+                />
+
+                {progress.error.current && (
+                    <div className="bg-black rounded-xs border flex flex-col gap-y-2 border-neutral-800 p-2 w-full overflow-x-scroll">
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {progress.error.current.message}
+                        </Text.Description>
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {JSON.stringify(
+                                progress.error.current.cause,
+                                null,
+                                4
+                            )}
+                        </Text.Description>
+                    </div>
+                )}
+            </div>
+
             <PluginExecutionView
                 type="Build"
                 storage={storage.build!}
@@ -99,55 +169,24 @@ export function BuildView() {
     )
 }
 
-const ExecutePlugin = async ({
-    command,
-    node_bin,
-    bridge_install_root,
-}: ObsidianBloggerSettings & {
-    command: 'run:build' | 'run:publish'
-}) => {
-    if (!node_bin || !bridge_install_root) return
-
-    const buildResult = await Shell.spawn$('npm', ['run', 'build'], {
-        cwd: bridge_install_root,
-        env: {
-            PATH: `${process.env.PATH}:${node_bin}`,
-        },
-    })
-    const isBuildError =
-        buildResult === undefined ||
-        ('error_code' in buildResult && buildResult.stderr !== '')
-
-    if (isBuildError) return
-
-    const executionResult = await Shell.spawn$('npm', ['run', command], {
-        cwd: bridge_install_root,
-        env: {
-            PATH: `${process.env.PATH}:${node_bin}`,
-        },
-    })
-    return executionResult
-}
-
 const HistoryContext = React.createContext<BuildBridgeHistoryRecord | null>(
     null
 )
-const usePluginHistory = ({
+function usePluginHistory<Res>({
     storageName,
     pluginName,
 }: {
     storageName: string
     pluginName: string
-}): BuildBridgeHistoryValue[number] | null => {
+}): PluginExecutionResponse<Res>[number] | null {
     const context = React.useContext(HistoryContext)
     if (context === undefined) {
         throw new Error('useHistory must be used within a HistoryProvider')
     }
     if (!context) return null
 
-    return (
-        context[storageName]?.find((job) => job.jobName === pluginName) ?? null
-    )
+    return (context[storageName]?.find((job) => job.jobName === pluginName) ??
+        null) as PluginExecutionResponse<Res>[number] | null
 }
 
 const PluginExecutionView = ({
@@ -181,6 +220,7 @@ const PluginExecutionView = ({
             <div className="flex flex-col items-start justify-center w-full">
                 <div className="flex flex-row items-center justify-start w-full gap-x-2 py-2">
                     <Text.Header>{type} plugins</Text.Header>
+
                     <ProgressButton
                         idleRecoverTime={2500}
                         controller={[progress, setProgress]}
@@ -309,6 +349,7 @@ const PluginConfigView = ({
                 <div className="flex w-full flex-col items-center justify-start gap-2 py-1">
                     {Object.values(configStorage.storageRecord).map((value) => {
                         const pluginName = value.staticConfig.name
+
                         return (
                             <PluginView
                                 key={pluginName}
@@ -409,33 +450,85 @@ const FlattenDynamicConfig = ({
     return result
 }
 
+interface ErrorLike {
+    name: string
+    message: string
+    stack: string
+}
+type PluginResponseRecord =
+    | {
+          /**
+           * Error stacks
+           */
+          error: Array<{ error: ErrorLike; filepath?: string }>
+          /**
+           * History of log messages
+           */
+          history: Array<LogHistory>
+      }
+    // PublishPluginResponse
+    | {
+          /**
+           * Error stacks
+           */
+          error: Array<{ error: ErrorLike; command?: CommandResult }>
+          /**
+           * History of log messages
+           */
+          history: Array<LogHistory>
+          /**
+           * Standard output
+           */
+          stdout?: string
+      }
+type PluginResponse =
+    // BuildPluginResponse
+    PluginExecutionResponse<PluginResponseRecord>
 interface PluginViewProps {
     config: PluginConfig
     configStorage: PluginConfigStorage
 }
 const PluginView = ({ config, configStorage }: PluginViewProps) => {
-    const history = usePluginHistory({
+    useEffect(() => {
+        const initializePlugin__$$load_status$$ = async () => {
+            const inquired = configStorage.storageRecord[pluginName]
+            if (!inquired) return
+
+            const { dynamicConfig } = inquired
+            if (dynamicConfig) {
+                if ('$$load_status$$' in dynamicConfig) {
+                    const { $$load_status$$ } = dynamicConfig
+
+                    if ($$load_status$$ === 'exclude') {
+                        setPluginIncluded(false)
+                    } else if ($$load_status$$ === 'include') {
+                        setPluginIncluded(true)
+                    }
+                }
+            } else {
+                await configStorage.updateSinglePluginLoadStatus(
+                    pluginName,
+                    'include'
+                )
+                setPluginIncluded(true)
+            }
+        }
+
+        initializePlugin__$$load_status$$()
+    }, [])
+
+    const [pluginHistory, setPluginHistory] = useState<
+        PluginExecutionResponse<PluginResponse>[number] | null
+    >(null)
+
+    const history = usePluginHistory<PluginResponse>({
         storageName: configStorage.options.name,
         pluginName: config.staticConfig.name,
     })
 
-    const [pluginHistory, setPluginHistory] = useState<
-        BuildBridgeHistoryValue[number] | null
-    >(null)
-
     useEffect(() => {
         setPluginHistory(history)
     }, [history])
-
-    const runningState = {
-        pending:
-            (pluginHistory !== null && pluginHistory?.status === 'pending') ||
-            (pluginHistory !== null && pluginHistory?.status === 'started'),
-        executing:
-            pluginHistory !== null && pluginHistory?.status === 'started',
-        success: pluginHistory !== null && pluginHistory?.status === 'success',
-        failed: pluginHistory !== null && pluginHistory?.status === 'failed',
-    }
 
     const [pluginIncluded, setPluginIncluded] = useState<boolean>(true)
 
@@ -474,6 +567,16 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
     )
 
     const [saveStatus, setSaveStatus] = useProgressStatus()
+
+    const runningState = {
+        pending:
+            (pluginHistory !== null && pluginHistory?.status === 'pending') ||
+            (pluginHistory !== null && pluginHistory?.status === 'started'),
+        executing:
+            pluginHistory !== null && pluginHistory?.status === 'started',
+        success: pluginHistory !== null && pluginHistory?.status === 'success',
+        failed: pluginHistory !== null && pluginHistory?.status === 'failed',
+    }
 
     const updatePluginDynamicConfig = useCallback(
         async ({
@@ -532,35 +635,18 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
         []
     )
 
-    useEffect(() => {
-        const initializePlugin__$$load_status$$ = async () => {
-            const inquired = configStorage.storageRecord[pluginName]
-            if (!inquired) return
-
-            const { dynamicConfig } = inquired
-            if (dynamicConfig !== null && dynamicConfig !== undefined) {
-                if ('$$load_status$$' in dynamicConfig) {
-                    const { $$load_status$$ } = dynamicConfig
-                    if ($$load_status$$ === 'exclude') {
-                        setPluginIncluded(false)
-                    } else if ($$load_status$$ === 'include') {
-                        setPluginIncluded(true)
-                    }
-                }
-            } else {
-                setPluginIncluded(true)
-                await configStorage.updateSinglePluginLoadStatus(
-                    pluginName,
-                    'include'
-                )
-            }
-        }
-
-        initializePlugin__$$load_status$$()
-    }, [])
+    const pluginContainer = tw.def([
+        'transition-colors',
+        'flex w-full flex-col items-start gap-y-2.5 rounded-md p-1',
+        'border',
+        runningState.pending && ['border-stone-500/50'],
+        runningState.executing && ['border-yellow-500/50'],
+        runningState.success && ['border-green-500/50'],
+        runningState.failed && ['border-red-500/50'],
+    ])
 
     return (
-        <Accordion.Container className="flex w-full flex-col items-start gap-y-2.5 rounded-md border border-stone-700 p-1">
+        <Accordion.Container className={pluginContainer}>
             <Accordion.Item accordionId={pluginName} className="w-full">
                 <Accordion.Item.Title
                     className="flex w-full flex-row items-center justify-start gap-x-2 rounded px-1.5 hover:bg-stone-400/10"
@@ -687,13 +773,11 @@ const PluginView = ({ config, configStorage }: PluginViewProps) => {
                                 }}
                                 disabled={runningState.pending}
                                 type={pluginIncluded ? 'success' : 'error'}
-                                onClick={() => {
+                                onClick={async () => {
                                     setPluginIncluded((prev) => !prev)
                                 }}
                             >
-                                {pluginIncluded
-                                    ? 'Exclude Plugin'
-                                    : 'Include Plugin'}
+                                {pluginIncluded ? 'Exclude' : 'Include'}
                             </Button>
                         </div>
                     )}
@@ -775,7 +859,7 @@ const HistoryProperty = ({
     return (
         <div className="flex flex-row items-center justify-center gap-x-2">
             <Label
-                color="blue"
+                color="gray"
                 size="sm"
                 tw={{
                     fontFamily: 'font-mono',
@@ -788,10 +872,170 @@ const HistoryProperty = ({
     )
 }
 
+const RenderLog = ({ level, message }: LogHistory) => {
+    const getLabelColor = (level: LogHistory['level']) => {
+        switch (level) {
+            case 'error':
+                return 'red'
+            case 'info':
+                return 'blue'
+            case 'log':
+                return 'gray'
+            case 'warn':
+                return 'yellow'
+        }
+    }
+    const messages = typeof message === 'string' ? [message] : message
+    return (
+        <div className="flex flex-row w-full gap-x-1.5">
+            <Label tw={{ height: 'h-fit' }} color={getLabelColor(level)}>
+                {level}
+            </Label>
+            <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit">
+                {messages.map((msg) => (
+                    <Text.Code key={msg}>{msg}</Text.Code>
+                ))}
+            </div>
+        </div>
+    )
+}
+const LogHistoryViewer = ({ history }: { history: LogHistory[] }) => {
+    if (history.length === 0) {
+        return <Text.Description>» No history</Text.Description>
+    }
+
+    return (
+        <div className="w-full border border-neutral-700 rounded p-2">
+            {history.map((val) => (
+                <RenderLog key={String(val.message.toString())} {...val} />
+            ))}
+        </div>
+    )
+}
+
+const RenderError = ({
+    error,
+    children,
+    disableAccordion = false,
+}: React.PropsWithChildren<
+    PluginResponseRecord['error'][number] & { disableAccordion?: boolean }
+>) => {
+    const errorMessages = error?.message?.split('\n') ?? []
+
+    if (errorMessages.length === 0) {
+        return null
+    }
+
+    if (disableAccordion) {
+        return (
+            <div className="flex w-full flex-col gap-y-0.5">
+                <Label tw={{ height: 'h-fit' }} color={'red'}>
+                    {error.name}
+                </Label>
+                <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit">
+                    {errorMessages.map((msg) => (
+                        <Text.Description key={msg}>{msg}</Text.Description>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <Accordion.Container className="flex w-full flex-col gap-y-0.5">
+            <Accordion.Item.Title accordionId={`${error.name} - view`}>
+                <Label tw={{ height: 'h-fit' }} color={'red'}>
+                    {error.name}
+                </Label>
+                <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit">
+                    {errorMessages.map((msg) => (
+                        <Text.Description key={msg}>{msg}</Text.Description>
+                    ))}
+                </div>
+            </Accordion.Item.Title>
+
+            <Accordion.Item.Content className="w-full">
+                {children}
+            </Accordion.Item.Content>
+        </Accordion.Container>
+    )
+}
+const LogErrorViewer = ({
+    error,
+}: {
+    error: PluginResponseRecord['error']
+}) => {
+    if (error.length === 0) {
+        return <Text.Description>» No error occurred</Text.Description>
+    }
+
+    return (
+        <div className="border border-neutral-700 rounded p-2">
+            {error.map((res) => {
+                if ('filePath' in res && typeof res.filePath === 'string') {
+                    return (
+                        <RenderError key={res.error.name} error={res.error}>
+                            <div className="flex flex-row gap-x-2 items-center justify-center">
+                                <Label color="gray">filepath</Label>
+                                <Text.Code tw={{ fontSize: 'xs' }}>
+                                    {res.filePath}
+                                </Text.Code>
+                            </div>
+                        </RenderError>
+                    )
+                }
+
+                if ('command' in res) {
+                    const hasErrorInfo =
+                        res.command.error_code && res.command.stderr !== ''
+
+                    return (
+                        <RenderError key={res.error.name} error={res.error}>
+                            <div className="flex w-full flex-row gap-x-2 items-center justify-center">
+                                <Label color="gray">cmd</Label>
+                                <div className="flex flex-col gap-y-2 items-start justify-center w-full">
+                                    <Text.Code tw={{ fontSize: 'xs' }}>
+                                        {res.command.command}
+                                    </Text.Code>
+                                    <Text.Code tw={{ fontSize: 'xs' }}>
+                                        {res.command.stdout}
+                                    </Text.Code>
+                                </div>
+                            </div>
+
+                            {hasErrorInfo && (
+                                <div className="flex w-full flex-row gap-x-2 items-center justify-center">
+                                    <Label color="red">cmd error info</Label>
+                                    <div className="flex flex-col gap-y-2 items-start justify-center w-full">
+                                        <Text.Code tw={{ fontSize: 'xs' }}>
+                                            {res.command.error_code}
+                                        </Text.Code>
+                                        <Text.Code tw={{ fontSize: 'xs' }}>
+                                            {res.command.stderr}
+                                        </Text.Code>
+                                    </div>
+                                </div>
+                            )}
+                        </RenderError>
+                    )
+                }
+
+                return (
+                    <RenderError
+                        disableAccordion
+                        key={res.error.name}
+                        error={res.error}
+                    />
+                )
+            })}
+        </div>
+    )
+}
+
 const PluginHistoryViewer = ({
     history,
 }: {
-    history: BuildBridgeHistoryValue[number] | null
+    history: PluginExecutionResponse<PluginResponse>[number] | null
 }) => {
     if (!history) return null
 
@@ -805,12 +1049,12 @@ const PluginHistoryViewer = ({
             'border',
             'p-1.5',
             'transition-colors',
-            'duration-500',
+            'duration-500/50',
         ],
-        status === 'failed' && 'border-red-400',
-        status === 'pending' && 'border-yellow-400',
-        status === 'started' && 'border-blue-400',
-        status === 'success' && 'border-blue-400',
+        status === 'failed' && 'border-red-500/50',
+        status === 'pending' && 'border-yellow-500/50',
+        status === 'started' && 'border-blue-500/50',
+        status === 'success' && 'border-green-500/50',
     ])
 
     return (
@@ -859,6 +1103,40 @@ const PluginHistoryViewer = ({
                         }
                     />
 
+                    {response?.map(
+                        (e) =>
+                            e.response?.history && (
+                                <div
+                                    key={e.jobName}
+                                    className="flex flex-col items-start justify-center gap-y-2"
+                                >
+                                    <HistoryProperty
+                                        title="Log"
+                                        property="plugin log history"
+                                    />
+                                    <LogHistoryViewer
+                                        history={e.response.history}
+                                    />
+                                </div>
+                            )
+                    )}
+
+                    {response?.map(
+                        (e) =>
+                            e.response?.error && (
+                                <div
+                                    key={e.jobName}
+                                    className="flex flex-col items-start justify-center gap-y-2"
+                                >
+                                    <HistoryProperty
+                                        title="Error"
+                                        property="error history"
+                                    />
+                                    <LogErrorViewer error={e.response.error} />
+                                </div>
+                            )
+                    )}
+
                     <Accordion.Container className={`w-full overflow-hidden`}>
                         <Accordion.Item
                             className="w-full"
@@ -866,7 +1144,9 @@ const PluginHistoryViewer = ({
                         >
                             <Accordion.Item.Title className="flex flex-row items-center justify-start gap-x-2">
                                 <Label
-                                    color={status === 'failed' ? 'red' : 'blue'}
+                                    color={
+                                        status === 'failed' ? 'red' : 'green'
+                                    }
                                     size="sm"
                                     tw={{
                                         fontFamily: 'font-mono',
@@ -886,7 +1166,9 @@ const PluginHistoryViewer = ({
                             </Accordion.Item.Title>
                             <Accordion.Item.Content className="w-full">
                                 <Label
-                                    color={status === 'failed' ? 'red' : 'blue'}
+                                    color={
+                                        status === 'failed' ? 'red' : 'green'
+                                    }
                                     style="border"
                                     tw={{
                                         margin: 'mt-2',
@@ -911,7 +1193,7 @@ const PluginHistoryViewer = ({
                                             color:
                                                 status === 'failed'
                                                     ? 'text-red-400'
-                                                    : 'text-blue-400',
+                                                    : 'text-green-400',
                                         }}
                                     >
                                         {JSON.stringify(
