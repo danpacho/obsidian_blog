@@ -1,12 +1,13 @@
 import { BuildBridgeStorage } from '@obsidian_blogger/plugin_api/bridge'
 import { Bridge } from '@obsidian_blogger/plugin_api/constants'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useObsidianSetting } from '../hooks/use.setting'
+import { BuildPlugin, InitPlugin } from '~/utils/exec'
 
 export type BuildStorageKeys = (typeof BUILD_STORAGE_KEYS)[number]
 export const BUILD_STORAGE_KEYS = Object.values(
     Bridge.MANAGER_NAME.buildSystem
-).filter((key) => key !== 'build_system::internal')
+).filter((key) => key !== 'build_system__internal')
 
 export type PublishStorageKeys = (typeof PUBLISH_STORAGE_KEYS)[number]
 export const PUBLISH_STORAGE_KEYS = Object.values(
@@ -37,6 +38,16 @@ const StorageContext = React.createContext<{
     loaded: false,
 })
 
+const StorageSetterContext = React.createContext<{
+    setStorage: React.Dispatch<
+        React.SetStateAction<{
+            build: BuildBridgeStorage<StorageKeys['Build']> | null
+            publish: BuildBridgeStorage<StorageKeys['Publish']> | null
+        }>
+    > | null
+    setLoadStatus: React.Dispatch<React.SetStateAction<boolean>> | null
+}>({ setLoadStatus: null, setStorage: null })
+
 /**
  * Use build, publish bridge storage
  */
@@ -47,9 +58,42 @@ export const useStorage = () => {
     }
     return context
 }
+export const useStorageSetter = () => {
+    const context = React.useContext(StorageSetterContext)
+    if (!context) {
+        throw new Error(
+            'useStorageSetter must be used within a <StorageSetterContext>'
+        )
+    }
+    return context
+}
+
+export const useSyncStorage = () => {
+    const storage = useStorage()
+    const { setLoadStatus } = useStorageSetter()
+    const { settings } = useObsidianSetting()
+
+    return {
+        sync: async () => {
+            if (!settings || !setLoadStatus) {
+                return
+            }
+
+            setLoadStatus(false)
+
+            await BuildPlugin(settings)
+            await InitPlugin(settings)
+
+            await storage.build?.load()
+            await storage.publish?.load()
+
+            setLoadStatus(true)
+        },
+    }
+}
 
 export const StorageProvider = (props: React.PropsWithChildren) => {
-    const storage = useRef<{
+    const [storage, setStorage] = useState<{
         build: BuildBridgeStorage<StorageKeys['Build']> | null
         publish: BuildBridgeStorage<StorageKeys['Publish']> | null
     }>({
@@ -58,7 +102,7 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
     })
     const { loaded, settings } = useObsidianSetting()
 
-    const [storageLoaded, setStoreLoaded] = useState<boolean>(false)
+    const [storageLoadStatus, setLoadStatus] = useState<boolean>(false)
 
     useEffect(() => {
         if (!settings) return
@@ -66,7 +110,7 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
 
         const initializeStorage = async () => {
             const bridgeRoot = settings.bridge_install_root
-            storage.current = {
+            setStorage({
                 build: BuildBridgeStorage.create({
                     bridgeRoot,
                     storePrefix: Bridge.STORE_PREFIX.buildSystem,
@@ -77,26 +121,36 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
                     storePrefix: Bridge.STORE_PREFIX.publishSystem,
                     configNames: PUBLISH_STORAGE_KEYS,
                 }),
-            }
+            })
 
-            await storage.current.build?.load()
-            await storage.current.publish?.load()
+            await BuildPlugin(settings)
+            await InitPlugin(settings)
 
-            setStoreLoaded(true)
+            await storage.build?.load()
+            await storage.publish?.load()
+
+            setLoadStatus(true)
         }
 
         initializeStorage()
     }, [loaded])
 
     return (
-        <StorageContext.Provider
+        <StorageSetterContext.Provider
             value={{
-                build: storage.current.build,
-                publish: storage.current.publish,
-                loaded: storageLoaded,
+                setLoadStatus: setLoadStatus,
+                setStorage: setStorage,
             }}
         >
-            {props.children}
-        </StorageContext.Provider>
+            <StorageContext.Provider
+                value={{
+                    build: storage.build,
+                    publish: storage.publish,
+                    loaded: storageLoadStatus,
+                }}
+            >
+                {props.children}
+            </StorageContext.Provider>
+        </StorageSetterContext.Provider>
     )
 }
