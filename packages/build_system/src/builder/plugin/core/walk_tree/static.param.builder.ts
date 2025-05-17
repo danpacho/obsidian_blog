@@ -207,15 +207,31 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         return '$page'
     }
 
+    private getRelativePosixPath(root: string, fullPath: string): string {
+        // 1. Normalize both to the OS’s native separators:
+        const normRoot = path.normalize(root)
+        const normFull = path.normalize(fullPath)
+
+        // 2. Compute the relative path (this strips out the common prefix)
+        let rel = path.relative(normRoot, normFull)
+
+        // 3. Convert backslashes (on Windows) to POSIX forward‐slashes:
+        if (path.sep === '\\') {
+            rel = rel.split(path.sep).join(path.posix.sep)
+        }
+
+        return rel
+    }
+
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
         const finalBuildPath = node.buildInfo?.build_path.build
         if (!finalBuildPath) return
 
-        const paramBuildPath = finalBuildPath.replace(
+        const paramBuildPath = this.getRelativePosixPath(
             this.$buildPath.contents,
-            ''
+            finalBuildPath
         )
 
         const buildList = this.splitToPurePath(paramBuildPath)
