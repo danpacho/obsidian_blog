@@ -256,6 +256,10 @@ export class LoadConfigBridgeStorage {
                 pluginManager.$config.storageRecord
             )
                 .filter(([_, config]) => {
+                    if (!config?.dynamicConfig) {
+                        return true
+                    }
+
                     if (
                         config.dynamicConfig &&
                         '$$load_status$$' in config.dynamicConfig
@@ -265,6 +269,7 @@ export class LoadConfigBridgeStorage {
                             'include'
                         )
                     }
+
                     return false
                 })
                 .map(([key]) => key)
