@@ -1,5 +1,13 @@
 # @obsidian_blogger/plugin
 
+## 0.3.10
+
+### Patch Changes
+
+- Finalize obsidian plugin view and fix minor syncing issue at config bridge storage
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.2.4
+
 ## 0.3.9
 
 ### Patch Changes
