@@ -129,6 +129,7 @@ describe('LoadConfigBridgeStorage', async () => {
                 const prevConfig = manager.$config.get(name)
                 const newDynamicConfig = {
                     ...(prevConfig?.dynamicConfig ?? {}),
+                    // Include plugin only start with 0
                     $$load_status$$: name.includes('0') ? 'include' : 'exclude',
                     add: (a: number, b: number) => a + b,
                 }
