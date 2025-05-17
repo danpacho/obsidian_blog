@@ -155,7 +155,6 @@ export class HistoryBridgeStorage {
      * @returns A promise that resolves when the initialization is complete.
      */
     public async init(): Promise<void> {
-        if (this._initialized) return
         await this.$storage.init()
         for (const manager of this.$pluginManagers) {
             await this.initializeHistoryStore(manager)

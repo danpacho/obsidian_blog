@@ -261,11 +261,7 @@ export class LoadConfigBridgeStorage {
     }
 
     private async init(): Promise<void> {
-        if (this._initialized) return
-
         await this.updateConfigStoreRoot()
-
-        this._initialized = true
     }
     /**
      * Initializes the bridge store.

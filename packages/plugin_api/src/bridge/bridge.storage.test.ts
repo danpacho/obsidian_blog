@@ -17,9 +17,6 @@ describe('BridgeStorage', () => {
 
     it('should load data before use', async () => {
         await storage.load()
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        expect(storage._initialized).toBeTruthy()
     })
 
     it('should modify the dynamic config for include, exclude', async () => {

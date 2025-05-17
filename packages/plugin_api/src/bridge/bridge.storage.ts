@@ -17,8 +17,6 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     private readonly $config: Map<Keys[number], PluginConfigStorage>
     private readonly $history: JsonStorage<BuildBridgeHistoryValue>
 
-    private _initialized = false
-
     /* ─────────── watcher state ─────────── */
     private _fsWatcher: FSWatcher | null = null
     private _debounceTimer: NodeJS.Timeout | null = null
@@ -179,15 +177,10 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
      * Loads every config + history once.
      */
     public async load(): Promise<void> {
-        if (this._initialized) {
-            console.info('BuildBridgeStorage already initialized')
-            return
-        }
         await Promise.all([
             ...Array.from(this.$config.values()).map((c) => c.load()),
             this.$history.load(),
         ])
-        this._initialized = true
     }
 
     /* ─────────── internal helpers ─────────── */
