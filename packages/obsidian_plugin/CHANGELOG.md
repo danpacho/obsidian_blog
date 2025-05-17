@@ -1,5 +1,13 @@
 # @obsidian_blogger/plugin
 
+## 0.3.8
+
+### Patch Changes
+
+- Update obsidian plugin for consolidated api structure and update syncing process
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.2.2
+
 ## 0.3.7
 
 ### Patch Changes
