@@ -22,9 +22,9 @@ export class BuildBridgeStorage<Keys extends readonly string[]> {
     /* ─────────── watcher state ─────────── */
     private _fsWatcher: FSWatcher | null = null
     private _debounceTimer: NodeJS.Timeout | null = null
+    private _usingPolling = false
     private readonly _debounceMs = 5 // trailing debounce
     private readonly _pollInterval = 5
-    private _usingPolling = false
 
     private readonly _watcherSubscribers = new Set<
         (newHistory: typeof this.$history.storageRecord) => void | Promise<void>

@@ -1,6 +1,6 @@
 import type { Job } from '@obsidian_blogger/helpers/job'
 import { JsonStorage } from '@obsidian_blogger/helpers/storage'
-import type { PluginShape } from '../plugin.interface'
+import type { PluginExecutionResponse, PluginShape } from '../plugin.interface'
 import type { PluginRunner } from '../plugin.runner'
 import type { PluginManager } from './plugin.manager'
 
@@ -33,6 +33,83 @@ export class HistoryBridgeStorage {
         this.$storage = new JsonStorage({
             name: 'bridge-history',
             root: `${options.bridgeRoot}/${options.storePrefix}/history.json`,
+            serializer(data: Record<string, PluginExecutionResponse>): string {
+                type ResolveTarget =
+                    | {
+                          name: string
+                          message: string
+                          stack: string
+                      }
+                    | string
+                    | number
+                    | bigint
+                    | boolean
+                    | null
+                    | undefined
+                    | ResolveTarget[]
+                    | { [key: string]: ResolveTarget }
+
+                function resolve(value: unknown): ResolveTarget {
+                    // 1. Error instances
+                    if (value instanceof Error) {
+                        const { name, message, stack } = value
+                        return {
+                            name,
+                            message,
+                            stack,
+                        }
+                    }
+                    if (value instanceof Date) {
+                        return value.toJSON()
+                    }
+
+                    // 2. Arrays
+                    if (Array.isArray(value)) {
+                        return value.map((item) => resolve(item))
+                    }
+
+                    // 3. Plain objects (records)
+                    if (value !== null && typeof value === 'object') {
+                        const obj = value as Record<string, unknown>
+                        const result: Record<string, ResolveTarget> = {}
+                        for (const [key, val] of Object.entries(obj)) {
+                            result[key] = resolve(val)
+                        }
+                        return result
+                    }
+
+                    // 4. Primitives
+                    switch (typeof value) {
+                        case 'string':
+                        case 'number':
+                        case 'bigint':
+                        case 'boolean':
+                            return value
+                        default: {
+                            return value?.toString() ?? null
+                        }
+                    }
+                }
+
+                const serializeError = (
+                    data: Record<string, PluginExecutionResponse>
+                ): Record<string, PluginExecutionResponse> => {
+                    const target = Object.entries(data).reduce<
+                        Record<string, PluginExecutionResponse>
+                    >((acc, [key, value]) => {
+                        if (acc[key]) {
+                            return acc
+                        }
+                        acc[key] = resolve(
+                            value
+                        ) as unknown as PluginExecutionResponse
+                        return acc
+                    }, {})
+                    return target
+                }
+                const serialized = JSON.stringify(serializeError(data))
+                return serialized
+            },
         })
 
         this.pollingJobHistory()
