@@ -40,7 +40,7 @@ import {
 } from '~/react/provider'
 import { Routing } from '~/react/routing'
 import { Is } from '~/utils'
-import { ExecutePlugin } from '~/utils/exec'
+import { ExecutePlugin, UpgradeBridge } from '~/utils/exec'
 import { MergeRecord } from '~/utils/merge.record'
 import { tw } from '@obsidian_blogger/design_system/tools'
 import { LogHistory } from '@obsidian_blogger/helpers/logger'
@@ -49,13 +49,15 @@ import { CommandResult } from '@obsidian_blogger/helpers/shell'
 export function BuildView() {
     const storage = useStorage()
     const { loaded, settings } = useObsidianSetting()
-    const [progress, setProgress] = useProgressStatus()
-
+    const [progressSync, setProgressSync] = useProgressStatus()
+    const [progressUpgrade, setProgressUpgrade] = useProgressStatus()
     const { sync } = useSyncStorage()
 
     useEffect(() => {
-        storage.build?.load()
-        storage.publish?.load()
+        const initialize = async () => {
+            await Promise.all([storage.build?.load(), storage.publish?.load()])
+        }
+        initialize()
     }, [])
 
     if (!settings) {
@@ -87,43 +89,81 @@ export function BuildView() {
     return (
         <div className="relative flex w-full flex-col gap-4 pb-10">
             <div className="absolute top-2 right-0">
-                <ProgressButton
-                    idleRecoverTime={5000}
-                    controller={[progress, setProgress]}
-                    onStatusChange={(status) => {
-                        switch (status) {
-                            case 'idle':
-                                return 'Sync Plugin 💾'
-                            case 'progress':
-                                return (
-                                    <>
-                                        <Loader />
-                                        Syncing...
-                                    </>
-                                )
-                            case 'success':
-                                return 'Sync completed'
-                            case 'error':
-                                return 'Sync failed'
-                        }
-                    }}
-                    startProgress={async () => {
-                        try {
-                            const res = await sync()
-                            return {
-                                success: true,
-                                data: res,
+                <div className="flex flex-row gap-x-2 items-center justify-between">
+                    <ProgressButton
+                        idleRecoverTime={5000}
+                        controller={[progressSync, setProgressSync]}
+                        onStatusChange={(status) => {
+                            switch (status) {
+                                case 'idle':
+                                    return 'Sync Plugin 💾'
+                                case 'progress':
+                                    return (
+                                        <>
+                                            <Loader />
+                                            Syncing...
+                                        </>
+                                    )
+                                case 'success':
+                                    return 'Sync completed'
+                                case 'error':
+                                    return 'Sync failed'
                             }
-                        } catch (e) {
-                            return {
-                                success: false,
-                                error: e,
+                        }}
+                        startProgress={async () => {
+                            try {
+                                const res = await sync()
+                                return {
+                                    success: true,
+                                    data: res,
+                                }
+                            } catch (e) {
+                                return {
+                                    success: false,
+                                    error: e,
+                                }
                             }
-                        }
-                    }}
-                />
+                        }}
+                    />
+                    <ProgressButton
+                        idleRecoverTime={5000}
+                        controller={[progressUpgrade, setProgressUpgrade]}
+                        onStatusChange={(status) => {
+                            switch (status) {
+                                case 'idle':
+                                    return 'Upgrade 📦'
+                                case 'progress':
+                                    return (
+                                        <>
+                                            <Loader />
+                                            Upgrade...
+                                        </>
+                                    )
+                                case 'success':
+                                    return 'Upgrade completed'
+                                case 'error':
+                                    return 'Upgrade failed'
+                            }
+                        }}
+                        //@ts-ignore
+                        startProgress={async () => {
+                            try {
+                                const res = await UpgradeBridge(settings)
+                                return {
+                                    success: true,
+                                    data: res,
+                                }
+                            } catch (e) {
+                                return {
+                                    success: false,
+                                    error: e,
+                                }
+                            }
+                        }}
+                    />
+                </div>
 
-                {progress.error.current && (
+                {progressSync.error.current && (
                     <div className="bg-black rounded-xs border flex flex-col gap-y-2 border-neutral-800 p-2 w-full overflow-x-scroll">
                         <Text.Description
                             tw={{
@@ -131,7 +171,7 @@ export function BuildView() {
                                 fontFamily: 'font-mono',
                             }}
                         >
-                            {progress.error.current.message}
+                            {progressSync.error.current.message}
                         </Text.Description>
                         <Text.Description
                             tw={{
@@ -140,7 +180,32 @@ export function BuildView() {
                             }}
                         >
                             {JSON.stringify(
-                                progress.error.current.cause,
+                                progressSync.error.current.cause,
+                                null,
+                                4
+                            )}
+                        </Text.Description>
+                    </div>
+                )}
+
+                {progressUpgrade.error.current && (
+                    <div className="bg-black rounded-xs border flex flex-col gap-y-2 border-neutral-800 p-2 w-full overflow-x-scroll">
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {progressUpgrade.error.current.message}
+                        </Text.Description>
+                        <Text.Description
+                            tw={{
+                                color: 'text-red-400',
+                                fontFamily: 'font-mono',
+                            }}
+                        >
+                            {JSON.stringify(
+                                progressUpgrade.error.current.cause,
                                 null,
                                 4
                             )}
@@ -893,13 +958,20 @@ const RenderLog = ({ level, message }: LogHistory) => {
     }
     const messages = typeof message === 'string' ? [message] : message
     return (
-        <div className="flex flex-row w-full gap-x-1.5">
+        <div className="flex flex-row w-full items-center justify-start gap-x-1.5">
             <Label tw={{ height: 'h-fit' }} color={getLabelColor(level)}>
                 {level}
             </Label>
-            <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit">
+            <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit pl-1">
                 {messages.map((msg) => (
-                    <Text.Code key={msg}>{msg}</Text.Code>
+                    <Text.Description
+                        key={msg}
+                        tw={{
+                            $hover: { textDecorationLine: 'hover:underline' },
+                        }}
+                    >
+                        {msg}
+                    </Text.Description>
                 ))}
             </div>
         </div>
@@ -926,7 +998,8 @@ const RenderError = ({
 }: React.PropsWithChildren<
     PluginResponseRecord['error'][number] & { disableAccordion?: boolean }
 >) => {
-    const errorMessages = error?.message?.split('\n') ?? []
+    const errorMessages =
+        error?.message?.concat('\n', error.stack).split('\n') ?? []
 
     if (errorMessages.length === 0) {
         return null
@@ -935,12 +1008,21 @@ const RenderError = ({
     if (disableAccordion) {
         return (
             <div className="flex w-full flex-col gap-y-0.5">
-                <Label tw={{ height: 'h-fit' }} color={'red'}>
+                <Label tw={{ height: 'h-fit', width: 'w-fit' }} color={'red'}>
                     {error.name}
                 </Label>
-                <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit">
+                <div className="flex flex-col gap-y-1 items-start justify-center w-full h-fit pl-1">
                     {errorMessages.map((msg) => (
-                        <Text.Description key={msg}>{msg}</Text.Description>
+                        <Text.Description
+                            key={msg}
+                            tw={{
+                                $hover: {
+                                    textDecorationLine: 'hover:underline',
+                                },
+                            }}
+                        >
+                            {msg}
+                        </Text.Description>
                     ))}
                 </div>
             </div>
@@ -1114,7 +1196,7 @@ const PluginHistoryViewer = ({
                             e.response?.history && (
                                 <div
                                     key={e.jobName}
-                                    className="flex flex-col items-start justify-center gap-y-2"
+                                    className="flex flex-col w-full items-start justify-center gap-y-2"
                                 >
                                     <HistoryProperty
                                         title="Log"
@@ -1132,7 +1214,7 @@ const PluginHistoryViewer = ({
                             e.response?.error && (
                                 <div
                                     key={e.jobName}
-                                    className="flex flex-col items-start justify-center gap-y-2"
+                                    className="flex flex-col w-full items-start justify-center gap-y-2"
                                 >
                                     <HistoryProperty
                                         title="Error"

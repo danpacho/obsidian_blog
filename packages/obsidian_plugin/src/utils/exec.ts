@@ -16,6 +16,21 @@ export const BuildPlugin = async ({
     return buildResult
 }
 
+export const UpgradeBridge = async ({
+    node_bin,
+    bridge_install_root,
+}: ObsidianBloggerSettings) => {
+    if (!node_bin || !bridge_install_root) return
+
+    const upgradeResult = await Shell.spawn$('npm', ['upgrade'], {
+        cwd: bridge_install_root,
+        env: {
+            PATH: `${process.env.PATH}:${node_bin}`,
+        },
+    })
+    return upgradeResult
+}
+
 export const InitPlugin = async ({
     node_bin,
     bridge_install_root,

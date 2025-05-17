@@ -84,8 +84,10 @@ export const useSyncStorage = () => {
             await BuildPlugin(settings)
             await InitPlugin(settings)
 
-            await storage.build?.load()
-            await storage.publish?.load()
+            await Promise.all([
+                await storage.build?.load(),
+                await storage.publish?.load(),
+            ])
 
             setLoadStatus(true)
         },
