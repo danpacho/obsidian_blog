@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.4.4
+
+### Patch Changes
+
+- Update build info generator for os specific file path handling process
+
 ## 0.4.3
 
 ### Patch Changes
