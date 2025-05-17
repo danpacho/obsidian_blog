@@ -1,5 +1,12 @@
 # @obsidian_blogger/plugin
 
+## 0.3.9
+
+### Patch Changes
+
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.2.3
+
 ## 0.3.8
 
 ### Patch Changes

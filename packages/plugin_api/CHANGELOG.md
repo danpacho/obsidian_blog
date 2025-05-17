@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.2.3
+
+### Patch Changes
+
+- Sync config loading process with plugin manager registration process
+
 ## 0.2.2
 
 ### Patch Changes
