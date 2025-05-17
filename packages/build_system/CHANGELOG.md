@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.4.8
+
+### Patch Changes
+
+- Fix param builder os-specific path analysis error
+
 ## 0.4.7
 
 ### Patch Changes
