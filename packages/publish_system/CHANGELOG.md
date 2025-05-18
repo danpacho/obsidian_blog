@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.6
+
+### Patch Changes
+
+- Fix os dependent package manager exec source finding cmd
+
 ## 0.4.5
 
 ### Patch Changes
