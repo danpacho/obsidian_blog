@@ -9,6 +9,7 @@ import {
     type PublishPluginDynamicConfig,
     type PublishPluginStaticConfig,
 } from './publish.plugin'
+import { platform } from 'node:os'
 
 export interface BuildScriptStaticConfig extends PublishPluginStaticConfig {}
 export type BuildScriptDynamicConfig = PublishPluginDynamicConfig & {
@@ -48,9 +49,9 @@ export abstract class BuildScriptPlugin<
             await this.detectPackageManager(cwd)
         }
 
-        const runnerSource = await this.$shell.exec$(
-            `which ${this.packageManager}`
-        )
+        const finder = platform() === 'win32' ? 'where.exe' : 'which'
+        const cmd = `${finder} ${this.packageManager}`
+        const runnerSource = await this.$shell.exec$(cmd)
         return runnerSource
     }
 
