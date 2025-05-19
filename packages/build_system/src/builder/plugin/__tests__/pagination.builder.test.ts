@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PaginationBuilderPlugin, StaticParamBuilderPlugin } from '../core'
 import { Tester } from './tester'
+import { ExcludeDraft } from '../core/build_tree/exclude_draft'
 
 describe('StaticParamBuilderPlugin', () => {
     const paginationBuilder = new PaginationBuilderPlugin()
@@ -11,6 +12,7 @@ describe('StaticParamBuilderPlugin', () => {
     }
 
     it('should inject static params to the content', async () => {
+        const draft = new ExcludeDraft()
         const staticParamBuilder = new StaticParamBuilderPlugin()
         staticParamBuilder.injectDynamicConfig({
             prefix: 'posts',
@@ -20,6 +22,7 @@ describe('StaticParamBuilderPlugin', () => {
 
         const { buildFiles } = await Tester.pipe({
             plugin: {
+                'build:tree': draft,
                 // It is working step-by-step [static param builder -> pagination builder]
                 'walk:tree': [staticParamBuilder, paginationBuilder],
             },
@@ -136,6 +139,7 @@ describe('StaticParamBuilderPlugin', () => {
     })
 
     it('should inject [category]/[...post] param', async () => {
+        const draft = new ExcludeDraft()
         const staticParamBuilder = new StaticParamBuilderPlugin()
         staticParamBuilder.injectDynamicConfig({
             paramShape: '/[category]/[...post]',
@@ -144,6 +148,7 @@ describe('StaticParamBuilderPlugin', () => {
 
         const { buildFiles } = await Tester.pipe({
             plugin: {
+                'build:tree': [draft],
                 // It is working step-by-step [static param builder -> pagination builder]
                 'walk:tree': [staticParamBuilder, paginationBuilder],
             },

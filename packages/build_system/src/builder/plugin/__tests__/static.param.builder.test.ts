@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Tester } from './tester'
 import { StaticParamBuilderPlugin } from '../core'
+import { ExcludeDraft } from '../core/build_tree/exclude_draft'
 
 describe('StaticParamBuilderPlugin', () => {
     it('should inject static params to the content', async () => {
+        const draft = new ExcludeDraft()
         const plugin = new StaticParamBuilderPlugin()
         plugin.injectDynamicConfig({
             prefix: 'posts',
@@ -13,6 +15,7 @@ describe('StaticParamBuilderPlugin', () => {
 
         const { buildFiles } = await Tester.pipe({
             plugin: {
+                'build:tree': draft,
                 'walk:tree': plugin,
             },
         })
