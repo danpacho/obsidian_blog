@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.5.0
+
+### Minor Changes
+
+- Stabilize code building plugins and enhance logics for building metadata
+
 ## 0.4.9
 
 ### Patch Changes

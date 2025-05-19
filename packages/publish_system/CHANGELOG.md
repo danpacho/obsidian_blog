@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.8
+
+### Patch Changes
+
+- Update git commit default message function and sanitize committed files
+
 ## 0.4.7
 
 ### Patch Changes
