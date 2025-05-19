@@ -19,14 +19,11 @@ export interface DefaultContentMeta {
     tags?: Array<string>
     params?: Record<string, string>
     href?: string
-    series?: string
-    seriesOrder?: number
-    seriesInfo?: Array<
-        Pick<
-            DefaultContentMeta,
-            'title' | 'description' | 'href' | 'update' | 'seriesOrder'
-        >
-    >
+    series?: {
+        name?: string
+        order?: number
+    }
+    seriesInfo?: Array<Omit<DefaultContentMeta, 'seriesInfo'>>
     pagination?: {
         prev: DefaultPaginationInfo
         next: DefaultPaginationInfo
