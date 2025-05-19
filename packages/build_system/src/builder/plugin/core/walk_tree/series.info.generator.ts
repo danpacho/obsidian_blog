@@ -12,7 +12,10 @@ import type { DefaultContentMeta } from './shared/meta/interface'
 
 export type SeriesInfoGeneratorStaticConfig = WalkTreePluginStaticConfig
 export type SeriesInfoGeneratorDynamicConfig = WalkTreePluginDynamicConfig &
-    ContentMetaGeneratorOptions
+    ContentMetaGeneratorOptions & {
+        seriesInfoPropertyName: string
+    }
+
 export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
     SeriesInfoGeneratorStaticConfig,
     SeriesInfoGeneratorDynamicConfig
@@ -20,13 +23,32 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
     public defineStaticConfig(): SeriesInfoGeneratorStaticConfig {
         return {
             name: 'series-info-generator',
-            description: 'Generate series info for the content',
+            description:
+                'Plugin to automatically gather and inject series-related metadata into each content file, enabling seamless series navigation. Injected at `[seriesInfoPropertyName]`',
             dynamicConfigSchema: {
+                seriesInfoPropertyName: {
+                    type: 'string',
+                    description: 'Name of seriesInfo injection field',
+                    defaultValue: 'seriesInfo',
+                    optional: true,
+                },
+                /**
+                 * contentMeta
+                 *
+                 * High-level configuration for front-matter metadata handling.
+                 * Use `parser` to define how raw metadata is read from files,
+                 * and `generator` to control how metadata is written back.
+                 * This allows adapting to different markdown or YAML front-matter styles.
+                 */
                 contentMeta: {
                     type: {
                         parser: {
                             type: 'Function',
-                            description: 'Parser function for the meta',
+                            description:
+                                'Function to parse raw front-matter into a JavaScript object.\n' +
+                                'Input: raw metadata (string or unknown).\n' +
+                                'Output: `{ [key: string]: any }` representing your file metadata.\n' +
+                                'Override this to match custom front-matter formats (YAML, TOML, JSON).',
                             typeDescription:
                                 '(meta: unknown) => Record<string, unknown>',
                             defaultValue:
@@ -35,92 +57,132 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
                         },
                         generator: {
                             type: 'Function',
-                            description: 'Generator function for the meta',
-                            typeDescription:
-                                '(meta: unknown) => Record<string, unknown>',
+                            description:
+                                'Function to serialize a metadata object back into front-matter text.\n' +
+                                'Input: metadata object.\n' +
+                                'Output: string block to prepend as file front-matter.\n' +
+                                'Override this to control formatting, ordering, or style of your metadata.',
+                            typeDescription: '(meta: unknown) => string',
                             defaultValue:
                                 defaultContentMetaBuilderOptions.contentMeta
                                     .generator,
                         },
                     },
-                    description: 'Content meta parser and generator',
+                    description:
+                        'Customize how the plugin reads and writes your file metadata.\n' +
+                        'Provide parsing and generating functions to align with your project’s front-matter conventions.',
                     optional: true,
                 },
             },
         }
     }
 
+    /**
+     * Lazily constructs the meta-engine from provided parser/generator.
+     * Throws if contentMeta is not configured.
+     */
     private get meta() {
+        if (!this.dynamicConfig.contentMeta) {
+            throw new Error(
+                'Configuration error: `contentMeta` must be provided in plugin dynamic config.'
+            )
+        }
         return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
+    private omit<T extends Record<string, any>, K extends keyof T>(
+        obj: T,
+        keyToOmit: K
+    ): Omit<T, K> {
+        const { [keyToOmit]: _, ...rest } = obj
+        return rest
+    }
+    /**
+     * Scans all sibling files for matching series names, then builds an array of series entries.
+     */
     private async getPostCollectionStore({
         seriesName,
         siblings,
     }: {
         seriesName: string
-        siblings: Array<FileTreeNode>
+        siblings: FileTreeNode[]
     }): Promise<DefaultContentMeta['seriesInfo']> {
-        const res = siblings.reduce<Promise<DefaultContentMeta['seriesInfo']>>(
-            async (acc, curr) => {
-                const awaited = await acc
-                if (!awaited) return acc
+        return siblings.reduce<
+            Promise<Exclude<DefaultContentMeta['seriesInfo'], undefined>>
+        >(async (accP, curr) => {
+            const acc = await accP
+            const extractResult = await this.meta.extractFromFile(
+                curr.absolutePath
+            )
+            if (!extractResult.success) return acc
 
-                const metaRes = await this.meta.extractFromFile(
-                    curr.absolutePath
-                )
-                if (!metaRes.success) return acc
-                const meta = metaRes.data.meta as unknown as DefaultContentMeta
+            const metaData = extractResult.data
+                .meta as unknown as DefaultContentMeta
+            // Only include posts that belong to this series & have required fields
+            if (
+                !metaData.series ||
+                metaData.series.name !== seriesName ||
+                typeof metaData.series.order !== 'number'
+            ) {
+                return acc
+            }
 
-                if (meta.series !== seriesName) return acc
+            const selfOmittedMetadata = this.omit(
+                metaData,
+                this.dynamicConfig
+                    .seriesInfoPropertyName as keyof typeof metaData
+            ) as Exclude<DefaultContentMeta['seriesInfo'], undefined>[number]
 
-                if (!meta.href) return acc
-                if (!meta.update) return acc
-                awaited.push({
-                    title: meta.title,
-                    description: meta.description,
-                    href: meta.href,
-                    update: meta.update,
-                    seriesOrder: Number(meta.seriesOrder),
-                })
-                return awaited
-            },
-            Promise.resolve([]) as Promise<DefaultContentMeta['seriesInfo']>
-        )
-        return res
+            if (!selfOmittedMetadata) {
+                return acc
+            }
+            acc.push(selfOmittedMetadata)
+            return acc
+        }, Promise.resolve([]))
     }
 
+    /**
+     * Main walker: injects the collected `seriesInfo` into each file’s metadata if it has a series.
+     */
     public async walk(
         node: Parameters<WalkTreePlugin['walk']>[0],
         { siblings }: Parameters<WalkTreePlugin['walk']>[1]
     ): Promise<void> {
-        if (node.category === 'FOLDER') return
-        if (!siblings) return
-        const metaRes = await this.meta.extractFromFile(node.absolutePath)
-        if (!metaRes.success) {
-            throw metaRes.error
+        if (node.category === 'FOLDER' || !siblings) return
+
+        const extractResult = await this.meta.extractFromFile(node.absolutePath)
+        if (!extractResult.success) throw extractResult.error
+
+        const metaData = extractResult.data
+            .meta as unknown as DefaultContentMeta
+
+        // Skip files without a valid series object
+        if (
+            !metaData.series ||
+            typeof metaData.series.name !== 'string' ||
+            typeof metaData.series.order !== 'number'
+        ) {
+            return
         }
 
-        const meta = metaRes.data.meta
-        if ('series' in meta === false || typeof meta.series !== 'string')
-            return
-
         const seriesInfo = await this.getPostCollectionStore({
-            seriesName: meta.series,
+            seriesName: metaData.series.name,
             siblings,
         })
 
         await this.meta.replace({
             injectPath: node.absolutePath,
             metaData: {
-                content: metaRes.data.content,
+                content: extractResult.data.content,
                 meta: {
-                    ...meta,
-                    seriesInfo,
+                    ...metaData,
+                    [this.dynamicConfig.seriesInfoPropertyName!]: seriesInfo,
                 },
             },
         })
 
-        this.$logger.success(`injected series info to ${node.absolutePath}`)
+        this.$logger.success(
+            `Series metadata injected into: ${node.absolutePath}`
+        )
     }
 }
