@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.2.5
+
+### Patch Changes
+
+- Fix sync issue at load config bridge storage
+
 ## 0.2.4
 
 ### Patch Changes

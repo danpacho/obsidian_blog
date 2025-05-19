@@ -1,5 +1,12 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.9
+
+### Patch Changes
+
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.2.5
+
 ## 0.4.8
 
 ### Patch Changes
