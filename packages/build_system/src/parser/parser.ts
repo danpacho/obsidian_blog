@@ -255,26 +255,32 @@ export class FileTreeParser {
         siblings: Array<FileTreeNode> | undefined = undefined,
         siblingsIndex: number | undefined = undefined
     ): Promise<void> {
-        if (!node) return
+        if (!node || node.excluded) {
+            return
+        }
+
         if (this.exclude(node.fileName, exclude)) {
             return
         }
 
-        const shouldWalk: boolean = !(
-            skipFolderNode && node instanceof FolderNode
-        )
+        const shouldWalk: boolean =
+            !(skipFolderNode && node instanceof FolderNode) && !node.excluded
+
+        const childrenNode = node.children
+            ? node.children.filter((e) => !e.excluded)
+            : node.children
 
         if (shouldWalk) {
             await walker(node, {
-                children: node.children,
+                children: childrenNode,
                 siblings,
                 siblingsIndex,
             })
         }
 
-        if (!node.children) return
-        for (let i = 0; i < node.children.length; i++) {
-            const child = node.children[i]
+        if (!childrenNode) return
+        for (let i = 0; i < childrenNode.length; i++) {
+            const child = childrenNode[i]
             if (!child) continue
 
             await this.walkDFS(
@@ -282,7 +288,7 @@ export class FileTreeParser {
                 walker,
                 skipFolderNode,
                 exclude,
-                node.children,
+                childrenNode,
                 i
             )
         }
@@ -294,7 +300,10 @@ export class FileTreeParser {
         skipFolderNode: boolean = false,
         exclude: string | RegExp | Array<string> | undefined = undefined
     ): Promise<void> {
-        if (!node) return
+        if (!node || node.excluded) {
+            return
+        }
+
         if (this.exclude(node.fileName, exclude)) {
             return
         }
@@ -309,27 +318,30 @@ export class FileTreeParser {
             if (!dequeued) continue
             const { node, siblings, siblingsIndex } = dequeued
 
-            const shouldWalk: boolean = !(
-                skipFolderNode && node instanceof FolderNode
-            )
+            const shouldWalk: boolean =
+                !(skipFolderNode && node instanceof FolderNode) &&
+                !node.excluded
+
+            const childrenNode = node.children
+                ? node.children.filter((e) => !e.excluded)
+                : node.children
 
             if (shouldWalk) {
                 await walker(node, {
-                    children: node.children,
+                    children: childrenNode,
                     siblings,
                     siblingsIndex,
                 })
             }
 
-            const nodeChildren = node.children
-            if (nodeChildren) {
-                for (let i = 0; i < nodeChildren.length; i++) {
-                    const child = nodeChildren[i]
+            if (childrenNode) {
+                for (let i = 0; i < childrenNode.length; i++) {
+                    const child = childrenNode[i]
                     if (!child) continue
 
                     this._queue.enqueue({
                         node: child,
-                        siblings: nodeChildren,
+                        siblings: childrenNode,
                         siblingsIndex: i,
                     })
                 }
