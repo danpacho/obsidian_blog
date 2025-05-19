@@ -279,6 +279,7 @@ export class LoadConfigBridgeStorage {
                 )
 
             // remove non-registered plugins
+            // remove -> write
             for (const rmName of dbRemovingTargetPluginNames) {
                 await pluginManager.$config.remove(rmName)
             }
