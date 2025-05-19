@@ -76,4 +76,11 @@ export class GitShell extends ShellExecutor {
     public async remote(): Promise<CommandResult> {
         return await this.git(['remote', '-v'])
     }
+
+    /**
+     * List staged files that have been newly added (i.e. git diff --cached --name-only --diff-filter=A)
+     */
+    public async listStagedAddedFiles(): Promise<CommandResult> {
+        return await this.git(['diff', '--cached', '--name-only'])
+    }
 }
