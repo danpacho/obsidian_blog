@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.3.0
+
+### Minor Changes
+
+- Fix dynamic config syncing issue
+
 ## 0.2.6
 
 ### Patch Changes
