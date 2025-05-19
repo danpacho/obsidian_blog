@@ -7,7 +7,7 @@ import type { PublishPluginResponse } from '../../publish.plugin'
 
 export interface GithubRepositoryDynamicConfig extends RepositoryDynamicConfig {
     branch: string
-    commitMessage: string
+    commitMessage: string | ((stagedAddedFiles: Array<string>) => string)
     commitPrefix: string
     addPattern?: string
 }
@@ -27,19 +27,30 @@ export class GithubRepository extends RepositoryPlugin<
                 },
                 branch: {
                     type: 'string',
-                    description: 'The branch to push to',
+                    description: 'The branch to push to, default to main',
+                    defaultValue: 'main',
+                    optional: true,
                 },
                 commitMessage: {
-                    type: 'string',
-                    description: 'The commit message',
+                    type: ['string', 'Function'],
+                    optional: true,
+                    description:
+                        'The commit message, `string` or `(stagedAddedFiles: Array<string>) => string)',
+                    defaultValue: (stagedAddedFiles: Array<string>): string => {
+                        return `add ${stagedAddedFiles.join(', ')} published at ${new Date().toLocaleTimeString()}`
+                    },
                 },
                 commitPrefix: {
                     type: 'string',
                     description: 'The commit prefix',
+                    defaultValue: 'publish',
+                    optional: true,
                 },
                 gitPath: {
                     type: 'string',
-                    description: 'The path to git',
+                    description: 'The path to git, default to `git`',
+                    defaultValue: 'git',
+                    optional: true,
                 },
             },
         }
@@ -82,6 +93,30 @@ export class GithubRepository extends RepositoryPlugin<
                             e,
                             message: 'git remote execution error',
                         })
+                        stop()
+                        return {
+                            error,
+                            history: this.$logger.getHistory(),
+                        }
+                    }
+                },
+            },
+            {
+                name: 'git-pull',
+                execute: async () => {
+                    const error: PublishPluginResponse['error'] = []
+                    let exec: PublishPluginResponse['error'][number]['command']
+                    try {
+                        exec = await this.$git?.pull(this.dynamicConfig.branch)
+                        this.$logger.info(`Pull ${addPattern} success`)
+                    } catch (e) {
+                        stop()
+                        this.invokeError(error, {
+                            e,
+                            message: 'git pull execution error',
+                            commandResult: exec,
+                        })
+                    } finally {
                         return {
                             error,
                             history: this.$logger.getHistory(),
@@ -103,6 +138,7 @@ export class GithubRepository extends RepositoryPlugin<
                             this.$logger.info(`Add all success`)
                         }
                     } catch (e) {
+                        stop()
                         this.invokeError(error, {
                             e,
                             message: 'git add execution error',
@@ -121,11 +157,26 @@ export class GithubRepository extends RepositoryPlugin<
                 execute: async () => {
                     const error: PublishPluginResponse['error'] = []
                     let exec: PublishPluginResponse['error'][number]['command']
-                    const commit = `${commitPrefix}: ${commitMessage}`
                     try {
-                        exec = await this.$git?.commit(commit)
+                        if (typeof commitMessage === 'string') {
+                            const commit = `${commitPrefix}: ${commitMessage}`
+                            exec = await this.$git?.commit(commit)
+                        } else {
+                            const result =
+                                await this.$git.listStagedAddedFiles()
+
+                            const files = result.stdout
+                                .trim() // remove trailing newline
+                                .split('\n') // split into lines
+                                .map((f) => f.trim()) // clean up any stray whitespace
+                                .filter(Boolean) // drop empty strings, if any
+
+                            const commit = `${commitPrefix}: ${commitMessage(files)}`
+                            exec = await this.$git?.commit(commit)
+                        }
                         this.$logger.info(`Commit success`)
                     } catch (e) {
+                        stop()
                         this.invokeError(error, {
                             e,
                             message: 'git commit execution error',
@@ -148,6 +199,7 @@ export class GithubRepository extends RepositoryPlugin<
                         exec = await this.$git?.push(branch)
                         this.$logger.success('Pushed to remote successfully')
                     } catch (e) {
+                        stop()
                         this.invokeError(error, {
                             e,
                             message: 'git push execution error',
