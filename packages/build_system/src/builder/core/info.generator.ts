@@ -98,7 +98,11 @@ export class BuildInfoGenerator {
         const unified = normalizedRoute.replaceAll(path.sep, DIVIDER)
 
         // 2) split & drop any empty pieces
-        const routeSegments = unified.split(DIVIDER).filter(Boolean)
+        const routeSegments = unified
+            .split(DIVIDER)
+            // remove unnecessary characters
+            .map((e) => e.replace(/[@{}\[\]\(\)<>?!#+=~^'"`\s]/g, ''))
+            .filter(Boolean)
 
         let safeRoute: string
         if (process.platform === 'win32') {
