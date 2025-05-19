@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.2.6
+
+### Patch Changes
+
+- Fix critical extend issue
+
 ## 0.2.5
 
 ### Patch Changes
