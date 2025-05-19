@@ -64,6 +64,9 @@ export class PaginationBuilderPlugin extends WalkTreePlugin<
     }
 
     private get meta() {
+        if (!this.dynamicConfig.contentMeta) {
+            throw new Error('contentMeta missing – set it in dynamic config.')
+        }
         return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
