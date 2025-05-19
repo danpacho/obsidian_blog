@@ -8,11 +8,11 @@ type SingleParamAnalyzeResult =
            */
           isDynamicParam: true
           /**
-           * Indicates whether the parameter is multiple.
+           * Indicates whether the parameter is multiple (`[...foo]`-style).
            */
           isMultiple: boolean
           /**
-           * The name of the parameter.
+           * The name of the parameter (without the brackets / spread dots).
            */
           paramName: string
       }
@@ -26,93 +26,172 @@ type SingleParamAnalyzeResult =
            */
           isMultiple: false
           /**
-           * The name of divider.
+           * The literal divider name (static path segment).
            */
           dividerName: string
       }
 
+/* ------------------------------------------------------------------ */
+/* 🚀  Constructor options                                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Characters that cannot safely appear in a cross-platform file/folder name.
+ * (Windows: < > : " / \ | ? *   •   POSIX: / and NUL)
+ */
+const INVALID_PATH_CHARS = '/\\?*:<>|"\u0000'.split('') as Array<string>
+
+/**
+ * Options accepted by {@link ParamAnalyzer}.
+ *
+ * – **openTag / closeTag** give a terse way to specify the dynamic-param
+ *   delimiters (default `'['` + `']'`).
+ * – The old `paramShape` / `paramExtractor` API is **still supported**
+ *   and takes precedence when supplied, so existing code will continue
+ *   to work unchanged.
+ */
 export interface ParamAnalyzerConstructor {
+    /**
+     * Opening delimiter for dynamic parameters (must be **one** character).
+     * @default "["
+     */
+    openTag?: string
+    /**
+     * Closing delimiter for dynamic parameters (must be **one** character).
+     * @default "]"
+     */
+    closeTag?: string
+    /**
+     * (Compatibility) Override the regular-expressions that recognise
+     * single ( `[foo]` ) and multiple ( `[...bar]` ) dynamic parameters.
+     */
     paramShape?: {
         single: RegExp
         multiple: RegExp
     }
+    /**
+     * (Compatibility) Override the functions that strip brackets / dots
+     * from recognised parameter strings.
+     */
     paramExtractor?: {
         single?: (paramString: string) => string
         multiple?: (paramString: string) => string
     }
 }
+
+/* ------------------------------------------------------------------ */
+/* 🔧  Utility helpers                                                 */
+/* ------------------------------------------------------------------ */
+
+/** Escape a single character for safe injection into a RegExp. */
+const esc = (ch: string) => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/* ------------------------------------------------------------------ */
+/* 📦  ParamAnalyzer implementation                                   */
+/* ------------------------------------------------------------------ */
+
 export class ParamAnalyzer {
-    public constructor(public readonly options?: ParamAnalyzerConstructor) {}
-    /**
-     *  dynamic param shape
-     * @example
-     * ```ts
-     * // input param
-     * const paramString = '[param]'
-     * ParamAnalyzer.DynamicParamShape.single.test(paramString) // true
-     * ```
-     * @example
-     * ```ts
-     * // input param
-     * const paramString = '[...params]'
-     * ParamAnalyzer.DynamicParamShape.multiple.test(paramString) // true
-     * ```
-     */
-    public static DefaultDynamicParamShape = {
-        single: /(\[.*?\])/,
-        multiple: /(\[\.\.\..*?\])/,
+    public readonly openTag: string
+    public readonly closeTag: string
+
+    /** RegExp generated from {@link openTag} / {@link closeTag}. */
+    private readonly generatedShapes: {
+        single: RegExp
+        multiple: RegExp
     }
-    private get singleDynamicParamShape() {
+
+    /** @throws `TypeError` if tag characters are invalid. */
+    public constructor(public readonly options: ParamAnalyzerConstructor = {}) {
+        /* ------------ 1️⃣  resolve + validate tag characters ---------- */
+        const open = options.openTag ?? '['
+        const close = options.closeTag ?? ']'
+
+        if (open.length !== 1 || close.length !== 1)
+            throw new TypeError(
+                `openTag / closeTag must be single characters – received "${open}" & "${close}".`
+            )
+        if (open === close)
+            throw new TypeError(
+                `openTag and closeTag cannot be the same character ("${open}").`
+            )
+        if (
+            INVALID_PATH_CHARS.includes(open) ||
+            INVALID_PATH_CHARS.includes(close)
+        )
+            throw new TypeError(
+                `openTag ("${open}") or closeTag ("${close}") is not allowed in file/folder names.`
+            )
+
+        this.openTag = open
+        this.closeTag = close
+
+        /* ------------ 2️⃣  create default RegExp shapes --------------- */
+        const o = esc(open)
+        const c = esc(close)
+
+        this.generatedShapes = {
+            // e.g.  "[foo]"  when openTag="[" closeTag="]"
+            single: new RegExp(`(${o}[^${o}${c}]+?${c})`),
+            // e.g.  "[...bar]"
+            multiple: new RegExp(`(${o}\\.\\.\\.[^${o}${c}]+?${c})`),
+        }
+    }
+
+    /* -------------------------- shapes ---------------------------- */
+
+    /** Dynamic single-param matcher (`[foo]`). */
+    private get singleDynamicParamShape(): RegExp {
+        return this.options.paramShape?.single || this.generatedShapes.single
+    }
+    /** Dynamic multi-param matcher (`[...foo]`). */
+    private get multipleDynamicParamShape(): RegExp {
         return (
-            this.options?.paramShape?.single ||
-            ParamAnalyzer.DefaultDynamicParamShape.single
+            this.options.paramShape?.multiple || this.generatedShapes.multiple
         )
     }
-    private get multipleDynamicParamShape() {
-        return (
-            this.options?.paramShape?.multiple ||
-            ParamAnalyzer.DefaultDynamicParamShape.multiple
-        )
-    }
+
+    /* ----------------------- extractors --------------------------- */
+
+    /** Removes opening/closing tag characters. */
+    private readonly defaultSingleExtractor = (paramString: string) =>
+        paramString.slice(1, -1) /* remove first/last char */
+
+    /** Removes tags + leading `...` for spread params. */
+    private readonly defaultMultipleExtractor = (paramString: string) =>
+        paramString
+            .slice(1, -1) // strip brackets
+            .replace(/^\.\.\./, '') // strip leading "..."
     private get singleParamExtractor() {
         return (
-            this.options?.paramExtractor?.single ||
-            ((paramString: string) => paramString.replace(/\[|\]/g, ''))
+            this.options.paramExtractor?.single || this.defaultSingleExtractor
         )
     }
     private get multipleParamExtractor() {
         return (
-            this.options?.paramExtractor?.multiple ||
-            ((paramString: string) => paramString.replace(/\[|\]|\.\.\./g, ''))
+            this.options.paramExtractor?.multiple ||
+            this.defaultMultipleExtractor
         )
     }
+
+    /* -------------------- public query helpers -------------------- */
+
     /**
-     *  check if the param is a single dynamic param
-     * @example
-     * ```ts
-     * // input param
-     * const paramString = '[param]'
-     * ParamAnalyzer.isSingleDynamicParam(paramString) // true
-     * ```
-     * @param paramString param string
+     * `true` → matches the **single** dynamic-param pattern
+     * (`[foo]` when default delimiters are used).
      */
     public isSingleDynamicParam(paramString: string): boolean {
         return this.singleDynamicParamShape.test(paramString)
     }
 
     /**
-     *  check if the param is a multiple dynamic param
-     * @example
-     * ```ts
-     * // input param
-     * const paramString = '[...params]'
-     * ParamAnalyzer.isMultipleDynamicParam(paramString) // true
-     * ```
-     * @param paramString param string
+     * `true` → matches the **spread** dynamic-param pattern
+     * (`[...foo]` when default delimiters are used).
      */
     public isMultipleDynamicParam(paramString: string): boolean {
         return this.multipleDynamicParamShape.test(paramString)
     }
+
+    /* ----------------------- core logic --------------------------- */
 
     private isSingleParamString(paramString: string): boolean {
         const length = paramString.split('/').length
@@ -147,7 +226,7 @@ export class ParamAnalyzer {
     ): SingleParamAnalyzeResult {
         if (!this.isSingleParamString(singleParamString))
             throw new TypeError(
-                `Invalid param string: not a single param string, ${singleParamString}`
+                `Invalid param string (contains "/"): ${singleParamString}`
             )
 
         if (
@@ -155,20 +234,12 @@ export class ParamAnalyzer {
             !this.isMultipleDynamicParam(singleParamString)
         ) {
             const paramName = this.singleParamExtractor(singleParamString)
-            return {
-                isDynamicParam: true,
-                isMultiple: false,
-                paramName,
-            }
+            return { isDynamicParam: true, isMultiple: false, paramName }
         }
 
         if (this.isMultipleDynamicParam(singleParamString)) {
             const paramName = this.multipleParamExtractor(singleParamString)
-            return {
-                isDynamicParam: true,
-                isMultiple: true,
-                paramName,
-            }
+            return { isDynamicParam: true, isMultiple: true, paramName }
         }
 
         return {
@@ -178,6 +249,8 @@ export class ParamAnalyzer {
         }
     }
 
+    /* ------------- helpers for multi-segment analysis ------------- */
+
     private getValidParamString(paramString: string): string {
         return paramString.split('/').filter(Boolean).join('/')
     }
@@ -185,52 +258,55 @@ export class ParamAnalyzer {
     private isValidParamStructure(
         paramAnalyzedResult: Array<SingleParamAnalyzeResult>
     ): boolean {
-        const dynamicMultipleParamIndex = paramAnalyzedResult.findIndex(
-            (param) => param.isDynamicParam && param.isMultiple
+        const spreadIndex = paramAnalyzedResult.findIndex(
+            (p) => p.isDynamicParam && p.isMultiple
         )
-        if (dynamicMultipleParamIndex === -1) return true
-        const length = paramAnalyzedResult.length
-
-        const dynamicShouldBeLast = dynamicMultipleParamIndex === length - 1
-        if (dynamicShouldBeLast) return true
-
-        return false
+        if (spreadIndex === -1) return true
+        return spreadIndex === paramAnalyzedResult.length - 1
     }
 
+    /**
+     * Analyze an entire (possibly multi-segment) parameter path.
+     *
+     * @returns
+     * * `result` – the per-segment analysis list
+     * * `dynamicParams` – ordered list of dynamic parameter names
+     */
     public analyzeParam(paramString: string): {
         dynamicParams: Array<string>
         result: Array<SingleParamAnalyzeResult>
     } {
-        const validParamString = this.getValidParamString(paramString)
-        if (this.isSingleParamString(validParamString)) {
-            const single = this.analyzeSingleParam(validParamString)
+        const cleaned = this.getValidParamString(paramString)
+
+        /* ----- single segment ------------------------------------------------ */
+        if (this.isSingleParamString(cleaned)) {
+            const single = this.analyzeSingleParam(cleaned)
             return {
                 result: [single],
                 dynamicParams: single.isDynamicParam ? [single.paramName] : [],
             }
         }
 
-        const multipleParamString = validParamString.split('/').filter(Boolean)
-        const result = multipleParamString.map((param) =>
-            this.analyzeSingleParam(param)
-        )
+        /* ----- multi-segment -------------------------------------------------- */
+        const segments = cleaned.split('/').filter(Boolean)
+        const result = segments.map((seg) => this.analyzeSingleParam(seg))
 
-        if (!this.isValidParamStructure(result)) {
+        if (!this.isValidParamStructure(result))
             throw new TypeError(
-                `Invalid param structure: ${validParamString}, multiple dynamic param should be the last param.`
+                `Invalid param structure (“${cleaned}”): spread parameter must be last.`
             )
-        }
 
         const dynamicParams = result
-            .map((param) => {
-                if (param.isDynamicParam) return param.paramName
-                return null
-            })
-            .filter(Boolean) as Array<string>
+            .filter(
+                (
+                    p
+                ): p is Extract<
+                    SingleParamAnalyzeResult,
+                    { isDynamicParam: true }
+                > => p.isDynamicParam
+            )
+            .map((p) => p.paramName)
 
-        return {
-            result,
-            dynamicParams,
-        }
+        return { result, dynamicParams }
     }
 }
