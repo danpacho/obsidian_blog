@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.7
+
+### Patch Changes
+
+- Add node exclusion feature for build:tree pipes and change git-related plugin processes
+
 ## 0.4.6
 
 ### Patch Changes
