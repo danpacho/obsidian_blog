@@ -37,7 +37,7 @@ export class GithubRepository extends RepositoryPlugin<
                     description:
                         'The commit message, `string` or `(stagedAddedFiles: Array<string>) => string)',
                     defaultValue: (stagedAddedFiles: Array<string>): string => {
-                        return `add ${stagedAddedFiles.join(', ')} published at ${new Date().toLocaleTimeString()}`
+                        return `${stagedAddedFiles[0]} (+${stagedAddedFiles.length - 1}) files published at ${new Date().toLocaleTimeString()}`
                     },
                 },
                 commitPrefix: {
@@ -169,6 +169,18 @@ export class GithubRepository extends RepositoryPlugin<
                                 .trim() // remove trailing newline
                                 .split('\n') // split into lines
                                 .map((f) => f.trim()) // clean up any stray whitespace
+                                .map(
+                                    (
+                                        e // remove invalid chars
+                                    ) =>
+                                        e
+                                            .replace(
+                                                /[@{}\[\]\(\)<>?!#+=~^'"`\s]/g,
+                                                ''
+                                            )
+                                            // remove everything except English letters
+                                            .replace(/[^A-Za-z]+/g, '')
+                                )
                                 .filter(Boolean) // drop empty strings, if any
 
                             const commit = `${commitPrefix}: ${commitMessage(files)}`
