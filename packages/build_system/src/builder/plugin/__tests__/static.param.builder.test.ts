@@ -20,49 +20,32 @@ describe('StaticParamBuilderPlugin', () => {
             },
         })
 
-        const metaList = buildFiles.contents.map((e) => e.meta!.params)
-        expect(metaList).toMatchInlineSnapshot(`
-          [
+        const metaList = buildFiles.contents
+            .map((e) => e.meta!.params)
+            .filter(Boolean)
+        expect(metaList).toStrictEqual([
+            { postId: 'img', page: '1' },
+            { postId: 'link', page: '1' },
+            { postId: 'markdown', page: '2' },
             {
-              "page": "1",
-              "postId": "img",
+                postId: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+                page: '3',
             },
-            {
-              "page": "1",
-              "postId": "link",
-            },
-            {
-              "page": "2",
-              "postId": "markdown",
-            },
-            undefined,
-            {
-              "page": "3",
-              "postId": "nested/nested/nested/nested/nested/nested/nested/deeply_nested",
-            },
-            {
-              "page": "3",
-              "postId": "nested/nested/nested",
-            },
-            {
-              "page": "4",
-              "postId": "nested/nested/nested2",
-            },
-          ]
-        `)
+            { postId: 'nested/nested/nested', page: '3' },
+            { postId: 'nested/nested/nested2', page: '4' },
+        ])
 
         const hrefList = buildFiles.contents
             .map((e) => e.meta?.href)
             .filter(Boolean)
-        expect(hrefList).toMatchInlineSnapshot(`
-          [
-            "posts/1/img",
-            "posts/1/link",
-            "posts/2/markdown",
-            "posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested",
-            "posts/3/nested/nested/nested",
-            "posts/4/nested/nested/nested2",
-          ]
-        `)
+
+        expect(hrefList).toStrictEqual([
+            'posts/1/img',
+            'posts/1/link',
+            'posts/2/markdown',
+            'posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+            'posts/3/nested/nested/nested',
+            'posts/4/nested/nested/nested2',
+        ])
     })
 })

@@ -43,99 +43,98 @@ describe('StaticParamBuilderPlugin', () => {
                     prev,
                 }
             })
-        expect(meta).toMatchInlineSnapshot(`
-          [
+
+        expect(meta).toStrictEqual([
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/1/link",
-                "params": {
-                  "page": "1",
-                  "postId": "link",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/1/link',
+                    params: {
+                        page: '1',
+                        postId: 'link',
+                    },
+                    title: 'Link.md',
                 },
-                "title": "Link.md",
-              },
-              "prev": {},
+                prev: {},
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/2/markdown",
-                "params": {
-                  "page": "2",
-                  "postId": "markdown",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/2/markdown',
+                    params: {
+                        page: '2',
+                        postId: 'markdown',
+                    },
+                    title: 'Markdown.md',
                 },
-                "title": "Markdown.md",
-              },
-              "prev": {
-                "banner": "![[img.png]]",
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/1/img",
-                "params": {
-                  "page": "1",
-                  "postId": "img",
+                prev: {
+                    banner: '![[img.png]]',
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/1/img',
+                    params: {
+                        page: '1',
+                        postId: 'img',
+                    },
+                    title: 'Img.md',
                 },
-                "title": "Img.md",
-              },
             },
             {
-              "next": {},
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/1/link",
-                "params": {
-                  "page": "1",
-                  "postId": "link",
+                next: {},
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/1/link',
+                    params: {
+                        page: '1',
+                        postId: 'link',
+                    },
+                    title: 'Link.md',
                 },
-                "title": "Link.md",
-              },
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/3/nested/nested/nested",
-                "params": {
-                  "page": "3",
-                  "postId": "nested/nested/nested",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/3/nested/nested/nested',
+                    params: {
+                        page: '3',
+                        postId: 'nested/nested/nested',
+                    },
+                    title: 'Nested.md',
                 },
-                "title": "Nested.md",
-              },
-              "prev": {},
+                prev: {},
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/4/nested/nested/nested2",
-                "params": {
-                  "page": "4",
-                  "postId": "nested/nested/nested2",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/4/nested/nested/nested2',
+                    params: {
+                        page: '4',
+                        postId: 'nested/nested/nested2',
+                    },
+                    title: 'Nested2.md',
                 },
-                "title": "Nested2.md",
-              },
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested",
-                "params": {
-                  "page": "3",
-                  "postId": "nested/nested/nested/nested/nested/nested/nested/deeply_nested",
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+                    params: {
+                        page: '3',
+                        postId: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+                    },
+                    title: 'DeeplyNested.md',
                 },
-                "title": "DeeplyNested.md",
-              },
             },
             {
-              "next": {},
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "posts/3/nested/nested/nested",
-                "params": {
-                  "page": "3",
-                  "postId": "nested/nested/nested",
+                next: {},
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'posts/3/nested/nested/nested',
+                    params: {
+                        page: '3',
+                        postId: 'nested/nested/nested',
+                    },
+                    title: 'Nested.md',
                 },
-                "title": "Nested.md",
-              },
             },
-          ]
-        `)
+        ])
     })
 
     it('should inject [category]/[...post] param', async () => {
@@ -171,94 +170,92 @@ describe('StaticParamBuilderPlugin', () => {
                 }
             })
 
-        expect(meta).toMatchInlineSnapshot(`
-          [
+        expect(meta).toStrictEqual([
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "link",
-                "params": {
-                  "category": "link",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'link',
+                    params: {
+                        category: 'link',
+                    },
+                    title: 'Link.md',
                 },
-                "title": "Link.md",
-              },
-              "prev": {},
+                prev: {},
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "markdown",
-                "params": {
-                  "category": "markdown",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'markdown',
+                    params: {
+                        category: 'markdown',
+                    },
+                    title: 'Markdown.md',
                 },
-                "title": "Markdown.md",
-              },
-              "prev": {
-                "banner": "![[img.png]]",
-                "description": "DEFAULT DESCRIPTION",
-                "href": "img",
-                "params": {
-                  "category": "img",
+                prev: {
+                    banner: '![[img.png]]',
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'img',
+                    params: {
+                        category: 'img',
+                    },
+                    title: 'Img.md',
                 },
-                "title": "Img.md",
-              },
             },
             {
-              "next": {},
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "link",
-                "params": {
-                  "category": "link",
+                next: {},
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'link',
+                    params: {
+                        category: 'link',
+                    },
+                    title: 'Link.md',
                 },
-                "title": "Link.md",
-              },
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "nested/nested/nested",
-                "params": {
-                  "category": "nested",
-                  "post": "nested/nested",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'nested/nested/nested',
+                    params: {
+                        category: 'nested',
+                        post: 'nested/nested',
+                    },
+                    title: 'Nested.md',
                 },
-                "title": "Nested.md",
-              },
-              "prev": {},
+                prev: {},
             },
             {
-              "next": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "nested/nested/nested2",
-                "params": {
-                  "category": "nested",
-                  "post": "nested/nested2",
+                next: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'nested/nested/nested2',
+                    params: {
+                        category: 'nested',
+                        post: 'nested/nested2',
+                    },
+                    title: 'Nested2.md',
                 },
-                "title": "Nested2.md",
-              },
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "nested/nested/nested/nested/nested/nested/nested/deeply_nested",
-                "params": {
-                  "category": "nested",
-                  "post": "nested/nested/nested/nested/nested/nested/deeply_nested",
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+                    params: {
+                        category: 'nested',
+                        post: 'nested/nested/nested/nested/nested/nested/deeply_nested',
+                    },
+                    title: 'DeeplyNested.md',
                 },
-                "title": "DeeplyNested.md",
-              },
             },
             {
-              "next": {},
-              "prev": {
-                "description": "DEFAULT DESCRIPTION",
-                "href": "nested/nested/nested",
-                "params": {
-                  "category": "nested",
-                  "post": "nested/nested",
+                next: {},
+                prev: {
+                    description: 'DEFAULT DESCRIPTION',
+                    href: 'nested/nested/nested',
+                    params: {
+                        category: 'nested',
+                        post: 'nested/nested',
+                    },
+                    title: 'Nested.md',
                 },
-                "title": "Nested.md",
-              },
             },
-          ]
-        `)
+        ])
     })
 })
