@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Tester } from './tester'
 import { StaticParamBuilderPlugin } from '../core'
-import { ExcludeDraft } from '../core/build_tree/exclude_draft'
+import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
 
 describe('StaticParamBuilderPlugin', () => {
     it('should inject static params to the content', async () => {
-        const draft = new ExcludeDraft()
+        const draft = new ExcludeDraftPlugin()
         const plugin = new StaticParamBuilderPlugin()
         plugin.injectDynamicConfig({
             prefix: 'posts',

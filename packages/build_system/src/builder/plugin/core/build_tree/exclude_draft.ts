@@ -12,7 +12,7 @@ export type ExcludeDraftDynamicConfig = BuildTreePluginDynamicConfig & {
     draftPropertyName: string
 }
 
-export class ExcludeDraft extends BuildTreePlugin<
+export class ExcludeDraftPlugin extends BuildTreePlugin<
     ExcludeDraftStaticConfig,
     ExcludeDraftDynamicConfig
 > {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { PaginationBuilderPlugin, StaticParamBuilderPlugin } from '../core'
 import { Tester } from './tester'
-import { ExcludeDraft } from '../core/build_tree/exclude_draft'
+import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
 
 describe('StaticParamBuilderPlugin', () => {
     const paginationBuilder = new PaginationBuilderPlugin()
@@ -12,7 +12,7 @@ describe('StaticParamBuilderPlugin', () => {
     }
 
     it('should inject static params to the content', async () => {
-        const draft = new ExcludeDraft()
+        const draft = new ExcludeDraftPlugin()
         const staticParamBuilder = new StaticParamBuilderPlugin()
         staticParamBuilder.injectDynamicConfig({
             prefix: 'posts',
@@ -139,7 +139,7 @@ describe('StaticParamBuilderPlugin', () => {
     })
 
     it('should inject [category]/[...post] param', async () => {
-        const draft = new ExcludeDraft()
+        const draft = new ExcludeDraftPlugin()
         const staticParamBuilder = new StaticParamBuilderPlugin()
         staticParamBuilder.injectDynamicConfig({
             paramShape: '/[category]/[...post]',

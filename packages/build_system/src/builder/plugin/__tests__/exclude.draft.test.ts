@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { Tester } from './tester'
-import { ExcludeDraft } from '../core/build_tree/exclude_draft'
+import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
 
 describe('ExcludeDraft', () => {
     it('should exclude drafted files', async () => {
-        const plugin = new ExcludeDraft()
+        const plugin = new ExcludeDraftPlugin()
         plugin.injectDynamicConfig({
             draftPropertyName: '$draft$',
         })
