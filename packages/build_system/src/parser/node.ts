@@ -35,6 +35,23 @@ export abstract class FileTreeNode {
     public fileName: string
 
     /**
+     * Excluded status current node.
+     */
+    public excluded: boolean = false
+
+    /**
+     * Mark node as excluded
+     */
+    public exclude(): void {
+        this.excluded = true
+    }
+    /**
+     * Mark node as included
+     */
+    public include(): void {
+        this.excluded = false
+    }
+    /**
      * The parent information of the file tree node.
      */
     public get parentInfo() {
