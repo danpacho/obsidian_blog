@@ -120,7 +120,10 @@ export const Builder = new BuildSystem({
     //                             Plugin Registration                            //
     //==============================================================================
     .use({
-        'build:tree': [],
+        'build:tree': [
+            // CorePlugins. you can remove it and modify the plugins
+            new CorePlugins.ExcludeDraftPlugin(),
+        ],
         'walk:tree': [
             // CorePlugins. you can remove it and modify the plugins
             new CorePlugins.MetaValidatorPlugin(),
