@@ -24,15 +24,18 @@ describe('StaticParamBuilderPlugin', () => {
             .map((e) => e.meta!.params)
             .filter(Boolean)
         expect(metaList).toStrictEqual([
-            { postId: 'img', page: '1' },
-            { postId: 'link', page: '1' },
-            { postId: 'markdown', page: '2' },
+            { postId: 'category/category', page: '1' },
+            { postId: 'category/series_1', page: '1' },
+            { postId: 'category/series_2', page: '2' },
+            { postId: 'img', page: '2' },
+            { postId: 'link', page: '3' },
+            { postId: 'markdown', page: '3' },
             {
                 postId: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
-                page: '3',
+                page: '4',
             },
-            { postId: 'nested/nested/nested', page: '3' },
-            { postId: 'nested/nested/nested2', page: '4' },
+            { postId: 'nested/nested/nested', page: '5' },
+            { postId: 'nested/nested/nested2', page: '5' },
         ])
 
         const hrefList = buildFiles.contents
@@ -40,12 +43,15 @@ describe('StaticParamBuilderPlugin', () => {
             .filter(Boolean)
 
         expect(hrefList).toStrictEqual([
-            'posts/1/img',
-            'posts/1/link',
-            'posts/2/markdown',
-            'posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
-            'posts/3/nested/nested/nested',
-            'posts/4/nested/nested/nested2',
+            'posts/1/category/category',
+            'posts/1/category/series_1',
+            'posts/2/category/series_2',
+            'posts/2/img',
+            'posts/3/link',
+            'posts/3/markdown',
+            'posts/4/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
+            'posts/5/nested/nested/nested',
+            'posts/5/nested/nested/nested2',
         ])
     })
 })

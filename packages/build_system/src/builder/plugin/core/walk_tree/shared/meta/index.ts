@@ -7,18 +7,18 @@ import {
 } from './parser'
 
 export interface ContentMetaGeneratorOptions {
-    contentMeta: {
+    contentMeta?: {
         parser: MetaParser
         generator: MetaGenerator
     }
     paramAnalyzer?: ParamAnalyzerConstructor
 }
-export const defaultContentMetaBuilderOptions: ContentMetaGeneratorOptions = {
+export const defaultContentMetaBuilderOptions = {
     contentMeta: {
         parser: ContentMetaParser,
         generator: ContentMetaGenerator,
     },
-}
+} satisfies ContentMetaGeneratorOptions
 
 export interface CategoryDescriptionGeneratorOptions {
     categoryMeta: {

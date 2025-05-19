@@ -6,9 +6,20 @@ import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
 describe('StaticParamBuilderPlugin', () => {
     const paginationBuilder = new PaginationBuilderPlugin()
 
-    function omit(obj: Record<string, unknown>, keyToOmit: string) {
+    function omit<T extends Record<string, any>, K extends keyof T>(
+        obj: T,
+        keyToOmit: K
+    ): Omit<T, K> {
         const { [keyToOmit]: _, ...rest } = obj
         return rest
+    }
+
+    function pick<T extends Record<string, any>, K extends keyof T>(
+        obj: T,
+        keyToPick: K
+    ): Pick<T, K> {
+        const { [keyToPick]: value } = obj
+        return { [keyToPick]: value } as Pick<T, K>
     }
 
     it('should inject static params to the content', async () => {
@@ -36,102 +47,126 @@ describe('StaticParamBuilderPlugin', () => {
                     next: Record<string, unknown>
                     prev: Record<string, unknown>
                 }
-                const next = omit(te?.next ?? {}, 'update')
-                const prev = omit(te?.prev ?? {}, 'update')
+                const next = pick(omit(te?.next ?? {}, 'update'), 'params')
+                const prev = pick(omit(te?.prev ?? {}, 'update'), 'params')
                 return {
                     next,
                     prev,
                 }
             })
-
         expect(meta).toStrictEqual([
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/1/link',
                     params: {
                         page: '1',
-                        postId: 'link',
+                        postId: 'category/series_1',
                     },
-                    title: 'Link.md',
                 },
-                prev: {},
+                prev: {
+                    params: undefined,
+                },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/2/markdown',
                     params: {
                         page: '2',
-                        postId: 'markdown',
+                        postId: 'category/series_2',
                     },
-                    title: 'Markdown.md',
                 },
                 prev: {
-                    banner: '![[img.png]]',
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/1/img',
                     params: {
                         page: '1',
+                        postId: 'category/category',
+                    },
+                },
+            },
+            {
+                next: {
+                    params: {
+                        page: '2',
                         postId: 'img',
                     },
-                    title: 'Img.md',
                 },
-            },
-            {
-                next: {},
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/1/link',
                     params: {
                         page: '1',
+                        postId: 'category/series_1',
+                    },
+                },
+            },
+            {
+                next: {
+                    params: {
+                        page: '3',
                         postId: 'link',
                     },
-                    title: 'Link.md',
+                },
+                prev: {
+                    params: {
+                        page: '2',
+                        postId: 'category/series_2',
+                    },
                 },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/3/nested/nested/nested',
                     params: {
                         page: '3',
-                        postId: 'nested/nested/nested',
+                        postId: 'markdown',
                     },
-                    title: 'Nested.md',
                 },
-                prev: {},
+                prev: {
+                    params: {
+                        page: '2',
+                        postId: 'img',
+                    },
+                },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/4/nested/nested/nested2',
+                    params: undefined,
+                },
+                prev: {
                     params: {
-                        page: '4',
+                        page: '3',
+                        postId: 'link',
+                    },
+                },
+            },
+            {
+                next: {
+                    params: {
+                        page: '5',
+                        postId: 'nested/nested/nested',
+                    },
+                },
+                prev: {
+                    params: undefined,
+                },
+            },
+            {
+                next: {
+                    params: {
+                        page: '5',
                         postId: 'nested/nested/nested2',
                     },
-                    title: 'Nested2.md',
                 },
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/3/nested/nested/nested/nested/nested/nested/nested/deeply_nested',
                     params: {
-                        page: '3',
+                        page: '4',
                         postId: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
                     },
-                    title: 'DeeplyNested.md',
                 },
             },
             {
-                next: {},
+                next: {
+                    params: undefined,
+                },
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'posts/3/nested/nested/nested',
                     params: {
-                        page: '3',
+                        page: '5',
                         postId: 'nested/nested/nested',
                     },
-                    title: 'Nested.md',
                 },
             },
         ])
@@ -162,8 +197,8 @@ describe('StaticParamBuilderPlugin', () => {
                     next: Record<string, unknown>
                     prev: Record<string, unknown>
                 }
-                const next = omit(te?.next ?? {}, 'update')
-                const prev = omit(te?.prev ?? {}, 'update')
+                const next = pick(omit(te?.next ?? {}, 'update'), 'params')
+                const prev = pick(omit(te?.prev ?? {}, 'update'), 'params')
                 return {
                     next,
                     prev,
@@ -173,87 +208,111 @@ describe('StaticParamBuilderPlugin', () => {
         expect(meta).toStrictEqual([
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'link',
                     params: {
-                        category: 'link',
+                        category: 'category',
+                        post: 'series_1',
                     },
-                    title: 'Link.md',
                 },
-                prev: {},
+                prev: {
+                    params: undefined,
+                },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'markdown',
                     params: {
-                        category: 'markdown',
+                        category: 'category',
+                        post: 'series_2',
                     },
-                    title: 'Markdown.md',
                 },
                 prev: {
-                    banner: '![[img.png]]',
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'img',
+                    params: {
+                        category: 'category',
+                        post: 'category',
+                    },
+                },
+            },
+            {
+                next: {
                     params: {
                         category: 'img',
                     },
-                    title: 'Img.md',
                 },
-            },
-            {
-                next: {},
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'link',
                     params: {
-                        category: 'link',
+                        category: 'category',
+                        post: 'series_1',
                     },
-                    title: 'Link.md',
                 },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'nested/nested/nested',
+                    params: {
+                        category: 'link',
+                    },
+                },
+                prev: {
+                    params: {
+                        category: 'category',
+                        post: 'series_2',
+                    },
+                },
+            },
+            {
+                next: {
+                    params: {
+                        category: 'markdown',
+                    },
+                },
+                prev: {
+                    params: {
+                        category: 'img',
+                    },
+                },
+            },
+            {
+                next: {
+                    params: undefined,
+                },
+                prev: {
+                    params: {
+                        category: 'link',
+                    },
+                },
+            },
+            {
+                next: {
                     params: {
                         category: 'nested',
                         post: 'nested/nested',
                     },
-                    title: 'Nested.md',
                 },
-                prev: {},
+                prev: {
+                    params: undefined,
+                },
             },
             {
                 next: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'nested/nested/nested2',
                     params: {
                         category: 'nested',
                         post: 'nested/nested2',
                     },
-                    title: 'Nested2.md',
                 },
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'nested/nested/nested/nested/nested/nested/nested/deeply_nested',
                     params: {
                         category: 'nested',
                         post: 'nested/nested/nested/nested/nested/nested/deeply_nested',
                     },
-                    title: 'DeeplyNested.md',
                 },
             },
             {
-                next: {},
+                next: {
+                    params: undefined,
+                },
                 prev: {
-                    description: 'DEFAULT DESCRIPTION',
-                    href: 'nested/nested/nested',
                     params: {
                         category: 'nested',
                         post: 'nested/nested',
                     },
-                    title: 'Nested.md',
                 },
             },
         ])
