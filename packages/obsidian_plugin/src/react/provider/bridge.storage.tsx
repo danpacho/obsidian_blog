@@ -81,7 +81,7 @@ export const useSyncStorage = () => {
 
             setLoadStatus(false)
 
-            await BuildPlugin(settings)
+            // await BuildPlugin(settings)
             await InitPlugin(settings)
 
             await Promise.all([
@@ -124,9 +124,6 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
                     configNames: PUBLISH_STORAGE_KEYS,
                 }),
             })
-
-            await BuildPlugin(settings)
-            await InitPlugin(settings)
 
             await storage.build?.load()
             await storage.publish?.load()
