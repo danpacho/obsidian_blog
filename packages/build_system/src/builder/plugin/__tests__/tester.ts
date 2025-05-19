@@ -118,8 +118,8 @@ const setupPluginConfigStorage = (distFolder: string) => {
     })
 
     return {
-        walkTree: walkTreeConfigStorage,
         buildTree: buildTreeConfigStorage,
+        walkTree: walkTreeConfigStorage,
         buildContents: buildContentsConfigStorage,
     }
 }
@@ -130,8 +130,8 @@ const setupPluginConfig = async (
 ): Promise<void> => {
     const storage = setupPluginConfigStorage(distFolder)
 
-    await storage.walkTree.init()
     await storage.buildTree.init()
+    await storage.walkTree.init()
     await storage.buildContents.init()
 
     const pluginEntries = Object.entries(plugin)
