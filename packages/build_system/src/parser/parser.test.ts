@@ -71,6 +71,92 @@ describe('FileTreeParser', () => {
         ])
     })
 
+    it('should walk that is not marked as [[excluded]]', async () => {
+        // Exclude '3' included nodes
+        await parser.walk(
+            async (node) => {
+                if (node.fileName.includes('3')) {
+                    node.exclude()
+                }
+            },
+            {
+                type: 'BFS',
+                skipFolderNode: false,
+            }
+        )
+
+        // Walk final tree
+        const names: Set<string> = new Set()
+        let count = 0
+        let childExcludeCount = 0
+        let siblingExcludeCount = 0
+
+        const walks = ['DFS', 'BFS'] as const
+        for (const walk of walks) {
+            await parser.walk(
+                async (node, { children, siblings }) => {
+                    if (node.excluded) {
+                        count++
+                    }
+                    children?.forEach((e) => {
+                        if (e.excluded) {
+                            childExcludeCount++
+                        }
+                    })
+                    siblings?.forEach((e) => {
+                        if (e.excluded) {
+                            siblingExcludeCount++
+                        }
+                    })
+                    names.add(node.fileName)
+                },
+                {
+                    type: walk,
+                    skipFolderNode: false,
+                }
+            )
+        }
+
+        expect(Array.from(names)).toEqual([
+            '$$tree$$',
+            'sub1',
+            'sub1_1',
+            '1_1.txt',
+            'sub1_2',
+            '1_2.txt',
+            'sub2',
+            'sub2_1',
+            'sub2_1_1',
+            '2_1_1.txt',
+        ])
+        expect(count + childExcludeCount + siblingExcludeCount).toBe(0)
+
+        // Recover exclusion
+        await parser.walk(
+            async (node) => {
+                if (node.fileName.includes('3')) {
+                    node.include()
+                }
+                if (node.fileName.includes('$$')) {
+                    node.exclude()
+                }
+            },
+            {
+                type: 'BFS',
+                skipFolderNode: false,
+            }
+        )
+
+        const finalNames = []
+        await parser.walk(
+            async (node) => {
+                finalNames.push(node.fileName)
+            },
+            { type: 'BFS' }
+        )
+        expect(finalNames.length).toBe(0)
+    })
+
     const parserWithSyntax = new FileTreeParser({
         io: new IOManager(),
         rootFolder: '$$tree$$',
