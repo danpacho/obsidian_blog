@@ -256,9 +256,9 @@ export class LoadConfigBridgeStorage {
                 pluginManager.$config.storageRecord
             )
                 .filter(([_, config]) => {
-                    if (!config?.dynamicConfig) {
-                        return true
-                    }
+                    // if (!config?.dynamicConfig) {
+                    //     return false
+                    // }
 
                     if (
                         config.dynamicConfig &&
@@ -278,6 +278,11 @@ export class LoadConfigBridgeStorage {
                         !registeredPluginNames.includes(dbRegisteredPluginName)
                 )
 
+            // remove non-registered plugins
+            for (const rmName of dbRemovingTargetPluginNames) {
+                await pluginManager.$config.remove(rmName)
+            }
+
             for (const pipe of pipes) {
                 // pipe written staticConfig
                 const { name, staticConfig } = pipe
@@ -287,11 +292,6 @@ export class LoadConfigBridgeStorage {
                     staticConfig,
                     dynamicConfig,
                 })
-            }
-
-            // remove non-registered plugins
-            for (const rmName of dbRemovingTargetPluginNames) {
-                await pluginManager.$config.remove(rmName)
             }
         }
 
