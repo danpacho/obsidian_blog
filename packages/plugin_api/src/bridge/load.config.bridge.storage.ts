@@ -250,49 +250,40 @@ export class LoadConfigBridgeStorage {
         ) => {
             await pluginManager.$config.load()
 
-            const registeredPluginNames = pipes.map((e) => e.name)
-
-            const dbRemovingTargetPluginNames = Object.entries(
-                pluginManager.$config.storageRecord
+            /* ────────────────────────────────────────────────────────── 1) snapshot */
+            const initialDbNames = new Set<string>(
+                Object.keys(pluginManager.$config.storageRecord)
             )
-                .filter(([_, config]) => {
-                    // if (!config?.dynamicConfig) {
-                    //     return false
-                    // }
 
-                    if (
-                        config.dynamicConfig &&
-                        '$$load_status$$' in config.dynamicConfig
-                    ) {
-                        return (
-                            config.dynamicConfig['$$load_status$$'] ===
-                            'include'
-                        )
-                    }
-
-                    return false
-                })
-                .map(([key]) => key)
-                .filter(
-                    (dbRegisteredPluginName) =>
-                        !registeredPluginNames.includes(dbRegisteredPluginName)
-                )
-
-            // remove non-registered plugins
-            // remove -> write
-            for (const rmName of dbRemovingTargetPluginNames) {
-                await pluginManager.$config.remove(rmName)
-            }
-
+            /* ────────────────────────────────────────────────────────── 2) upsert   */
             for (const pipe of pipes) {
-                // pipe written staticConfig
                 const { name, staticConfig } = pipe
+
+                // Keep *existing* dynamicConfig if present; start with null otherwise
                 const dynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig ?? null
+
                 await pluginManager.$config.updateConfig(name, {
                     staticConfig,
                     dynamicConfig,
                 })
+            }
+
+            /* ────────────────────────────────────────────────────────── 3) prune    */
+            const registered = new Set(pipes.map((p) => p.name))
+
+            // From the original snapshot, keep only those rows that:
+            //   – are still flagged "include"
+            //   – are NOT in the current pipe list
+            const toRemove = Array.from(initialDbNames).filter((name) => {
+                if (registered.has(name)) return false // still wanted
+
+                const row = pluginManager.$config.storageRecord[name]
+                return row?.dynamicConfig?.['$$load_status$$'] === 'include'
+            })
+
+            for (const rm of toRemove) {
+                await pluginManager.$config.remove(rm)
             }
         }
 
