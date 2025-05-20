@@ -1,5 +1,13 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.13
+
+### Patch Changes
+
+- Refactor config bridge storage dynamic config handling process and change github commit message dynamic config
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.3.2
+
 ## 0.4.12
 
 ### Patch Changes

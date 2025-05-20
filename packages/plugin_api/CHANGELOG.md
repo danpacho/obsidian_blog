@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.3.2
+
+### Patch Changes
+
+- Refactor config bridge storage dynamic config handling process and change github commit message dynamic config
+
 ## 0.3.1
 
 ### Patch Changes
