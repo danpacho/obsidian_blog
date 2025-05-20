@@ -257,12 +257,13 @@ export class LoadConfigBridgeStorage {
 
             /* ────────────────────────────────────────────────────────── 2) upsert   */
             for (const pipe of pipes) {
-                const { name, staticConfig } = pipe
+                const { name, staticConfig, dynamicConfig } = pipe
 
                 const databaseDynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig
 
                 const dynamicConfigToSave = databaseDynamicConfig ?? {
+                    ...dynamicConfig,
                     $$load_status$$: 'include',
                 }
 
