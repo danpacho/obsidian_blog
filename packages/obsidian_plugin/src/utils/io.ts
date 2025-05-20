@@ -19,6 +19,8 @@ export const Io = {
         }
     },
     removeDir: async (dirPath: string): Promise<void> => {
-        await rmdir(dirPath, { recursive: true })
+        if (await Io.fileExists(dirPath)) {
+            await rmdir(dirPath, { recursive: true })
+        }
     },
 }
