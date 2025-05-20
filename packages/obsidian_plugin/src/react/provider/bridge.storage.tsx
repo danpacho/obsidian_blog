@@ -81,7 +81,7 @@ export const useSyncStorage = () => {
 
             setLoadStatus(false)
 
-            // await BuildPlugin(settings)
+            await BuildPlugin(settings)
             await InitPlugin(settings)
 
             await Promise.all([
