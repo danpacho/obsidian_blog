@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.3.15
+
+### Patch Changes
+
+- Fix minor UI issue at obsidian plugin view
+
 ## 0.3.14
 
 ### Patch Changes
