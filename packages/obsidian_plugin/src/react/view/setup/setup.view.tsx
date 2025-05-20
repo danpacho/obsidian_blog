@@ -414,6 +414,8 @@ export function SetupView() {
                             installProgress === 'installing'
                         }
                         onClick={async () => {
+                            setMessages([])
+
                             const status = await getInstallStatus()
                             if (status === 'invalid') return
 
@@ -433,6 +435,7 @@ export function SetupView() {
                                 await Io.removeDir(bridge_install_root)
 
                                 setMessages(['create new bridge'])
+
                                 const installResult = await createBloggerBridge(
                                     node_bin,
                                     {
@@ -457,8 +460,6 @@ export function SetupView() {
                                 setMessages([JSON.stringify(e, null, 4)])
                                 setInstallProgress('install_failed')
                             }
-
-                            setMessages([])
                         }}
                     >
                         {buttonText()}
