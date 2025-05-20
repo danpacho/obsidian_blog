@@ -554,40 +554,6 @@ interface PluginViewProps {
     configStorage: PluginConfigStorage
 }
 const PluginView = ({ config, configStorage }: PluginViewProps) => {
-    useEffect(() => {
-        const initializePlugin__$$load_status$$ = async () => {
-            const inquired = configStorage.storageRecord[pluginName]
-            if (!inquired) return
-
-            const { dynamicConfig } = inquired
-            if (dynamicConfig) {
-                if ('$$load_status$$' in dynamicConfig) {
-                    const { $$load_status$$ } = dynamicConfig
-
-                    if ($$load_status$$ === 'exclude') {
-                        setPluginIncluded(false)
-                    } else if ($$load_status$$ === 'include') {
-                        setPluginIncluded(true)
-                    }
-                } else {
-                    await configStorage.updateSinglePluginLoadStatus(
-                        pluginName,
-                        'include'
-                    )
-                    setPluginIncluded(true)
-                }
-            } else {
-                await configStorage.updateSinglePluginLoadStatus(
-                    pluginName,
-                    'include'
-                )
-                setPluginIncluded(true)
-            }
-        }
-
-        initializePlugin__$$load_status$$()
-    }, [])
-
     const [pluginHistory, setPluginHistory] = useState<
         PluginExecutionResponse<PluginResponse>[number] | null
     >(null)
@@ -984,8 +950,11 @@ const LogHistoryViewer = ({ history }: { history: LogHistory[] }) => {
 
     return (
         <div className="w-full border border-neutral-700 rounded p-2">
-            {history.map((val) => (
-                <RenderLog key={String(val.message.toString())} {...val} />
+            {history.map((val, i) => (
+                <RenderLog
+                    key={String(val.message.toString() + val.level + i)}
+                    {...val}
+                />
             ))}
         </div>
     )
@@ -999,7 +968,9 @@ const RenderError = ({
     PluginResponseRecord['error'][number] & { disableAccordion?: boolean }
 >) => {
     const errorMessages =
-        error?.message?.concat('\n', error.stack).split('\n') ?? []
+        Array.from(
+            new Set(error?.message?.concat('\n', error.stack).split('\n'))
+        ) ?? []
 
     if (errorMessages.length === 0) {
         return null
@@ -1062,7 +1033,7 @@ const LogErrorViewer = ({
             {error.map((res) => {
                 if ('filePath' in res && typeof res.filePath === 'string') {
                     return (
-                        <RenderError key={res.error.name} error={res.error}>
+                        <RenderError key={res.error.message} error={res.error}>
                             <div className="flex flex-row gap-x-2 items-center justify-center">
                                 <Label color="gray">filepath</Label>
                                 <Text.Code tw={{ fontSize: 'xs' }}>
@@ -1078,7 +1049,7 @@ const LogErrorViewer = ({
                         res.command.error_code && res.command.stderr !== ''
 
                     return (
-                        <RenderError key={res.error.name} error={res.error}>
+                        <RenderError key={res.error.message} error={res.error}>
                             <div className="flex w-full flex-row gap-x-2 items-center justify-center">
                                 <Label color="gray">cmd</Label>
                                 <div className="flex flex-col gap-y-2 items-start justify-center w-full">
@@ -1111,7 +1082,7 @@ const LogErrorViewer = ({
                 return (
                     <RenderError
                         disableAccordion
-                        key={res.error.name}
+                        key={res.error.message}
                         error={res.error}
                     />
                 )
