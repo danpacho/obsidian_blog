@@ -32,12 +32,12 @@ export class GithubRepository extends RepositoryPlugin<
                     optional: true,
                 },
                 commitMessage: {
-                    type: ['string', 'Function'],
+                    type: 'Function',
                     optional: true,
                     description:
-                        'The commit message, `string` or `(stagedAddedFiles: Array<string>) => string)',
+                        'The commit message, `(stagedAddedFiles: Array<string>) => string)',
                     defaultValue: (stagedAddedFiles: Array<string>): string => {
-                        return `${stagedAddedFiles[0]} (+${stagedAddedFiles.length - 1}) files published at ${new Date().toLocaleTimeString()}`
+                        return `${stagedAddedFiles[0]?.slice(0, 50)} (+ ${stagedAddedFiles.length - 1}) files published at ${new Date().toLocaleTimeString()}`
                     },
                 },
                 commitPrefix: {
