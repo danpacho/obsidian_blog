@@ -259,13 +259,16 @@ export class LoadConfigBridgeStorage {
             for (const pipe of pipes) {
                 const { name, staticConfig } = pipe
 
-                // Keep *existing* dynamicConfig if present; start with null otherwise
-                const dynamicConfig =
-                    pluginManager.$config.get(name)?.dynamicConfig ?? null
+                const databaseDynamicConfig =
+                    pluginManager.$config.get(name)?.dynamicConfig
+
+                const dynamicConfigToSave = databaseDynamicConfig ?? {
+                    $$load_status$$: 'include',
+                }
 
                 await pluginManager.$config.updateConfig(name, {
                     staticConfig,
-                    dynamicConfig,
+                    dynamicConfig: dynamicConfigToSave,
                 })
             }
 
