@@ -112,7 +112,7 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
 
         const initializeStorage = async () => {
             const bridgeRoot = settings.bridge_install_root
-            setStorage({
+            const storage = {
                 build: BuildBridgeStorage.create({
                     bridgeRoot,
                     storePrefix: Bridge.STORE_PREFIX.buildSystem,
@@ -123,7 +123,8 @@ export const StorageProvider = (props: React.PropsWithChildren) => {
                     storePrefix: Bridge.STORE_PREFIX.publishSystem,
                     configNames: PUBLISH_STORAGE_KEYS,
                 }),
-            })
+            }
+            setStorage(storage)
 
             await storage.build?.load()
             await storage.publish?.load()
