@@ -124,84 +124,6 @@ const setupPluginConfigStorage = (distFolder: string) => {
     }
 }
 
-const setupPluginConfig = async (
-    plugin: Partial<BuildSystemPluginAdapter>,
-    distFolder: string
-): Promise<void> => {
-    const storage = setupPluginConfigStorage(distFolder)
-
-    await storage.buildTree.init()
-    await storage.walkTree.init()
-    await storage.buildContents.init()
-
-    const pluginEntries = Object.entries(plugin)
-
-    for (const [pluginName, pluginConfig] of pluginEntries) {
-        switch (pluginName) {
-            case 'walk:tree': {
-                if (Array.isArray(pluginConfig)) {
-                    for (const config of pluginConfig) {
-                        await storage.walkTree.updateDynamicConfigByUserConfig(
-                            config.staticConfig.name,
-                            {
-                                $$load_status$$: 'include',
-                            }
-                        )
-                    }
-                } else {
-                    await storage.walkTree.updateDynamicConfigByUserConfig(
-                        pluginConfig.staticConfig.name,
-                        {
-                            $$load_status$$: 'include',
-                        }
-                    )
-                }
-                break
-            }
-            case 'build:tree': {
-                if (Array.isArray(pluginConfig)) {
-                    for (const config of pluginConfig) {
-                        await storage.buildTree.updateDynamicConfigByUserConfig(
-                            config.staticConfig.name,
-                            {
-                                $$load_status$$: 'include',
-                            }
-                        )
-                    }
-                } else {
-                    await storage.buildTree.updateDynamicConfigByUserConfig(
-                        pluginConfig.staticConfig.name,
-                        {
-                            $$load_status$$: 'include',
-                        }
-                    )
-                }
-                break
-            }
-            case 'build:contents': {
-                if (Array.isArray(pluginConfig)) {
-                    for (const config of pluginConfig) {
-                        await storage.buildContents.updateDynamicConfigByUserConfig(
-                            config.staticConfig.name,
-                            {
-                                $$load_status$$: 'include',
-                            }
-                        )
-                    }
-                } else {
-                    await storage.buildContents.updateDynamicConfigByUserConfig(
-                        pluginConfig.staticConfig.name,
-                        {
-                            $$load_status$$: 'include',
-                        }
-                    )
-                }
-                break
-            }
-        }
-    }
-}
-
 type TESTER_CONTENTS =
     | 'markdown.md'
     | 'img.md'
@@ -268,7 +190,6 @@ const pipe = async ({
     const system = createBuildSystem(plugin, distFolder)
 
     await system.init()
-    await setupPluginConfig(plugin, distFolder)
     await system.build()
 
     const selector = (

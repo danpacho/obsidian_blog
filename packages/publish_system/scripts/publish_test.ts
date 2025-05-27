@@ -36,14 +36,11 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
     //@ts-ignore
     await bridgeForRepository.init()
 
-    const shell = new ShellExecutor()
-
     const dynamicConfigs = {
         'blog-build-script-runner': {
             dynamicConfig: {
                 cwd: BLOG_ROOT,
                 command: ['build'],
-                $$load_status$$: 'include',
             },
         },
         github: {
@@ -51,18 +48,12 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
                 cwd: BLOG_ROOT,
                 branch: 'main',
                 commitPrefix: 'feat',
-                commitMessage: `published by publisher, automatically generated @${new Date()
-                    .toISOString()
-                    .replace(/:/g, '_')}`,
-                gitPath: (await shell.exec$('which git')).stdout,
-                $$load_status$$: 'include',
             },
         },
         vercel: {
             dynamicConfig: {
                 cwd: BLOG_ROOT,
                 someConfig: 'someValue',
-                $$load_status$$: 'include',
             },
         },
     }
@@ -71,12 +62,10 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
         'blog-build-script-runner',
         dynamicConfigs['blog-build-script-runner'].dynamicConfig
     )
-
     await bridgeForRepository.updateDynamicConfigByUserConfig(
         'github',
         dynamicConfigs.github.dynamicConfig
     )
-
     await bridgeForDeploy.updateDynamicConfigByUserConfig(
         'vercel',
         dynamicConfigs.vercel.dynamicConfig
@@ -95,37 +84,43 @@ const injectDynamicConfigFromObsidian = async (publisher: PublishSystem) => {
  *   4. Execute plugins
  */
 const publish = async () => {
-    const io = new IO()
+    try {
+        const io = new IO()
 
-    // 1. Initialize publisher system
-    const publisher = new PublishSystem({
-        bridgeRoot: `${process.cwd()}/scripts`,
-    }).use({
-        buildScript: [new CorePlugins.BlogBuilder()],
-        repository: [new CorePlugins.GithubRepository()],
-        deploy: [new CorePlugins.VercelDeploy()],
-    })
+        // 1. Initialize publisher system
+        const publisher = new PublishSystem({
+            bridgeRoot: `${process.cwd()}/scripts`,
+        }).use({
+            buildScript: [new CorePlugins.BlogBuilder()],
+            repository: [new CorePlugins.GithubRepository()],
+            deploy: [new CorePlugins.VercelDeploy()],
+        })
 
-    // 2. [Assume] User writes the config, inject at bridge storage
-    await injectDynamicConfigFromObsidian(publisher)
+        await publisher.init()
 
-    // 3. [Assume] Blog is updated
-    const uniqueID = new Date().toISOString().replace(/:/g, '_')
-    // Assume that file is updated
-    await io.writer.write({
-        filePath: `${BLOG_ROOT}/ci_test/${new Date()
-            .toISOString()
-            .replace(/:/g, '_')}.txt`,
-        data: `test generated @${uniqueID}`,
-    })
+        // 2. [Assume] User writes the config, inject at bridge storage
+        await injectDynamicConfigFromObsidian(publisher)
 
-    // 4. Execute plugins
-    await publisher.publish()
+        // 3. [Assume] Blog is updated
+        const uniqueID = new Date().toISOString().replace(/:/g, '_')
+        // Assume that file is updated
+        await io.writer.write({
+            filePath: `${BLOG_ROOT}/ci_test/${new Date()
+                .toISOString()
+                .replace(/:/g, '_')}.txt`,
+            data: `test generated @${uniqueID}`,
+        })
 
-    await io.writer.write({
-        data: 'SUCCESS',
-        filePath: `${BLOG_ROOT}/ci_test/${uniqueID}_pub_result.json`,
-    })
+        // 4. Execute plugins
+        await publisher.publish()
+
+        await io.writer.write({
+            data: 'SUCCESS',
+            filePath: `${BLOG_ROOT}/ci_test/${uniqueID}_pub_result.json`,
+        })
+    } catch (e) {
+        console.error(e)
+    }
 }
 
 publish()
