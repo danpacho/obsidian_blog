@@ -16,7 +16,7 @@ type ImageReference = Array<{
     build: string
 }>
 
-type ObsidianReferencePluginOptions = {
+interface ObsidianReferencePluginOptions {
     referenceMap: Map<
         string,
         Array<{
@@ -27,174 +27,213 @@ type ObsidianReferencePluginOptions = {
     >
 }
 
-// Matches e.g. ![[img.png]] inside text nodes
-const EMBED_LINK_REGEX = /!\[\[([^[\]]+)\]\]/g
-
-/* ───────────────────────────────────────────────────────────────────────────
- *  1.  Normalise any path-like string to POSIX form so “\” never appears.
- * ─────────────────────────────────────────────────────────────────────────── */
-const toPosix = (p: string): string =>
-    path
-        .normalize(p) // collapses “.”, “..”, duplicate seps
-        .split(path.sep)
-        .join('/') // force forward slashes everywhere
-
-/* ───────────────────────────────────────────────────────────────────────────
- *  3.  Resolve markdown/HTML asset path → build path, regardless of OS.
- * ─────────────────────────────────────────────────────────────────────────── */
-const resolveAssetPath = (
-    link: string,
-    referenceMap: ObsidianReferencePluginOptions['referenceMap']
-): string | null => {
-    const pureFilename = FileReader.getFileName(link)
-    if (!pureFilename) return null
-
-    const possibleRefs = referenceMap.get(pureFilename)
-    if (!possibleRefs?.length) return null
-
-    /* Fast exit when only one match exists */
-    if (possibleRefs.length === 1) return possibleRefs[0]!.buildReplaced
-
-    /* Multiple refs → compare normalised origins */
-    const queried = toPosix(link.replace(/^\.\//, '')) // strip leading “./”
-    const found = possibleRefs.find((ref) =>
-        toPosix(ref.origin).includes(queried)
-    )
-
-    return found ? found.buildReplaced : null
-}
-
 export const RemarkObsidianReferencePlugin: Plugin<
     [ObsidianReferencePluginOptions]
-> = (options) => {
-    const { referenceMap } = options
+> = ({ referenceMap }) => {
+    // Match ![[file.ext#anchor|opt1|opt2]]
+    const EMBED_REGEX = /!\[\[([^|\]]+?)(?:\|([^|\]]+?))?(?:\|([^|\]]+?))?\]\]/g
+
+    const resolveAssetPath = (link: string): string | null => {
+        const fileNameWithExt = FileReader.getFileNameWithExtension(link)
+        const fullFileName = FileReader.toPosix(path.normalize(link))
+
+        if (!fileNameWithExt) return null
+        const candidates = referenceMap.get(fileNameWithExt)
+        if (!candidates?.length) return null
+        if (candidates.length === 1) return candidates[0]!.buildReplaced
+        // Prefer exact matches in origin path
+        const found = candidates.filter((r) =>
+            FileReader.toPosix(r.origin).includes(fileNameWithExt)
+        )
+        if (found.length === 0) {
+            return null
+        }
+        if (found.length === 1) {
+            return found[0]!.buildReplaced
+        }
+
+        const exactMatch = found.find((r) =>
+            FileReader.toPosix(r.origin).includes(fullFileName)
+        )
+
+        if (exactMatch) {
+            return exactMatch.buildReplaced
+        }
+
+        // If no exact match, return the first candidate
+        return found[0]!.buildReplaced
+    }
+
+    // Parse dimension strings like "300x200" or "150"
+    const parseDims = (opt?: string) => {
+        if (!opt) return {}
+        const m = /^(\d+)(?:x(\d+))?$/.exec(opt)
+        if (!m) return {}
+        const [_, w, h] = m
+        return {
+            width: `${w}px`,
+            ...(h ? { height: `${h}px` } : {}),
+        }
+    }
+
+    // Recognized image anchors → CSS classes
+    const anchorClass = (tag?: string) => {
+        if (!tag) return ''
+        const map: Record<string, string> = {
+            icon: 'obsidian-icon-anchor',
+            interface: 'obsidian-interface-anchor',
+            outline: 'obsidian-outline-anchor',
+        }
+        return map[tag] ?? ''
+    }
 
     return (tree) => {
-        /**
-         * 1) Handle Obsidian references:  ![[filename.png]]
-         */
+        // 1) Handle wiki‐style embeds
         visit(tree, 'paragraph', (node: Parent) => {
             if (!node.children) return
 
-            for (let i = 0; i < node.children.length; i++) {
-                const child = node.children[i]
-                if (child?.type !== 'text') continue
+            node.children.forEach((child, idx) => {
+                if (child.type !== 'text') return
 
-                const originalText = child.value
+                const txt = child.value as string
                 let match: RegExpExecArray | null
-                let lastIndex = 0
+                let last = 0
+                const out: Array<{ text?: string; embed?: RegExpExecArray }> =
+                    []
 
-                // segments (plain text or embed link)
-                const segments: Array<{ text?: string; link?: string }> = []
+                while ((match = EMBED_REGEX.exec(txt)) !== null) {
+                    if (match.index > last) {
+                        out.push({ text: txt.slice(last, match.index) })
+                    }
+                    out.push({ embed: match })
+                    last = match.index + match[0].length
+                }
+                if (last < txt.length) {
+                    out.push({ text: txt.slice(last) })
+                }
 
-                // find every ![[...]] in the text
-                while ((match = EMBED_LINK_REGEX.exec(originalText)) !== null) {
-                    // Add plain text before the match
-                    if (match.index > lastIndex) {
-                        segments.push({
-                            text: originalText.slice(lastIndex, match.index),
+                // No embeds? skip
+                if (out.every((s) => s.text != null)) return
+
+                // Build new children
+                const newChildren: RootContent[] = []
+                out.forEach((seg) => {
+                    if (seg.text != null) {
+                        if (seg.text)
+                            newChildren.push({ type: 'text', value: seg.text })
+                        return
+                    }
+                    const [, raw, opt1, opt2] = seg.embed!
+
+                    if (!raw) {
+                        // If no raw text, skip
+                        newChildren.push({ type: 'text', value: '' })
+                        return
+                    }
+                    // Extract path and optional anchor
+                    const [pathWithAnchor, ..._rest] = raw.split('#')
+                    const anchorTag = raw.includes('#')
+                        ? raw.split('#')[1]!.split('|')[0]
+                        : undefined
+                    // Options may be alias or dims
+                    const opts = [opt1, opt2]
+                    let alias: string | undefined
+                    let dimsOpts: Record<string, string> = {}
+                    opts.forEach((o) => {
+                        if (!o) return
+                        if (/^\d+(?:x\d+)?$/.test(o)) {
+                            dimsOpts = parseDims(o)
+                        } else {
+                            alias = o
+                        }
+                    })
+
+                    if (!pathWithAnchor) {
+                        // If no path, leave as raw text
+                        newChildren.push({ type: 'text', value: seg.embed![0] })
+                        return
+                    }
+                    // Resolve the final URL
+                    const url = resolveAssetPath(pathWithAnchor)
+                    if (!url) {
+                        // leave as raw text
+                        newChildren.push({ type: 'text', value: seg.embed![0] })
+                        return
+                    }
+
+                    // Determine file type
+                    const ext =
+                        FileReader.getExtension(pathWithAnchor)?.toLowerCase()
+
+                    if (!ext) {
+                        // If no extension, leave as raw text
+                        newChildren.push({ type: 'text', value: seg.embed![0] })
+                        return
+                    }
+
+                    const cls = anchorClass(anchorTag)
+
+                    if (ImageFileNode.is(ext)) {
+                        // <img src=... alt=... width/height class=...>
+                        const attrs = [
+                            `src="${url}"`,
+                            `alt="${alias ?? pathWithAnchor}"`,
+                            dimsOpts.width && `width="${dimsOpts.width}"`,
+                            dimsOpts.height && `height="${dimsOpts.height}"`,
+                            cls && `class="${cls}"`,
+                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                        newChildren.push({
+                            type: 'html',
+                            value: `<img ${attrs} />`,
                         })
-                    }
-                    // Add the link portion
-                    segments.push({ link: match[1]! })
-                    // Move the lastIndex
-                    lastIndex = match.index + match[0].length
-                }
-
-                // Add any trailing text after the last match
-                if (lastIndex < originalText.length) {
-                    segments.push({ text: originalText.slice(lastIndex) })
-                }
-
-                // If there are no embeds, continue
-                if (segments.length === 1 && segments[0]?.text !== undefined) {
-                    continue
-                }
-
-                // Build the final array of mdast children
-                const newChildren = segments.flatMap<RootContent>((seg) => {
-                    // Plain text
-                    if (seg.text !== undefined) {
-                        if (!seg.text) return []
-                        return [{ type: 'text', value: seg.text }]
-                    }
-
-                    // Otherwise it's an embed link
-                    const link = seg.link!
-                    const targetLink = resolveAssetPath(link, referenceMap)
-
-                    if (!targetLink) {
-                        // Fallback: just keep the link text if not found
-                        return [{ type: 'text', value: `![[${link}]]` }]
-                    }
-
-                    // Determine extension and produce appropriate HTML
-                    const extension = FileReader.getExtension(link)
-
-                    if (ImageFileNode.is(extension)) {
-                        return [
-                            {
-                                type: 'html',
-                                value: `<img src="${targetLink}" alt="${link}" />`,
-                            },
+                    } else if (AudioFileNode.is(ext)) {
+                        const attrs = [
+                            `src="${url}"`,
+                            `type="audio/${ext}"`,
+                            cls && `class="${cls}"`,
                         ]
-                    } else if (AudioFileNode.is(extension)) {
-                        return [
-                            {
-                                type: 'html',
-                                value: `<audio controls><source src="${targetLink}" type="audio/${extension}"></audio>`,
-                            },
-                        ]
+                            .filter(Boolean)
+                            .join(' ')
+                        newChildren.push({
+                            type: 'html',
+                            value: `<audio controls ${cls && `class="${cls}"`}><source ${attrs}></audio>`,
+                        })
+                    } else if (ext === 'base') {
+                        // Embed .base files by reference (no dims or alias)
+                        newChildren.push({
+                            type: 'html',
+                            value: `<div data-embed="base" data-src="${url}"${alias ? ` data-alias="${alias}"` : ''}></div>`,
+                        })
                     } else {
-                        // fallback link
-                        return [
-                            {
-                                type: 'html',
-                                value: `<a href="${targetLink}">${link}</a>`,
-                            },
-                        ]
+                        // Fallback to a link
+                        newChildren.push({
+                            type: 'html',
+                            value: `<a href="${url}">${alias ?? pathWithAnchor}</a>`,
+                        })
                     }
                 })
 
-                // Replace the old single text child with possibly multiple children
-                node.children.splice(i, 1, ...newChildren)
-                i += newChildren.length - 1
-            }
+                // Replace children
+                node.children.splice(idx, 1, ...newChildren)
+            })
         })
 
-        /**
-         * 2) Handle Markdown images:  ![alt text](./img.png)
-         */
-        visit(tree, 'image', (node: { url: string }) => {
-            const targetLink = resolveAssetPath(node.url, referenceMap)
-            if (!targetLink) return
-            node.url = targetLink
+        // 2) Handle markdown image nodes
+        visit(tree, 'image', (node: any) => {
+            const replaced = resolveAssetPath(node.url)
+            if (replaced) node.url = replaced
         })
 
-        /**
-         * 3) Handle inline HTML <img src="..."> or <audio> references:
-         */
-        visit(tree, 'html', (node: { value: string }) => {
-            const value: string = node.value
-            if (!/<(img|audio)\s/i.test(value)) return
-
-            const srcRegex = /src\s*=\s*"([^"]+)"/gi
-            let replacedValue = value
-
-            let match: RegExpExecArray | null
-            while ((match = srcRegex.exec(value)) !== null) {
-                const oldSrc = match[1]
-                if (!oldSrc) continue
-
-                const targetLink = resolveAssetPath(oldSrc, referenceMap)
-                if (!targetLink) continue
-                replacedValue = replacedValue.replace(
-                    match[0],
-                    `src="${targetLink}"`
-                )
-            }
-
-            node.value = replacedValue
+        // 3) Handle raw HTML <img>, <audio>, <iframe>…
+        visit(tree, 'html', (node: any) => {
+            const html = node.value as string
+            // Replace all src="…" occurrences
+            node.value = html.replace(/src\s*=\s*"([^"]+)"/g, (_, src) => {
+                const resolved = resolveAssetPath(src)
+                return resolved ? `src="${resolved}"` : `src="${src}"`
+            })
         })
     }
 }
@@ -230,15 +269,19 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             new Map()
 
         for (const ref of imageReference) {
-            const pureFilename = FileReader.getFileName(ref.origin)
+            const pureFilename = FileReader.getFileNameWithExtension(ref.origin)
             if (!pureFilename) continue
 
             const entry = referenceMap.get(pureFilename) || []
 
+            const posixBuildPath = FileReader.toPosix(ref.build)
+
+            const buildReplaced = posixBuildPath.replace(buildAssetPath, '')
+
             entry.push({
                 origin: ref.origin,
-                build: ref.build,
-                buildReplaced: ref.build.replace(buildAssetPath, ''),
+                build: posixBuildPath,
+                buildReplaced: buildReplaced,
             })
             referenceMap.set(pureFilename, entry)
         }
@@ -268,7 +311,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             ({ file_type }) => file_type === 'TEXT_FILE'
         )
 
-        const buildAssetPath = this.$buildPath.assets
+        const buildAssetPath = FileReader.toPosix(this.$buildPath.assets)
 
         this.referenceMap = this.buildReferenceMap(
             assetReferencesUUIDList,
