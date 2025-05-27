@@ -35,12 +35,6 @@ export interface DefaultContentMeta {
  */
 export interface ZenContentCollection extends Required<DefaultContentMeta> {}
 
-export const ContentMetaDefaultValueInjector = () => ({
-    title: 'DEFAULT TITLE',
-    description: 'DEFAULT DESCRIPTION',
-    update: new Date(),
-})
-
 export interface DefaultCategoryMeta {
     title: string
     description: string
