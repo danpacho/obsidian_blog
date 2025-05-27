@@ -1,14 +1,3 @@
-/******************************************************************************************
- * Static-Param-Builder  –  cross-platform refactor
- *
- *  ▸ The only change is **removing OS-dependent path handling**.
- *  ▸ All build-path manipulations now go through Node’s `path` utilities and are
- *    converted to **POSIX style** (`/`) before further processing, so Windows “\”
- *    never leak into your web-href logic.
- *
- *  ⬇️  Paste straight into `static-param-builder.plugin.ts`
- ******************************************************************************************/
-import path from 'node:path' // ← NEW
 import { FileReader } from '@obsidian_blogger/helpers'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
@@ -24,9 +13,6 @@ import {
 
 type RecordShape = Record<string, string>
 
-/* ------------------------------------------------------------------------ */
-/*                         CONFIG & TYPE DECLARATIONS                       */
-/* ------------------------------------------------------------------------ */
 export interface StaticParamBuilderConfig
     extends Partial<ContentMetaGeneratorOptions> {
     /**
@@ -141,22 +127,6 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         }
     }
 
-    /* -------------------------------------------------------------------- */
-    /*                🔑  HELPER:  OS-agnostic POSIX path string            */
-    /* -------------------------------------------------------------------- */
-    /** Convert *any* filesystem path to a POSIX-style string (`/` only). */
-    private toPosix(p: string): string {
-        return p.split(path.sep).join('/')
-    }
-
-    /** `/foo/bar/baz.ext` → `['foo','bar','baz']` (separator-agnostic) */
-    private splitToPurePath(p: string): string[] {
-        return this.toPosix(p)
-            .split('/')
-            .filter(Boolean)
-            .map(FileReader.getFileName)
-    }
-
     /** build `{ key1: value, key2: value }` from key list */
     private createRecord(keys: string[], value: string): RecordShape {
         return keys.reduce<RecordShape>(
@@ -207,34 +177,18 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         return '$page'
     }
 
-    private getRelativePosixPath(root: string, fullPath: string): string {
-        // 1. Normalize both to the OS’s native separators:
-        const normRoot = path.normalize(root)
-        const normFull = path.normalize(fullPath)
-
-        // 2. Compute the relative path (this strips out the common prefix)
-        let rel = path.relative(normRoot, normFull)
-
-        // 3. Convert backslashes (on Windows) to POSIX forward‐slashes:
-        if (path.sep === '\\') {
-            rel = rel.split(path.sep).join(path.posix.sep)
-        }
-
-        return rel
-    }
-
     public async walk(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
         const finalBuildPath = node.buildInfo?.build_path.build
         if (!finalBuildPath) return
 
-        const paramBuildPath = this.getRelativePosixPath(
+        const paramBuildPath = FileReader.getRelativePosixPath(
             this.$buildPath.contents,
             finalBuildPath
         )
 
-        const buildList = this.splitToPurePath(paramBuildPath)
+        const buildList = FileReader.splitToPathParts(paramBuildPath)
         const staticParamsContainer = this.createRecord(
             this.analyzed.dynamicParams,
             ''
