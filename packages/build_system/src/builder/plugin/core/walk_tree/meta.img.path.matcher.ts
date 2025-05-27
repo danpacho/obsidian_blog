@@ -7,6 +7,8 @@ import {
 } from '../../walk.tree.plugin'
 import { FileReader } from '@obsidian_blogger/helpers/io'
 
+import path from 'node:path'
+
 export type MetaImgPathMatcherStaticConfig = WalkTreePluginStaticConfig
 export type MetaImgPathMatcherDynamicConfig = WalkTreePluginDynamicConfig
 
@@ -36,13 +38,14 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
      * Build a Map from the final filename to an array of references that share this filename.
      *
      * @example
-     * ```
+     *
+
      * e.g.  "img.png" -> [
      *   { origin: "nested/img.png", build: "/images/abc_img.png" },
      *   { origin: "img.png",        build: "/images/xyz_img.png" }
      * ]
-     * ```
-     */
+     * 
+*/
     private buildReferenceMap(
         imageReference: ImageReference,
         buildAssetPath: string
@@ -53,15 +56,19 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         const referenceMap: ReferenceMap = new Map()
 
         for (const ref of imageReference) {
-            const pureFilename = FileReader.getFileName(ref.origin)
+            const pureFilename = FileReader.getFileNameWithExtension(ref.origin)
             if (!pureFilename) continue
 
             const entry = referenceMap.get(pureFilename) || []
 
+            const posixBuildPath = FileReader.toPosix(ref.build)
+
+            const buildReplaced = posixBuildPath.replace(buildAssetPath, '')
+
             entry.push({
                 origin: ref.origin,
-                build: ref.build,
-                buildReplaced: ref.build.replace(buildAssetPath, ''),
+                build: posixBuildPath,
+                buildReplaced: buildReplaced,
             })
             referenceMap.set(pureFilename, entry)
         }
@@ -83,7 +90,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
                 origin: report.build_path.origin,
             }))
 
-        const buildAssetPath = this.$buildPath.assets
+        const buildAssetPath = FileReader.toPosix(this.$buildPath.assets)
 
         this.referenceMap = this.buildReferenceMap(
             assetReferencesUUIDList,
@@ -92,25 +99,34 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
     }
 
     private resolveAssetPath(link: string): string | null {
-        const pureFilename = FileReader.getFileName(link)
-        if (!pureFilename) return null
+        const fileNameWithExt = FileReader.getFileNameWithExtension(link)
+        const fullFileName = FileReader.toPosix(path.normalize(link))
 
-        const possibleRefs = this.referenceMap?.get(pureFilename)
-        if (!possibleRefs || possibleRefs.length === 0) return null
-
-        if (possibleRefs.length === 1) {
-            return possibleRefs[0]!.buildReplaced
-        }
-
-        const queriedLink = link.startsWith('./') ? link.slice(2) : link
-        const found = possibleRefs.find((ref) =>
-            ref.origin.includes(queriedLink)
+        if (!fileNameWithExt) return null
+        const candidates = this.referenceMap!.get(fileNameWithExt)
+        if (!candidates?.length) return null
+        if (candidates.length === 1) return candidates[0]!.buildReplaced
+        // Prefer exact matches in origin path
+        const found = candidates.filter((r) =>
+            FileReader.toPosix(r.origin).includes(fileNameWithExt)
         )
-        if (found) {
-            return found.buildReplaced
+        if (found.length === 0) {
+            return null
+        }
+        if (found.length === 1) {
+            return found[0]!.buildReplaced
         }
 
-        return null
+        const exactMatch = found.find((r) =>
+            FileReader.toPosix(r.origin).includes(fullFileName)
+        )
+
+        if (exactMatch) {
+            return exactMatch.buildReplaced
+        }
+
+        // If no exact match, return the first candidate
+        return found[0]!.buildReplaced
     }
 
     private static readonly IMG_REGEX = /!\[\[([^[\]]+)\]\]/
@@ -148,7 +164,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
 
         if (!metaHasImg) {
             this.$logger.info(
-                `Meta Img Path does not exist: ${node.buildInfo.build_path.build}`
+                `Meta img path does not exist: ${node.buildInfo.build_path.build}`
             )
             return
         }
@@ -183,7 +199,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
             throw updateResponse.error
         } else {
             this.$logger.info(
-                `Meta Img Path Matched: ${node.buildInfo.build_path.build}`
+                `Meta img path founded: ${node.buildInfo.build_path.origin}`
             )
         }
     }
