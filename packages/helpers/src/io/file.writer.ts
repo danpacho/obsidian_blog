@@ -7,6 +7,7 @@ import {
     rmdir,
     unlink,
     writeFile,
+    stat,
 } from 'node:fs/promises'
 import { pipeline } from 'node:stream'
 import { dirname } from 'node:path'
@@ -249,6 +250,32 @@ export class FileWriter {
                 success: false,
                 error,
             }
+        }
+    }
+
+    /**
+     * Delete target pathname
+     * @param pathname The pathname for deleting
+     */
+    public async delete(
+        pathname: string,
+        handler?: PromiseCallbacks<string, Error>
+    ): Promisify<string> {
+        try {
+            const exists = await this.exists(pathname)
+            if (!exists) {
+                throw new Error(`Target does not exist: ${pathname}`)
+            }
+
+            const stats = await stat(pathname)
+            if (stats.isDirectory()) {
+                return this.deleteFolder__FORCE(pathname, handler)
+            } else {
+                return this.deleteFile(pathname, handler)
+            }
+        } catch (error) {
+            if (error instanceof Error) handler?.onError?.(error)
+            return { success: false, error }
         }
     }
 
