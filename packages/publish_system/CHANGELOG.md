@@ -1,5 +1,15 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.14
+
+### Patch Changes
+
+- Integrate file read related feature into io, update sync logic for bridge. Fix window related plugin errors
+- Updated dependencies
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.4.0
+    - @obsidian_blogger/helpers@0.5.0
+
 ## 0.4.13
 
 ### Patch Changes

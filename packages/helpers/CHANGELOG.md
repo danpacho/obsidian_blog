@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.5.0
+
+### Minor Changes
+
+- Integrate file read related feature into io, update sync logic for bridge. Fix window related plugin errors
+
 ## 0.4.1
 
 ### Patch Changes

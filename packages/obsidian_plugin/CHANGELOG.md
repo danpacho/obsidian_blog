@@ -1,5 +1,17 @@
 # @obsidian_blogger/plugin
 
+## 0.3.17
+
+### Patch Changes
+
+- Refactor dynamic config syncing logic
+- Integrate file read related feature into io, update sync logic for bridge. Fix window related plugin errors
+- Updated dependencies
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.4.0
+    - @obsidian_blogger/helpers@0.5.0
+    - @obsidian_blogger/design_system@0.2.3
+
 ## 0.3.16
 
 ### Patch Changes
