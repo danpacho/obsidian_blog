@@ -221,39 +221,74 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
     public async procedure(node: FileTreeNode): Promise<void> {
         const { buildInfo, absolutePath, category } = node
-        if (!buildInfo) return
-
-        const cpResult =
-            category === 'TEXT_FILE'
-                ? await this.$io.cpFile({
-                      from: buildInfo.build_path.origin,
-                      to: buildInfo.build_path.build,
-                      type: 'text',
-                  })
-                : await this.$io.cpFile({
-                      from: buildInfo.build_path.origin,
-                      to: buildInfo.build_path.build,
-                      type: 'media',
-                  })
-
-        if (!cpResult.success) {
+        if (!buildInfo?.build_path) {
             this.$logger.error(
-                `Failed to copy ${absolutePath} to ${buildInfo.build_path.build}`
+                `Build info is not available for ${absolutePath}`
             )
-            throw cpResult.error
+            throw new Error(`Build info is not available for ${absolutePath}`)
+        }
+
+        switch (category) {
+            case 'FOLDER': {
+                const cpResult = await this.$io.cpFolder({
+                    from: buildInfo.build_path.origin,
+                    to: buildInfo.build_path.build,
+                })
+                if (!cpResult.success) {
+                    this.$logger.error(
+                        `Failed to copy folder ${absolutePath} to ${buildInfo.build_path.build}`
+                    )
+                }
+                return
+            }
+            case 'TEXT_FILE': {
+                const cpResult = await this.$io.cpFile({
+                    from: buildInfo.build_path.origin,
+                    to: buildInfo.build_path.build,
+                    type: 'text',
+                })
+                if (!cpResult.success) {
+                    this.$logger.error(
+                        `Failed to copy text file ${absolutePath} to ${buildInfo.build_path.build}`
+                    )
+                }
+                return
+            }
+            default: {
+                const cpResult = await this.$io.cpFile({
+                    from: buildInfo.build_path.origin,
+                    to: buildInfo.build_path.build,
+                    type: 'media',
+                })
+                if (!cpResult.success) {
+                    this.$logger.error(
+                        `Failed to copy media file ${absolutePath} to ${buildInfo.build_path.build}`
+                    )
+                }
+                return
+            }
         }
     }
 
     public override async cleanup(): Promise<void> {
         const store = this.getRunTimeDependency('buildStore')
+
         const removeTarget = store.getRemoveTarget()
-        for (const target of removeTarget) {
-            const removeResult = await this.$io.writer.deleteFile(
-                target.build_path.build
+
+        const removeBatch = await Promise.all(
+            removeTarget.map((target) =>
+                this.$io.writer.delete(target.build_path.build)
             )
-            if (!removeResult.success) {
-                this.$logger.error(`Failed to remove ${target}`)
-                throw removeResult.error
+        )
+
+        const hasError = removeBatch.some((result) => !result.success)
+
+        if (hasError) {
+            this.$logger.error('Some files could not be removed.')
+            for (const result of removeBatch) {
+                if (!result.success) {
+                    this.$logger.error(`Failed to remove: ${result.error}`)
+                }
             }
         }
 
@@ -281,6 +316,7 @@ export class InjectBuildInfoToGeneratedTree extends BuilderInternalPlugin {
         ).findByBuildPath(node.absolutePath, {
             target: 'current',
         })
+
         if (!generatedBuildInfo.success) {
             this.$logger.error(generatedBuildInfo.error.message)
             throw generatedBuildInfo.error
