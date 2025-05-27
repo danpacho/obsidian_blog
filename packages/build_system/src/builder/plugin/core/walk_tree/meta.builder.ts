@@ -1,17 +1,3 @@
-/******************************************************************************************
- *  Meta-Builder Plugin
- *
- *  • Generates `category`, `series:name`, `series:order` front-matter.
- *  • Uses the new `ParamAnalyzer` (`openTag` / `closeTag` supported).
- *  • Handles edge-cases:
- *      2️⃣  “outermost” dynamic segment chosen as category
- *      5️⃣  Windows ‘\’ paths normalized to POSIX
- *      6️⃣  Malformed segments no longer crash the walk – they’re skipped with a warning
- *
- *  Copy-paste straight into `meta-builder.plugin.ts`.
- ******************************************************************************************/
-
-import path from 'node:path'
 import type { FileTreeNode } from 'packages/build_system/src/parser'
 import { ParamAnalyzer } from '../../../../routes'
 import {
@@ -23,6 +9,7 @@ import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
+import { FileReader } from '@obsidian_blogger/helpers/io'
 
 export type MetaBuilderStaticConfig = WalkTreePluginStaticConfig
 export type MetaBuilderDynamicConfig = WalkTreePluginDynamicConfig &
@@ -165,10 +152,6 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
         return this.$createMetaEngine(this.dynamicConfig.contentMeta)
     }
 
-    private toPosix(p: string): string {
-        return p.replaceAll(path.sep, '/')
-    }
-
     private getCategoryFromPath(segments: string[]): string | undefined {
         for (const seg of segments) {
             try {
@@ -251,11 +234,11 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
             })
             if (writeToOrigin.success) {
                 this.$logger.info(
-                    `fallback writing : ${this.dynamicConfig.seriesOrderPropertyName} is set to ${seriesOrderForFallback}`
+                    `Fallback writing : ${this.dynamicConfig.seriesOrderPropertyName} is set to ${seriesOrderForFallback}`
                 )
             } else {
                 this.$logger.error(
-                    `error writing : ${this.dynamicConfig.seriesOrderPropertyName} should be written, but fail to write`
+                    `Error writing : ${this.dynamicConfig.seriesOrderPropertyName} should be written, but fail to write`
                 )
             }
             return defaultSeriesMeta
@@ -280,14 +263,13 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
 
         const injectPath = node.buildInfo?.build_path
         if (!injectPath) {
-            const msg = `build path not defined: ${node.absolutePath}`
+            const msg = `Build path not defined: ${node.absolutePath}`
             this.$logger.error(msg)
             throw new Error(msg, { cause: node })
         }
 
-        /* Handle Windows paths + choose category (Edge 2 & 5) */
-        const posixOrigin = this.toPosix(injectPath.origin)
-        const segments = posixOrigin.split('/').filter(Boolean)
+        const posixOrigin = FileReader.toPosix(injectPath.origin)
+        const segments = FileReader.splitToPathParts(posixOrigin)
         const category = this.getCategoryFromPath(segments)
 
         /* series & seriesOrder */
@@ -298,7 +280,7 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
         const originMeta = await this.meta.extractFromFile(injectPath.build)
         if (!originMeta.success) {
             this.$logger.error(
-                `fail to extract existing builded metadata from ${injectPath.build}`
+                `Fail to extract existing builded metadata from ${injectPath.build}`
             )
             throw originMeta.error
         }
@@ -321,13 +303,8 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
         })
 
         if (update.success) {
-            this.$logger.success(
-                `meta injected → category="${category}" ` +
-                    seriesInfo +
-                    seriesInfo && seriesInfo?.series
-                    ? `series="${seriesInfo?.series.name}" (${injectPath.build})`
-                    : ''
-            )
+            const message = `Meta injected for ${injectPath.build} with category: ${category}, series: ${seriesInfo?.series.name}, order: ${seriesInfo?.series.order}`
+            this.$logger.success(message)
         } else {
             throw new Error(`Failed to inject meta for ${injectPath.build}`, {
                 cause: update.error,
