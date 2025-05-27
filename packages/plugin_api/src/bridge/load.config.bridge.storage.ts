@@ -150,10 +150,15 @@ export class LoadConfigBridgeStorage {
         })
     }
 
+    /**
+     * @private
+     * This method ensures all plugins from the inline script are known to the plugin manager's loader.
+     * It loads existing configurations but defers the full save/merge logic to `saveUpdatedPluginConfigs`.
+     */
     private async registerAllPlugins(name: string) {
         const manager = this.getManager(name)
         try {
-            await manager.$config.load()
+            await manager.$config.load() // Load existing DB state
         } catch (e) {
             LoadConfigBridgeStorage.$logger.error(
                 'Failed to load plugin configurations'
@@ -166,7 +171,11 @@ export class LoadConfigBridgeStorage {
             pipes: Array<PluginShape>
         ) => {
             for (const pipe of pipes) {
-                if (pluginManager.$config.hasConfig(pipe.name) === false) {
+                const shouldRegisterPlugin =
+                    pluginManager.$config.hasConfig(pipe.name) === false ||
+                    pluginManager.$config.get(pipe.name)?.dynamicConfig === null
+
+                if (shouldRegisterPlugin) {
                     const mergedDynamicConfig = pipe.getMergedDynamicConfig(
                         pipe.dynamicConfig
                     )
@@ -176,6 +185,10 @@ export class LoadConfigBridgeStorage {
                         ),
                         dynamicConfig: mergedDynamicConfig,
                     })
+                    await pluginManager.$config.updateSinglePluginLoadStatus(
+                        pipe.name,
+                        'include'
+                    )
                 }
             }
         }
@@ -212,7 +225,7 @@ export class LoadConfigBridgeStorage {
 
             const loadInformation = loadingTargets.map(([key, value]) => ({
                 name: key,
-                dynamicConfig: value.dynamicConfig ?? null,
+                dynamicConfig: value.dynamicConfig!,
             }))
             return loadInformation
         }
@@ -225,7 +238,6 @@ export class LoadConfigBridgeStorage {
         pluginPipes: Array<PluginShape>
     }> {
         await this.registerAllPlugins(name)
-
         const loadInformation = await this.fetchPluginLoadInformation(name)
 
         return {
@@ -235,7 +247,9 @@ export class LoadConfigBridgeStorage {
     }
 
     /**
-     * **Update dynamic config by UI(injected)**
+     * **Update dynamic config by UI (injected) / Sync inline script pipes with DB**
+     * This is the core merge and persistence logic.
+     * It follows the robust "snapshot -> upsert -> prune" pattern.
      */
     private async saveUpdatedPluginConfigs({
         name,
@@ -248,41 +262,48 @@ export class LoadConfigBridgeStorage {
             pluginManager: PluginManager<PluginShape, PluginRunner>,
             pipes: Array<PluginShape>
         ) => {
+            // Ensure we have the latest state from disk before making changes
             await pluginManager.$config.load()
 
-            /* ────────────────────────────────────────────────────────── 1) snapshot */
+            /* 1) snapshot */
+            // Take a snapshot of plugin names currently in the DB *before* any changes.
             const initialDbNames = new Set<string>(
                 Object.keys(pluginManager.$config.storageRecord)
             )
 
-            /* ────────────────────────────────────────────────────────── 2) upsert   */
+            /* 2) upsert */
+            // For every plugin defined in the inline script (pipes array),
+            // ensure it exists in the DB and its configuration is correctly merged.
             for (const pipe of pipes) {
-                const { name, staticConfig, dynamicConfig } = pipe
+                const { name, staticConfig } = pipe // `pipe.dynamicConfig` is the default from the plugin's code
 
-                const databaseDynamicConfig =
+                // 1. Get the current dynamicConfig from the database.
+                // It might be undefined, null, or an object.
+                const updatedDbDynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig
 
-                const dynamicConfigToSave = databaseDynamicConfig ?? {
-                    ...dynamicConfig,
-                    $$load_status$$: 'include',
+                if (updatedDbDynamicConfig) {
+                    await pluginManager.$config.updateConfig(name, {
+                        staticConfig: staticConfig, // Use the static config from the pipe
+                        dynamicConfig: updatedDbDynamicConfig, // Pass the robustly merged dynamicConfig
+                    })
                 }
-
-                await pluginManager.$config.updateConfig(name, {
-                    staticConfig,
-                    dynamicConfig: dynamicConfigToSave,
-                })
             }
 
-            /* ────────────────────────────────────────────────────────── 3) prune    */
+            /* 3) prune */
+            // Identify and remove plugins that are no longer in `pipes`
+            // but were originally in the DB and marked for inclusion.
             const registered = new Set(pipes.map((p) => p.name))
 
-            // From the original snapshot, keep only those rows that:
-            //   – are still flagged "include"
-            //   – are NOT in the current pipe list
+            // Filter from the `initialDbNames` snapshot to avoid deleting newly added pipes.
             const toRemove = Array.from(initialDbNames).filter((name) => {
-                if (registered.has(name)) return false // still wanted
+                // If the plugin is still in the current `pipes` list, don't remove it.
+                if (registered.has(name)) return false
 
+                // Get the current row from `storageRecord` (which is updated by upsert step)
                 const row = pluginManager.$config.storageRecord[name]
+
+                // Only remove if it was explicitly marked as 'include'
                 return row?.dynamicConfig?.['$$load_status$$'] === 'include'
             })
 
@@ -296,6 +317,10 @@ export class LoadConfigBridgeStorage {
 
     private async init(): Promise<void> {
         await this.updateConfigStoreRoot()
+
+        for (const manager of this.$managerMap.values()) {
+            await this.registerAllPlugins(manager.options.name)
+        }
     }
     /**
      * Initializes the bridge store.
