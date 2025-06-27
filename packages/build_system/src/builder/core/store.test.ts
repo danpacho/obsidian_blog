@@ -1,7 +1,10 @@
-import { UUID } from 'crypto'
 import { IO as IOManager } from '@obsidian_blogger/helpers'
 import { describe, expect, it } from 'vitest'
-import { BuildInformation, BuildStore } from './store'
+
+import { BuildStore } from './store'
+
+import type { BuildInformation } from './store'
+import type { UUID } from 'crypto'
 
 describe('BuildStore', () => {
     const buildStore = new BuildStore({

@@ -1,5 +1,7 @@
 import React from 'react'
+
 import { tw } from '../tools/tw.js'
+
 import { type TailwindComponent } from './tailwind.component.js'
 
 const header = tw.style({

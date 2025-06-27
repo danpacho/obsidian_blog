@@ -1,14 +1,16 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { describe, expect, it } from 'vitest'
-import {
-    PluginInterface,
+
+import { PluginInterface } from '../plugin.interface'
+import { PluginLoader } from '../plugin.loader'
+import { PluginRunner } from '../plugin.runner'
+
+import { PluginConfigStorage } from './plugin.config.storage'
+import { PluginManager } from './plugin.manager'
+
+import type {
     PluginInterfaceStaticConfig,
     PluginShape,
 } from '../plugin.interface'
-import { PluginLoader } from '../plugin.loader'
-import { PluginRunner } from '../plugin.runner'
-import { PluginConfigStorage } from './plugin.config.storage'
-import { PluginManager } from './plugin.manager'
 
 describe('PluginManager', () => {
     class Runner extends PluginRunner {

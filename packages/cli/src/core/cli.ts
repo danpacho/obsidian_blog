@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-types */
 import { IO } from '@obsidian_blogger/helpers/io'
 import { Logger } from '@obsidian_blogger/helpers/logger'
 import { Command } from 'commander'
@@ -219,7 +218,6 @@ export abstract class CLI<
                       )
                     : {}
                 command.cmdAction?.(
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     //@ts-ignore
                     argEntry,
                     options

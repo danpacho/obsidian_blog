@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { FileWriter } from '../file.writer'
 describe('FileWriter', () => {
     const writer = new FileWriter()

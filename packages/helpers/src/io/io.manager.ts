@@ -1,7 +1,10 @@
-import { ReadStream } from 'fs'
+import { FilePathFinder, FileReader } from './file.reader'
+import { FileWriter } from './file.writer'
+
+import type { ReadStreamOption } from './file.reader'
+import type { WriteStreamOption } from './file.writer'
 import type { PromiseCallbacks, Promisify } from '../promisify'
-import { FilePathFinder, FileReader, ReadStreamOption } from './file.reader'
-import { FileWriter, WriteStreamOption } from './file.writer'
+import type { ReadStream } from 'fs'
 
 export class IO {
     constructor(

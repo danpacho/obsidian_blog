@@ -1,15 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-    Job,
     JobManager,
     type JobManagerConstructor,
     type JobRegistration,
 } from '@obsidian_blogger/helpers/job'
+
 import {
     DynamicConfigParser,
     type PluginDynamicConfigPrimitiveType,
     type PluginDynamicConfigSchema,
 } from './arg_parser'
+
+import type { Job } from '@obsidian_blogger/helpers/job'
 /**
  * Plugin base static configuration interface
  */
@@ -343,7 +344,7 @@ export abstract class PluginInterface<
 
         try {
             JSON.parse(JSON.stringify(config))
-        } catch (e) {
+        } catch (_e) {
             throw new PluginInterfaceError(
                 'Plugin configuration must be safely serializable by `JSON.stringify`.',
                 config

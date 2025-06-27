@@ -1,13 +1,14 @@
-import {
+import { exec, spawn } from 'node:child_process'
+import { platform } from 'node:os'
+import { Readable } from 'node:stream'
+
+import { Queue } from '../queue'
+
+import type {
     ChildProcess,
     ExecException,
     SpawnOptions,
-    exec,
-    spawn,
 } from 'node:child_process'
-import { platform } from 'node:os'
-import { Readable } from 'node:stream'
-import { Queue } from '../queue'
 
 export interface CommandHistoryRecord extends CommandResult {
     /**

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import {
-    DynamicConfigParser,
-    DynamicConfigParserError,
-    PluginDynamicConfigSchema,
-} from './parser'
+
+import { DynamicConfigParser, DynamicConfigParserError } from './parser'
+
+import type { PluginDynamicConfigSchema } from './parser'
 
 describe('DynamicConfigParser', () => {
     const parser = new DynamicConfigParser()

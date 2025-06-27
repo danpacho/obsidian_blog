@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { PluginConfigStorage } from './plugin.config.storage'
 
 describe('PluginConfigStorage', async () => {

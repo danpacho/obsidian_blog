@@ -1,7 +1,11 @@
-import { Promisify } from '@obsidian_blogger/helpers/promisify'
 import React, { useRef, useState } from 'react'
+
 import { useTimer } from '../hooks/index.js'
-import { Button, ButtonProps } from './button.js'
+
+import { Button } from './button.js'
+
+import type { ButtonProps } from './button.js'
+import type { Promisify } from '@obsidian_blogger/helpers/promisify'
 export type ProgressStatus = 'progress' | 'success' | 'error' | 'idle'
 export interface ProgressStatusInfo {
     status: ProgressStatus

@@ -1,8 +1,8 @@
-import type { FileTreeNode } from '../../parser'
-import { BuildCacheManager, BuildStore, BuildStoreList } from '../core'
-import { BuildContentsPlugin } from './build.contents.plugin'
+import type { BuildCacheManager, BuildStore, BuildStoreList } from '../core'
+import type { BuildContentsPlugin } from './build.contents.plugin'
 import type { BuildTreePlugin } from './build.tree.plugin'
 import type { WalkTreePlugin } from './walk.tree.plugin'
+import type { FileTreeNode } from '../../parser'
 
 export abstract class PluginCachePipelines {
     /**

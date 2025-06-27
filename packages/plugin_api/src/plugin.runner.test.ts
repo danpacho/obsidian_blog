@@ -1,11 +1,13 @@
+import { JobError } from 'packages/helpers/src/job'
 import { describe, expect, it } from 'vitest'
-import {
+
+import { PluginInterface } from './plugin.interface'
+import { PluginRunner } from './plugin.runner'
+
+import type {
     PluginExecutionResponse,
-    PluginInterface,
     PluginInterfaceStaticConfig,
 } from './plugin.interface'
-import { PluginRunner } from './plugin.runner'
-import { JobError } from 'packages/helpers/src/job'
 
 describe('PluginRunner', () => {
     class Plugin extends PluginInterface<

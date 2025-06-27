@@ -2,6 +2,7 @@ import {
     JsonStorage,
     type JsonStorageConstructor,
 } from '@obsidian_blogger/helpers/storage'
+
 import type { Bridge } from '../constants'
 import type {
     PluginConfig,

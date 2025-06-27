@@ -1,10 +1,14 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian'
+import { ItemView } from 'obsidian'
 import { StrictMode } from 'react'
-import { Root, createRoot } from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
+
 import { App } from './app'
 import { AppContext } from './provider/app.root'
 import { Routing } from './routing'
-import ObsidianBlogger from '~/plugin/main'
+
+import type { WorkspaceLeaf } from 'obsidian'
+import type { Root } from 'react-dom/client'
+import type ObsidianBlogger from '~/plugin/main'
 
 export const VIEW_TYPE = '$ROOT_VIEW$' as const
 

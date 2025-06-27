@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Tester } from './tester'
+
 import { StaticParamBuilderPlugin } from '../core'
 import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
+
+import { Tester } from './tester'
 
 describe('StaticParamBuilderPlugin', () => {
     it('should inject static params to the content', async () => {

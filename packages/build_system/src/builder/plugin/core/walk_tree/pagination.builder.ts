@@ -1,18 +1,20 @@
-import type { Promisify } from '@obsidian_blogger/helpers'
-import { FileTreeNode, FolderNode } from 'packages/build_system/src/parser'
-import {
-    WalkTreePlugin,
-    WalkTreePluginDynamicConfig,
-    WalkTreePluginStaticConfig,
-} from '../../walk.tree.plugin'
+import { WalkTreePlugin } from '../../walk.tree.plugin'
+
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
+
+import type {
+    WalkTreePluginDynamicConfig,
+    WalkTreePluginStaticConfig,
+} from '../../walk.tree.plugin'
 import type {
     DefaultContentMeta,
     DefaultPaginationInfo,
 } from './shared/meta/interface'
+import type { Promisify } from '@obsidian_blogger/helpers'
+import type { FileTreeNode, FolderNode } from 'packages/build_system/src/parser'
 
 export type PaginationBuilderStaticConfig = WalkTreePluginStaticConfig
 export type PaginationBuilderDynamicConfig = WalkTreePluginDynamicConfig &

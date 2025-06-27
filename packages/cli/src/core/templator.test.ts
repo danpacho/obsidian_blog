@@ -1,5 +1,6 @@
 import { IO } from '@obsidian_blogger/helpers/io'
 import { describe, expect, it } from 'vitest'
+
 import { templateInjector } from './template.injector.js'
 describe('templateInjector', () => {
     const io = new IO()

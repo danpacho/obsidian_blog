@@ -1,4 +1,7 @@
+import React from 'react'
+
 import { type GetVariants, tw } from '../tools/tw.js'
+
 import type { TailwindComponent } from './tailwind.component.js'
 
 const label = tw.variants({

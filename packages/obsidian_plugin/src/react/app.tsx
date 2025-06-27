@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
+
 import { useObsidianSetting } from './hooks'
 import { StorageProvider } from './provider/bridge.storage'
 import { Routing } from './routing'
 import { BuildView } from './view/build/build.view'
 import { SetupView } from './view/setup/setup.view'
+
 import { Io } from '~/utils'
 
 const Container = (props: React.PropsWithChildren) => {

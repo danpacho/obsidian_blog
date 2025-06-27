@@ -1,8 +1,11 @@
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
-import retry, { Options as RetryOptions } from 'async-retry'
+
+import retry from 'async-retry'
 import { x } from 'tar'
 
+import type { Options as RetryOptions } from 'async-retry'
+import type { ReadableStream } from 'stream/web'
 export interface RepoInfo {
     username: string
     name: string
@@ -132,7 +135,7 @@ export class GithubRepository {
             throw new Error(`Failed to download: ${url}`)
         }
 
-        return Readable.fromWeb(res.body as import('stream/web').ReadableStream)
+        return Readable.fromWeb(res.body as ReadableStream)
     }
 
     /**

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { PluginDynamicConfigSchema } from '../arg_parser'
-import {
-    PluginInterface,
+
+import { PluginInterface } from '../plugin.interface'
+import { PluginRunner } from '../plugin.runner'
+
+import { LoadConfigBridgeStorage } from './load.config.bridge.storage'
+import { PluginManager } from './plugin.manager'
+
+import type { PluginDynamicConfigSchema } from '../arg_parser'
+import type {
     PluginInterfaceStaticConfig,
     PluginShape,
 } from '../plugin.interface'
-import { PluginRunner } from '../plugin.runner'
-import { LoadConfigBridgeStorage } from './load.config.bridge.storage'
-import { PluginManager } from './plugin.manager'
 
 describe('LoadConfigBridgeStorage', async () => {
     class Runner extends PluginRunner {

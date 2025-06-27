@@ -1,14 +1,17 @@
 import { type JobManagerConstructor } from '@obsidian_blogger/helpers/job'
-import type {
-    PluginInterfaceDependencies,
-    PluginShape,
-} from '../plugin.interface'
+
 import { PluginLoader, type PluginLoaderConstructor } from '../plugin.loader'
-import type { PluginRunner } from '../plugin.runner'
+
 import {
     PluginConfigStorage,
     type PluginConfigStoreConstructor,
 } from './plugin.config.storage'
+
+import type {
+    PluginInterfaceDependencies,
+    PluginShape,
+} from '../plugin.interface'
+import type { PluginRunner } from '../plugin.runner'
 
 /**
  * PluginManager constructor options.

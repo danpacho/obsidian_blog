@@ -1,14 +1,15 @@
-import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin_api'
-import type { BuildInformation, BuildStoreList } from '../core'
 import {
     BuildPlugin,
     type BuildPluginDependencies,
-    type BuildPluginResponse,
     type BuildPluginDynamicConfig,
+    type BuildPluginResponse,
     type BuildPluginStaticConfig,
 } from './build.plugin'
+
+import type { BuildInformation, BuildStoreList } from '../core'
 import type { PluginCachePipelines } from './cache.interface'
-import { MarkdownProcessor } from '../../md/processor'
+import type { MarkdownProcessor } from '../../md/processor'
+import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin_api'
 
 export interface BuildContentsPluginStaticConfig
     extends BuildPluginStaticConfig {}
@@ -130,6 +131,7 @@ export abstract class BuildContentsPlugin<
                                   }),
                     })
                 } finally {
+                    // eslint-disable-next-line no-unsafe-finally
                     return {
                         contentsUpdateInfo: updateInformation,
                         error,

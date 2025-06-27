@@ -1,5 +1,7 @@
 import { cwd } from 'process'
+
 import { describe, expect, it } from 'vitest'
+
 import {
     DependencyTable,
     type DependencyTableConfig,

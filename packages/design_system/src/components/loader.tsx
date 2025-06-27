@@ -1,4 +1,5 @@
 import { type GetVariants, tw } from '../tools/tw.js'
+
 import type { TailwindComponent } from './tailwind.component.js'
 
 const loader = tw.variants({

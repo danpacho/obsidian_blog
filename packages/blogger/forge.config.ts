@@ -5,6 +5,7 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel'
 import { MakerZIP } from '@electron-forge/maker-zip'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { VitePlugin } from '@electron-forge/plugin-vite'
+
 import type { ForgeConfig } from '@electron-forge/shared-types'
 
 const config: ForgeConfig = {

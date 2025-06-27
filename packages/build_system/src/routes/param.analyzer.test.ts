@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { ParamAnalyzer } from './param.analyzer'
 
 describe('ParamAnalyzer – default "[ ]" delimiters', () => {

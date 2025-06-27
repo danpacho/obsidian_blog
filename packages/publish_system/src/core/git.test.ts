@@ -1,5 +1,6 @@
 import { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 import { describe, expect, it } from 'vitest'
+
 import { GitShell } from './git'
 
 describe('GitShell', async () => {

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { GetVariants } from 'tailwindest'
 import { createPortal } from 'react-dom'
+
+import type { TailwindComponent } from '../tailwind.component.js'
+import type { GetVariants } from 'tailwindest'
+
 import { type Tailwindest, tw } from '~/tools/tw.js'
-import { TailwindComponent } from '../tailwind.component.js'
 
 const modal = tw.variants({
     base: {

@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { StorageError } from './error'
 import { json } from './json'
-import { StorageConstructor, StorageInterface } from './storage.interface'
+import { StorageInterface } from './storage.interface'
+
+import type { StorageConstructor } from './storage.interface'
 
 export interface JsonStorageConstructor extends StorageConstructor {
     serializer?: (data: any) => string

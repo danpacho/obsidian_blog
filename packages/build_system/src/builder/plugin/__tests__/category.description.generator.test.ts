@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { Tester } from './tester'
+import { describe, it } from 'vitest'
+
 import { CategoryDescriptionGeneratorPlugin } from '../core/walk_tree'
+
+import { Tester } from './tester'
 
 describe('CategoryDescriptionGeneratorPlugin', () => {
     it('should generate category description file', async () => {
@@ -9,7 +11,7 @@ describe('CategoryDescriptionGeneratorPlugin', () => {
             descriptionFileName: 'category.md',
         })
 
-        const { buildFiles } = await Tester.pipe({
+        await Tester.pipe({
             plugin: {
                 'walk:tree': plugin,
             },

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+
 import { useApp } from '../provider/app.root'
-import { ObsidianBloggerSettings } from '~/plugin/settings'
+
+import type { ObsidianBloggerSettings } from '~/plugin/settings'
 
 export const useObsidianSetting = (
     defaultSetting?: ObsidianBloggerSettings

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { json } from './index'
 
 describe('Serialization and Deserialization', () => {

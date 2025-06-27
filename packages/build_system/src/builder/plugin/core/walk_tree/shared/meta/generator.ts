@@ -1,4 +1,4 @@
-import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
+import type { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
 
 export type MetaGenerator = (meta: Record<string, unknown>) => PolymorphicMeta
 

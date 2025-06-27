@@ -1,9 +1,7 @@
-import {
-    CreateTailwindLiteral,
-    type CreateTailwindest,
-    createTools,
-} from 'tailwindest'
-import type { TailwindNestGroups, Tailwind } from './tailwind.js'
+import { type CreateTailwindest, createTools } from 'tailwindest'
+
+import type { Tailwind, TailwindNestGroups } from './tailwind.js'
+import type { CreateTailwindLiteral } from 'tailwindest'
 
 export type Tailwindest = CreateTailwindest<{
     tailwind: Tailwind

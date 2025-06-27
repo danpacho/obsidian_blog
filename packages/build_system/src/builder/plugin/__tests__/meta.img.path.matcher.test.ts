@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import { MetaImgPathMatcherPlugin } from '../core'
+
 import { Tester } from './tester'
 
 describe('MetaImgPathMatcher', () => {

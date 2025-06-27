@@ -1,4 +1,5 @@
 import { type Stateful } from '@obsidian_blogger/helpers/promisify'
+
 import { PrimitiveSchema, type PrimitiveType, type TypeOf } from './primitives'
 import { ArgTypeError } from './type.error'
 
@@ -53,7 +54,7 @@ interface PluginDynamicSchemaInfo {
      * }
      * ```
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     extraValidation?: (configValue: any) => void
     /**
      * The default value of the argument

@@ -1,9 +1,10 @@
+import Matter from 'gray-matter'
+
 import type {
     IO as IOManager,
     Promisify,
     Stateful,
 } from '@obsidian_blogger/helpers'
-import Matter from 'gray-matter'
 
 export type PolymorphicMeta = Record<string, unknown>
 
@@ -91,7 +92,6 @@ export class MetaEngine<MetaShape extends PolymorphicMeta> {
             : this.parse(frontMatter)
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private static MatterOptions: Matter.GrayMatterOption<Matter.Input, any> = {
         delimiters: '---',
         language: 'yaml',

@@ -1,5 +1,6 @@
-import { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 import validateProjectName from 'validate-npm-package-name'
+
+import type { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 
 export type PkgManagerName = 'npm' | 'yarn' | 'pnpm' | 'bun'
 

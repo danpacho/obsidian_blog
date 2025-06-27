@@ -1,10 +1,11 @@
-import type { ParamAnalyzerConstructor } from '../../../../../../routes'
 import { ContentMetaGenerator, type MetaGenerator } from './generator'
 import {
     CategoryMetaParser,
     ContentMetaParser,
     type MetaParser,
 } from './parser'
+
+import type { ParamAnalyzerConstructor } from '../../../../../../routes'
 
 export interface ContentMetaGeneratorOptions {
     contentMeta?: {

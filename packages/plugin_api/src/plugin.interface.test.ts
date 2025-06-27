@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import {
-    PluginInterface,
-    PluginInterfaceStaticConfig,
-} from './plugin.interface'
+
+import { PluginInterface } from './plugin.interface'
+
+import type { PluginInterfaceStaticConfig } from './plugin.interface'
 
 describe('PluginInterface', () => {
     it('should create a new instance of the plugin', () => {
@@ -26,7 +26,6 @@ describe('PluginInterface', () => {
     })
 
     it('should throw error if `defineConfig` method is not implemented', () => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         class Invalid extends PluginInterface {}
         try {
@@ -41,7 +40,6 @@ describe('PluginInterface', () => {
 
     it('should throw error if `defineConfig` method returns invalid config', () => {
         class Invalid extends PluginInterface {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             protected defineStaticConfig() {
                 return 1

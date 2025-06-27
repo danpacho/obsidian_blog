@@ -1,7 +1,9 @@
 import { BuildBridgeStorage } from '@obsidian_blogger/plugin_api/bridge'
 import { Bridge } from '@obsidian_blogger/plugin_api/constants'
 import React, { useEffect, useState } from 'react'
+
 import { useObsidianSetting } from '../hooks/use.setting'
+
 import { BuildPlugin, InitPlugin } from '~/utils/exec'
 
 export type BuildStorageKeys = (typeof BUILD_STORAGE_KEYS)[number]

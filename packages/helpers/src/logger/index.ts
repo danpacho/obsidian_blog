@@ -1,8 +1,12 @@
 // src/logger/index.ts
-import boxen, { Options as BoxenOptions } from 'boxen'
-import chalk from 'chalk'
 import util from 'node:util'
+
+import boxen from 'boxen'
+import chalk from 'chalk'
+
 import { Stack } from '../stack'
+
+import type { Options as BoxenOptions } from 'boxen'
 
 export interface LoggerConstructor {
     name: string

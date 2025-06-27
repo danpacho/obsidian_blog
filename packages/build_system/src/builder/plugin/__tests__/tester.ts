@@ -1,7 +1,9 @@
 import { IO } from '@obsidian_blogger/helpers/io'
 import { PluginConfigStorage } from '@obsidian_blogger/plugin_api/bridge'
+
 import { BuildSystem } from '../../../index'
 import { MetaEngine } from '../../../meta/engine'
+
 import type { FileTreeNode } from '../../../parser/node'
 import type { BuildSystemPluginAdapter } from '../../builder.plugin.interface'
 import type { PathGenerator } from '../../core'
@@ -129,13 +131,9 @@ type TESTER_CONTENTS =
     | 'img.md'
     | 'link.md'
     | 'nested.md'
-    // eslint-disable-next-line @typescript-eslint/ban-types
     | (string & {})
 
-type TESTER_ASSETS =
-    | 'img.png'
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    | (string & {})
+type TESTER_ASSETS = 'img.png' | (string & {})
 
 type ContentsSelector<T extends string> =
     | T

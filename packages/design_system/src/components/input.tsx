@@ -1,6 +1,9 @@
-import type { InputType } from '../hooks/index.js'
+import React from 'react'
+
 import { tw } from '../tools/tw.js'
+
 import type { TailwindComponent } from './tailwind.component.js'
+import type { InputType } from '../hooks/index.js'
 
 const inputStyle = tw.style({
     width: '!w-full',

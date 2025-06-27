@@ -1,19 +1,20 @@
-import { IO } from '@obsidian_blogger/helpers/io'
 import {
-    Logger,
     type LogHistory,
     type LoggerConstructor,
 } from '@obsidian_blogger/helpers/logger'
 import {
-    ShellExecutor,
     type CommandResult,
     type ShellExecutorConstructor,
 } from '@obsidian_blogger/helpers/shell'
 import {
-    PluginInterface,
     type PluginExecutionResponse,
+    PluginInterface,
     type PluginInterfaceStaticConfig,
 } from '@obsidian_blogger/plugin_api'
+
+import type { IO } from '@obsidian_blogger/helpers/io'
+import type { Logger } from '@obsidian_blogger/helpers/logger'
+import type { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 
 export type PublishPluginDynamicConfig = {
     /**

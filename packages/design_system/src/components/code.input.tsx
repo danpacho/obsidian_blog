@@ -1,5 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react'
+
 import { tw } from '../tools/tw.js'
+
 import { Button } from './button.js'
 import { Label } from './label.js'
 import { Textarea } from './textarea.js'
@@ -113,7 +115,6 @@ export const CodeInput = ({
                 >
                     {highlightedCode && (
                         <code
-                            // eslint-disable-next-line tailwindcss/no-custom-classname
                             className="language-javascript !p-0"
                             dangerouslySetInnerHTML={{
                                 __html: highlightedCode,

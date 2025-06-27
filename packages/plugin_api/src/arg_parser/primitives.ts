@@ -30,8 +30,7 @@ type ParseType<T extends Primitives> = T extends 'number'
                   ? U
                   : never
               : T extends 'Function'
-                ? /* eslint-disable @typescript-eslint/no-explicit-any */
-                  (...args: any[]) => any | Promise<any>
+                ? (...args: any[]) => any | Promise<any>
                 : T extends 'RegExp'
                   ? RegExp
                   : never

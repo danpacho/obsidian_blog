@@ -1,5 +1,5 @@
-import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
 import type { DefaultCategoryMeta, DefaultContentMeta } from './interface'
+import type { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
 
 export type MetaParser = (meta: unknown) => PolymorphicMeta
 

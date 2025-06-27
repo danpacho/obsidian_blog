@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Tester } from './tester'
+
 import { MetaBuilderPlugin } from '../core'
+
+import { Tester } from './tester'
 
 describe('MetaBuilder', () => {
     it('should generate metadata', async () => {

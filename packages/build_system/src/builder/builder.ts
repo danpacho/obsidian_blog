@@ -1,14 +1,12 @@
-import { Logger } from '@obsidian_blogger/helpers/logger'
 import {
     type PluginLoadInformation,
     PluginManager,
 } from '@obsidian_blogger/plugin_api'
 import { Bridge } from '@obsidian_blogger/plugin_api/constants'
+
 import { MarkdownProcessor } from '../md/processor'
-import type { FolderNode } from '../parser/node'
-import type { FileTreeParser } from '../parser/parser'
+
 import {
-    BuilderInternalPlugin,
     BuilderInternalPluginRunner,
     BuilderPluginCachePipelines,
     DuplicateObsidianVaultIntoSource,
@@ -26,15 +24,20 @@ import {
 } from './core/info.generator'
 import { BuildStore, type BuildStoreConstructor } from './core/store'
 import { type BuildSystemPluginAdapter } from './plugin'
-import { BuildContentsPlugin } from './plugin/build.contents.plugin'
-import { BuildTreePlugin } from './plugin/build.tree.plugin'
-import { PluginCachePipelines } from './plugin/cache.interface'
-import { WalkTreePlugin } from './plugin/walk.tree.plugin'
 import {
     BuildContentsPluginRunner,
     BuildTreePluginRunner,
     WalkTreePluginRunner,
 } from './runners'
+
+import type { BuilderInternalPlugin } from './builder.internal'
+import type { BuildContentsPlugin } from './plugin/build.contents.plugin'
+import type { BuildTreePlugin } from './plugin/build.tree.plugin'
+import type { PluginCachePipelines } from './plugin/cache.interface'
+import type { WalkTreePlugin } from './plugin/walk.tree.plugin'
+import type { FolderNode } from '../parser/node'
+import type { FileTreeParser } from '../parser/parser'
+import type { Logger } from '@obsidian_blogger/helpers/logger'
 
 export interface BuilderConstructor
     extends Omit<BuildCacheManagerConstructor, 'store'>,

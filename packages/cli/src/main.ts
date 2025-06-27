@@ -1,5 +1,7 @@
 import { ShellExecutor } from '@obsidian_blogger/helpers/shell'
+
 import pkg from '../package.json'
+
 import { CLI } from './core/cli.js'
 import { PkgManager } from './core/pkg_manager.js'
 import { GithubRepository } from './core/repo.js'
@@ -23,7 +25,6 @@ interface InstallConfigRecord {
 
 type Prettify<T> = {
     [K in keyof T]: T[K]
-    // eslint-disable-next-line @typescript-eslint/ban-types
 } & {}
 type InstallConfig = Prettify<
     InstallConfigRecord['install'] &

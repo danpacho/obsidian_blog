@@ -1,5 +1,6 @@
 import { Queue, type QueueConstructor } from '../queue'
 import { Stack, type StackConstructor } from '../stack'
+
 import { JobError } from './job.error'
 /**
  * Represents a job in the job manager.
@@ -134,7 +135,6 @@ export type JobSubscriber<CurrJob extends Job> = (
     history: Stack<Job>['stack']
 ) => unknown | Promise<unknown>
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JobRegistrationShape = JobRegistration<any, any>
 
 export interface JobManagerConstructor {

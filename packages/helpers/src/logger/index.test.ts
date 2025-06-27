@@ -1,7 +1,10 @@
 // tests/logger.test.ts
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import stripAnsi from 'strip-ansi'
-import { Logger, LoggerConstructor, LogOption } from '.' // adjust path if needed
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { Logger } from '.' // adjust path if needed
+
+import type { LogOption, LoggerConstructor } from '.'
 
 /* -------------------------------------------------------------------------- */
 /*  helpers                                                                    */

@@ -11,7 +11,6 @@ const serialize = (obj: unknown): string => {
     return JSON.stringify(obj, replacer, 4)
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const deserialize = <T = any>(json: string): T => {
     const reviver = (_: string, value: unknown): unknown => {
         if (typeof value === 'string' && value.startsWith('__FUNCTION__:')) {

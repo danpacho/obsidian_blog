@@ -1,5 +1,6 @@
 import { tw } from '../tools/tw.js'
-import { TailwindComponent } from './tailwind.component.js'
+
+import type { TailwindComponent } from './tailwind.component.js'
 
 type UniversalProps<T extends React.ElementType> = {
     as?: T

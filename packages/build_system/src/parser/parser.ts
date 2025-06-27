@@ -1,12 +1,15 @@
-import { IO, Queue } from '@obsidian_blogger/helpers'
+import { Queue } from '@obsidian_blogger/helpers'
+
 import {
     AudioFileNode,
-    FileTreeNode,
     FolderNode,
     ImageFileNode,
     type ParentNodeInfo,
     TextFileNode,
 } from './node'
+
+import type { FileTreeNode } from './node'
+import type { IO } from '@obsidian_blogger/helpers'
 
 interface FolderSyntax {
     /**

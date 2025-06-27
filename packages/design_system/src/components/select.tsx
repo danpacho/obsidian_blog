@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { tw } from '../tools/tw.js'
-import { TailwindComponent } from './tailwind.component.js'
+
+import type { TailwindComponent } from './tailwind.component.js'
 
 const selectStyle = tw.toggle({
     base: {

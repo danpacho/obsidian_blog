@@ -9,8 +9,10 @@ import {
 } from '@obsidian_blogger/helpers/shell'
 import { Bridge } from '@obsidian_blogger/plugin_api'
 import { Bridge as BridgeConstant } from '@obsidian_blogger/plugin_api/constants'
-import type { PublishSystemPluginAdapter } from './publish.system.interface'
+
 import { Publisher } from './publisher/publisher'
+
+import type { PublishSystemPluginAdapter } from './publish.system.interface'
 export interface PublishSystemConstructor {
     /**
      * The root path of the bridge system

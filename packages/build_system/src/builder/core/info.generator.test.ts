@@ -1,16 +1,19 @@
-import {
-    describe,
-    it,
-    expect,
-    vi,
-    beforeEach,
-    beforeAll,
-    afterAll,
-} from 'vitest'
 import { FileReader, type IO } from '@obsidian_blogger/helpers'
+import {
+    afterAll,
+    beforeAll,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vitest'
+
+import { BuildInfoGenerator } from '.'
+
+import type { BuildInfoGeneratorConstructor } from '.'
 import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginDependencies } from '../plugin/build.plugin'
-import { BuildInfoGenerator, BuildInfoGeneratorConstructor } from '.'
 
 describe('BuildInfoGenerator', () => {
     const UUID =

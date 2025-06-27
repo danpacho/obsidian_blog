@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import {
-    PluginInterface,
-    PluginInterfaceStaticConfig,
-} from './plugin.interface'
+
+import { PluginInterface } from './plugin.interface'
 import { PluginLoader } from './plugin.loader'
+
+import type { PluginInterfaceStaticConfig } from './plugin.interface'
 
 describe('PluginLoader', () => {
     class PluginWithoutDynamicConfig extends PluginInterface {

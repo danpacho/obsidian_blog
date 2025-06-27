@@ -189,7 +189,7 @@ const passAccordionId = (
         if (React.isValidElement(child)) {
             return React.cloneElement(child, {
                 ...(child.props as Record<string, unknown>),
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
                 // @ts-ignore
                 accordionId,
             })

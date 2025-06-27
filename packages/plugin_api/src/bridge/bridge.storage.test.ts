@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { BuildBridgeStorage } from './bridge.storage'
 describe('BridgeStorage', () => {
     const storage = BuildBridgeStorage.create({

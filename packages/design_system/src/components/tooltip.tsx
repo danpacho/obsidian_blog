@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
 import { useTimer } from '../hooks/index.js'
 import { tw } from '../tools/tw.js'
-import { TailwindComponent } from './tailwind.component.js'
+
+import type { TailwindComponent } from './tailwind.component.js'
 
 type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 

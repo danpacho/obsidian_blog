@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-    JobManager,
     type Job,
+    JobManager,
     type JobManagerConstructor,
     type JobSubscriber,
 } from '@obsidian_blogger/helpers/job'
+
 import type {
-    PluginShape,
     InferPluginConfig,
     PluginInterfaceDependencies,
+    PluginShape,
 } from './plugin.interface'
 import type { PluginExecutionResponse } from './plugin.interface'
 

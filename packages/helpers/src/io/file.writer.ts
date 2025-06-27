@@ -5,12 +5,13 @@ import {
     mkdir,
     rm,
     rmdir,
+    stat,
     unlink,
     writeFile,
-    stat,
 } from 'node:fs/promises'
-import { pipeline } from 'node:stream'
 import { dirname } from 'node:path'
+import { pipeline } from 'node:stream'
+
 import type { PromiseCallbacks, Promisify } from '../promisify'
 
 export type WriteStreamOption =

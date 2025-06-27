@@ -1,15 +1,16 @@
-import type { Promisify } from '@obsidian_blogger/helpers/promisify'
-import {
-    type CommandResult,
-    ShellExecutor,
-} from '@obsidian_blogger/helpers/shell'
+import { platform } from 'node:os'
+
+import { type CommandResult } from '@obsidian_blogger/helpers/shell'
 import { type PM, detect } from 'detect-package-manager'
+
 import {
     PublishPlugin,
     type PublishPluginDynamicConfig,
     type PublishPluginStaticConfig,
 } from './publish.plugin'
-import { platform } from 'node:os'
+
+import type { Promisify } from '@obsidian_blogger/helpers/promisify'
+import type { ShellExecutor } from '@obsidian_blogger/helpers/shell'
 
 export interface BuildScriptStaticConfig extends PublishPluginStaticConfig {}
 export type BuildScriptDynamicConfig = PublishPluginDynamicConfig & {

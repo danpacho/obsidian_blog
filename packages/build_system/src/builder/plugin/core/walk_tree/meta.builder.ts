@@ -1,15 +1,18 @@
-import type { FileTreeNode } from 'packages/build_system/src/parser'
+import { FileReader } from '@obsidian_blogger/helpers/io'
+
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
+
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
-import { FileReader } from '@obsidian_blogger/helpers/io'
+
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 
 export type MetaBuilderStaticConfig = WalkTreePluginStaticConfig
 export type MetaBuilderDynamicConfig = WalkTreePluginDynamicConfig &

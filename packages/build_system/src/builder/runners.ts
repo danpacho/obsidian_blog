@@ -1,4 +1,5 @@
 import { Runner } from '@obsidian_blogger/plugin_api'
+
 import type {
     BuildContentsPlugin,
     BuildContentsPluginDependencies,

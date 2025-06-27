@@ -1,9 +1,11 @@
 import { type UUID, createHash } from 'crypto'
+import path, { posix, win32 } from 'path'
+
 import { FileReader, type IO } from '@obsidian_blogger/helpers'
+
+import type { BuildInformation } from './store'
 import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginDependencies } from '../plugin/build.plugin'
-import type { BuildInformation } from './store'
-import path, { posix, win32 } from 'path'
 
 /**
  *  A unique identifier for a node
@@ -101,7 +103,7 @@ export class BuildInfoGenerator {
         const routeSegments = unified
             .split(DIVIDER)
             // remove unnecessary characters
-            .map((e) => e.replace(/[@{}\[\]\(\)<>?!#+=~^'"`\s]/g, ''))
+            .map((e) => e.replace(/[@{}[\]()<>?!#+=~^'"`\s]/g, ''))
             .filter(Boolean)
 
         let safeRoute: string

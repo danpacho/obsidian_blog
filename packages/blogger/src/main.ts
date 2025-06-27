@@ -1,4 +1,5 @@
 import path from 'path'
+
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
 

@@ -1,9 +1,11 @@
 import {
-    RepositoryPlugin,
     type RepositoryDynamicConfig,
+    RepositoryPlugin,
     type RepositoryStaticConfig,
 } from '../../repository'
+
 import type { PublishPluginResponse } from '../../publish.plugin'
+import type { CommandResult } from 'packages/helpers/src'
 
 export interface GithubRepositoryDynamicConfig extends RepositoryDynamicConfig {
     branch: string
@@ -68,12 +70,15 @@ export class GithubRepository extends RepositoryPlugin<
         this.$jobManager.registerJobs([
             {
                 name: 'git-check-remote-origin',
-                execute: async ({ stop }) => {
+                execute: async ({ stop }): Promise<PublishPluginResponse> => {
                     const error: PublishPluginResponse['error'] = []
+                    let gitRemote: CommandResult | undefined // Declare outside try for scope
+
                     try {
-                        const gitRemote = await this.$git?.remote()
+                        gitRemote = await this.$git?.remote()
                         const remoteOriginFounded: boolean =
-                            gitRemote?.stdout !== ''
+                            gitRemote?.stdout !== '' &&
+                            gitRemote?.stdout !== undefined // Check for undefined as well
 
                         if (remoteOriginFounded === false) {
                             this.invokeError(error, {
@@ -82,18 +87,28 @@ export class GithubRepository extends RepositoryPlugin<
                                 commandResult: gitRemote,
                             })
                             stop()
+                            // Return immediately on error
+                            return {
+                                error,
+                                history: this.$logger.getHistory(),
+                                // No stdout if it's an error scenario for this job
+                            }
                         }
+
+                        // Successful path return
                         return {
-                            error,
+                            error, // Should be empty if successful
                             history: this.$logger.getHistory(),
-                            stdout: gitRemote.stdout,
+                            stdout: gitRemote.stdout, // Only include stdout on success
                         }
                     } catch (e) {
                         this.invokeError(error, {
                             e,
                             message: 'git remote execution error',
+                            commandResult: gitRemote, // Include any partial result
                         })
                         stop()
+                        // Return immediately on error
                         return {
                             error,
                             history: this.$logger.getHistory(),
@@ -103,12 +118,21 @@ export class GithubRepository extends RepositoryPlugin<
             },
             {
                 name: 'git-pull',
-                execute: async () => {
+                execute: async ({ stop }): Promise<PublishPluginResponse> => {
                     const error: PublishPluginResponse['error'] = []
-                    let exec: PublishPluginResponse['error'][number]['command']
+                    let exec:
+                        | PublishPluginResponse['error'][number]['command']
+                        | undefined // Ensure exec can be undefined
+
                     try {
                         exec = await this.$git?.pull(this.dynamicConfig.branch)
                         this.$logger.info(`Pull ${addPattern} success`)
+                        // Return on success
+                        return {
+                            error, // Empty error array
+                            history: this.$logger.getHistory(),
+                            stdout: exec?.stdout, // Include stdout if applicable
+                        }
                     } catch (e) {
                         stop()
                         this.invokeError(error, {
@@ -116,19 +140,23 @@ export class GithubRepository extends RepositoryPlugin<
                             message: 'git pull execution error',
                             commandResult: exec,
                         })
-                    } finally {
+                        // Return on error
                         return {
                             error,
                             history: this.$logger.getHistory(),
                         }
                     }
+                    // No finally block with return
                 },
             },
             {
                 name: 'git-add',
-                execute: async () => {
+                execute: async ({ stop }): Promise<PublishPluginResponse> => {
                     const error: PublishPluginResponse['error'] = []
-                    let exec: PublishPluginResponse['error'][number]['command']
+                    let exec:
+                        | PublishPluginResponse['error'][number]['command']
+                        | undefined // Ensure exec can be undefined
+
                     try {
                         if (addPattern) {
                             exec = await this.$git?.addByPattern(addPattern)
@@ -137,6 +165,12 @@ export class GithubRepository extends RepositoryPlugin<
                             exec = await this.$git?.addAll()
                             this.$logger.info(`Add all success`)
                         }
+                        // Return on success
+                        return {
+                            error, // Empty error array
+                            history: this.$logger.getHistory(),
+                            stdout: exec?.stdout, // Include stdout if applicable
+                        }
                     } catch (e) {
                         stop()
                         this.invokeError(error, {
@@ -144,26 +178,36 @@ export class GithubRepository extends RepositoryPlugin<
                             message: 'git add execution error',
                             commandResult: exec,
                         })
-                    } finally {
+                        // Return on error
                         return {
                             error,
                             history: this.$logger.getHistory(),
                         }
                     }
+                    // No finally block with return
                 },
             },
             {
                 name: 'git-commit',
-                execute: async () => {
+                execute: async ({ stop }): Promise<PublishPluginResponse> => {
                     const error: PublishPluginResponse['error'] = []
-                    let exec: PublishPluginResponse['error'][number]['command']
+                    let exec:
+                        | PublishPluginResponse['error'][number]['command']
+                        | undefined // Ensure exec can be undefined
+
                     try {
                         if (typeof commitMessage === 'string') {
                             const commit = `${commitPrefix}: ${commitMessage}`
                             exec = await this.$git?.commit(commit)
                         } else {
                             const result =
-                                await this.$git.listStagedAddedFiles()
+                                await this.$git?.listStagedAddedFiles() // Add nullish coalescing
+                            if (!result) {
+                                // Handle case where listStagedAddedFiles might be null/undefined
+                                throw new Error(
+                                    'Failed to list staged files for commit message.'
+                                )
+                            }
 
                             const files = result.stdout
                                 .trim() // remove trailing newline
@@ -175,7 +219,7 @@ export class GithubRepository extends RepositoryPlugin<
                                     ) =>
                                         e
                                             .replace(
-                                                /[@{}\[\]\(\)<>?!#+=~^'"`\s]/g,
+                                                /[@{}[\]()<>?!#+=~^'"`\s]/g,
                                                 ''
                                             )
                                             // remove everything except English letters
@@ -183,10 +227,18 @@ export class GithubRepository extends RepositoryPlugin<
                                 )
                                 .filter(Boolean) // drop empty strings, if any
 
-                            const commit = `${commitPrefix}: ${commitMessage(files)}`
+                            const commit = `${commitPrefix}: ${
+                                (commitMessage as Function)(files) // Cast commitMessage to Function
+                            }`
                             exec = await this.$git?.commit(commit)
                         }
                         this.$logger.info(`Commit success`)
+                        // Return on success
+                        return {
+                            error, // Empty error array
+                            history: this.$logger.getHistory(),
+                            stdout: exec?.stdout, // Include stdout if applicable
+                        }
                     } catch (e) {
                         stop()
                         this.invokeError(error, {
@@ -194,22 +246,32 @@ export class GithubRepository extends RepositoryPlugin<
                             message: 'git commit execution error',
                             commandResult: exec,
                         })
-                    } finally {
+                        // Return on error
                         return {
                             error,
                             history: this.$logger.getHistory(),
                         }
                     }
+                    // No finally block with return
                 },
             },
             {
                 name: 'git-push',
-                execute: async () => {
+                execute: async ({ stop }): Promise<PublishPluginResponse> => {
                     const error: PublishPluginResponse['error'] = []
-                    let exec: PublishPluginResponse['error'][number]['command']
+                    let exec:
+                        | PublishPluginResponse['error'][number]['command']
+                        | undefined // Ensure exec can be undefined
+
                     try {
                         exec = await this.$git?.push(branch)
                         this.$logger.success('Pushed to remote successfully')
+                        // Return on success
+                        return {
+                            error, // Empty error array
+                            history: this.$logger.getHistory(),
+                            stdout: exec?.stdout, // Include stdout if applicable
+                        }
                     } catch (e) {
                         stop()
                         this.invokeError(error, {
@@ -217,12 +279,13 @@ export class GithubRepository extends RepositoryPlugin<
                             message: 'git push execution error',
                             commandResult: exec,
                         })
-                    } finally {
+                        // Return on error
                         return {
                             error,
                             history: this.$logger.getHistory(),
                         }
                     }
+                    // No finally block with return
                 },
             },
         ])

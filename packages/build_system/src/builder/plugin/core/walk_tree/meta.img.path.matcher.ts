@@ -1,13 +1,15 @@
-import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
-import type { FileTreeNode } from 'packages/build_system/src/parser'
+import path from 'node:path'
+
+import { FileReader } from '@obsidian_blogger/helpers/io'
+
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
-import { FileReader } from '@obsidian_blogger/helpers/io'
 
-import path from 'node:path'
+import type { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 
 export type MetaImgPathMatcherStaticConfig = WalkTreePluginStaticConfig
 export type MetaImgPathMatcherDynamicConfig = WalkTreePluginDynamicConfig

@@ -3,8 +3,9 @@ import {
     BuildSystem,
     CorePlugins,
     type Node,
-    PathGenerator,
 } from '@obsidian_blogger/build_system'
+
+import type { PathGenerator } from '@obsidian_blogger/build_system'
 
 const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
     const analyzeFileName = (

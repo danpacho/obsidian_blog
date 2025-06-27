@@ -1,5 +1,5 @@
-/* eslint-disable no-irregular-whitespace */
 import { describe, expect, it } from 'vitest'
+
 import { FilePathFinder, FileReader } from '../file.reader'
 
 describe('FilePathFinder', () => {

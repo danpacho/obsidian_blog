@@ -1,11 +1,13 @@
-import type { FileTreeNode } from 'packages/build_system/src/parser'
+import { MetaEngine } from 'packages/build_system/src'
+
 import {
     BuildTreePlugin,
-    type BuildTreePluginStaticConfig,
     type BuildTreePluginDynamicConfig,
+    type BuildTreePluginStaticConfig,
 } from '../../build.tree.plugin'
-import { MetaEngine } from 'packages/build_system/src'
-import { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
+
+import type { PolymorphicMeta } from 'packages/build_system/src/meta/engine'
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 
 export type ExcludeDraftStaticConfig = BuildTreePluginStaticConfig
 export type ExcludeDraftDynamicConfig = BuildTreePluginDynamicConfig & {

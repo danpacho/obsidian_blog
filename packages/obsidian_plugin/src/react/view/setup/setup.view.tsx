@@ -10,7 +10,9 @@ import {
     useTooltip,
 } from '@obsidian_blogger/design_system'
 import { useEffect, useMemo, useState } from 'react'
-import { ObsidianBloggerSettings } from '~/plugin/settings'
+
+import type { ObsidianBloggerSettings } from '~/plugin/settings'
+
 import { useObsidianSetting } from '~/react/hooks'
 import { useApp } from '~/react/provider/app.root'
 import { Routing } from '~/react/routing'

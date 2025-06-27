@@ -1,15 +1,17 @@
-import type { Parent, RootContent } from 'mdast'
+import path from 'node:path'
+
+import { FileReader } from '@obsidian_blogger/helpers/io'
 import { AudioFileNode, ImageFileNode } from 'packages/build_system/src/parser'
-import type { Plugin } from 'unified'
 import { visit } from 'unist-util-visit'
-import type { BuildStoreList } from '../../../core'
+
 import {
     BuildContentsPlugin,
     type BuildContentsPluginStaticConfig,
 } from '../../build.contents.plugin'
-import { FileReader } from '@obsidian_blogger/helpers/io'
 
-import path from 'node:path'
+import type { BuildStoreList } from '../../../core'
+import type { Parent, RootContent } from 'mdast'
+import type { Plugin } from 'unified'
 
 type ImageReference = Array<{
     origin: string
@@ -113,12 +115,12 @@ export const RemarkObsidianReferencePlugin: Plugin<
                 }
 
                 // No embeds? skip
-                if (out.every((s) => s.text != null)) return
+                if (out.every((s) => s.text !== null)) return
 
                 // Build new children
                 const newChildren: RootContent[] = []
                 out.forEach((seg) => {
-                    if (seg.text != null) {
+                    if (seg.text !== null) {
                         if (seg.text)
                             newChildren.push({ type: 'text', value: seg.text })
                         return

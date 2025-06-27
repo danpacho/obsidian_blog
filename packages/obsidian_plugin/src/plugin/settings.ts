@@ -1,5 +1,7 @@
-import { App, PluginSettingTab, Setting } from 'obsidian'
-import ObsidianBlogger from './main'
+import { PluginSettingTab, Setting } from 'obsidian'
+
+import type ObsidianBlogger from './main'
+import type { App } from 'obsidian'
 
 export interface ObsidianBloggerSettings {
     obsidian_vault_root: string

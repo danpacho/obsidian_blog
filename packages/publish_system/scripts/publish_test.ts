@@ -1,9 +1,11 @@
 /* eslint-disable no-console */
-import { IO, ShellExecutor } from '@obsidian_blogger/helpers'
-import { Bridge } from '@obsidian_blogger/plugin_api'
-import { CorePlugins, PublishSystem } from '../src'
-import { config } from 'dotenv'
 import path from 'path'
+
+import { IO } from '@obsidian_blogger/helpers'
+import { Bridge } from '@obsidian_blogger/plugin_api'
+import { config } from 'dotenv'
+
+import { CorePlugins, PublishSystem } from '../src'
 
 const envPath = path.resolve(process.cwd(), '../../.env')
 config({ path: envPath })

@@ -1,17 +1,19 @@
-import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
+
 import {
     type CategoryDescriptionGeneratorOptions,
     defaultCategoryDescriptionBuilderOptions,
 } from './shared/meta'
+
 import type {
     DefaultCategoryMeta,
     DefaultContentMeta,
 } from './shared/meta/interface'
+import type { FileTreeNode } from 'packages/build_system/src/parser/node'
 
 export type CategoryDescriptionGeneratorStaticConfig =
     WalkTreePluginStaticConfig

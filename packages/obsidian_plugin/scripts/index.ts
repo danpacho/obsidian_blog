@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 // 1) Programmatically load the monorepo .env
-import { config } from 'dotenv'
 import path from 'path'
+
+import { config } from 'dotenv'
 import { io, lg } from 'utils'
 import Watcher from 'watcher'
+
 import { generateManifest } from './generateManifest'
 
 // Assuming you invoke this script from the package root,

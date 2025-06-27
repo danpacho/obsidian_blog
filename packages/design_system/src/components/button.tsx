@@ -1,5 +1,7 @@
-import { GetVariants, tw } from '../tools/tw.js'
+import { tw } from '../tools/tw.js'
+
 import type { TailwindComponent } from './tailwind.component.js'
+import type { GetVariants } from '../tools/tw.js'
 
 export interface ButtonProps
     extends TailwindComponent,

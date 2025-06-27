@@ -1,9 +1,11 @@
-import path from 'node:path'
-import { ReadStream, createReadStream, statSync } from 'node:fs'
+import { createReadStream, statSync } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
+import path from 'node:path'
+
 import { glob, globSync } from 'glob'
 
 import type { PromiseCallbacks, Promisify, Stateful } from '../promisify'
+import type { ReadStream } from 'node:fs'
 
 export interface DirectoryNode {
     name: string

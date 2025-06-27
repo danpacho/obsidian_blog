@@ -1,15 +1,18 @@
 import { FileReader } from '@obsidian_blogger/helpers'
-import type { FileTreeNode } from 'packages/build_system/src/parser'
+
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
+
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
+
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 
 type RecordShape = Record<string, string>
 

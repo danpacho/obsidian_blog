@@ -1,8 +1,12 @@
-import { App, Plugin, PluginManifest, WorkspaceLeaf } from 'obsidian'
+import { Plugin } from 'obsidian'
+
 import {
     ObsidianBloggerSetting,
     type ObsidianBloggerSettings,
 } from './settings'
+
+import type { App, PluginManifest, WorkspaceLeaf } from 'obsidian'
+
 import { ReactView, VIEW_TYPE } from '~/react/react.mounter'
 export default class ObsidianBlogger extends Plugin {
     constructor(app: App, manifest: PluginManifest) {

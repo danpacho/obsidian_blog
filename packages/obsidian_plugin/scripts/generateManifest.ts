@@ -1,6 +1,8 @@
 import { cwd } from 'process'
-import { PluginManifest } from 'obsidian'
+
 import { io, lg } from 'utils'
+
+import type { PluginManifest } from 'obsidian'
 
 export const generateManifest = async (
     manifest: PluginManifest

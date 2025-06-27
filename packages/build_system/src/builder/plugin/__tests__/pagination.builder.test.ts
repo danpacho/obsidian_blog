@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
+
 import { PaginationBuilderPlugin, StaticParamBuilderPlugin } from '../core'
-import { Tester } from './tester'
 import { ExcludeDraftPlugin } from '../core/build_tree/exclude_draft'
+
+import { Tester } from './tester'
 
 describe('StaticParamBuilderPlugin', () => {
     const paginationBuilder = new PaginationBuilderPlugin()

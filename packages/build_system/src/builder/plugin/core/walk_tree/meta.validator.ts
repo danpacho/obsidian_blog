@@ -1,13 +1,15 @@
-import type { FileTreeNode } from 'packages/build_system/src/parser'
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
     type WalkTreePluginStaticConfig,
 } from '../../walk.tree.plugin'
+
 import {
     type ContentMetaGeneratorOptions,
     defaultContentMetaBuilderOptions,
 } from './shared/meta'
+
+import type { FileTreeNode } from 'packages/build_system/src/parser'
 
 export interface MetaValidatorStaticConfig extends WalkTreePluginStaticConfig {}
 export type MetaValidatorDynamicConfig = ContentMetaGeneratorOptions &

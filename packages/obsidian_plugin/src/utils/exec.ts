@@ -1,4 +1,5 @@
 import type { ObsidianBloggerSettings } from '~/plugin/settings'
+
 import { Shell } from '~/utils'
 
 export const BuildPlugin = async ({

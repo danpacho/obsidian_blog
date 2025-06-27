@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import type { InputType } from '../hooks/index.js'
 import { tw } from '../tools/tw.js'
+
 import type { TailwindComponent } from './tailwind.component.js'
+import type { InputType } from '../hooks/index.js'
 
 const textareaStyle = tw.style({
     width: '!w-full',

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { JobError } from './job.error'
-import { Job, JobManager } from './job.manager'
+import { JobManager } from './job.manager'
+
+import type { Job } from './job.manager'
 
 describe('JobManager', () => {
     let jobManager: JobManager
