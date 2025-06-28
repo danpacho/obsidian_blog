@@ -1,5 +1,13 @@
 # @obsidian_blogger/plugin
 
+## 0.4.1
+
+### Patch Changes
+
+- Eslint rule updates, update template plugin order
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.5.1
+
 ## 0.4.0
 
 ### Minor Changes

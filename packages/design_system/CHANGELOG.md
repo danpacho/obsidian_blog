@@ -1,5 +1,11 @@
 # @obsidian_blogger/design_system
 
+## 0.2.4
+
+### Patch Changes
+
+- Eslint rule updates, update template plugin order
+
 ## 0.2.3
 
 ### Patch Changes

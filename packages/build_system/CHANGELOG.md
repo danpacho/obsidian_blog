@@ -1,5 +1,14 @@
 # @obsidian_blogger/build_system
 
+## 0.5.7
+
+### Patch Changes
+
+- Eslint rule updates, update template plugin order
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.5.1
+    - @obsidian_blogger/plugin_api@0.4.1
+
 ## 0.5.6
 
 ### Patch Changes

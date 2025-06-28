@@ -1,5 +1,11 @@
 # create-obsidian-blogger
 
+## 0.3.3
+
+### Patch Changes
+
+- Eslint rule updates, update template plugin order
+
 ## 0.3.2
 
 ### Patch Changes
