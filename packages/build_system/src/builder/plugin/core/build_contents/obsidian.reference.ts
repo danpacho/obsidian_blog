@@ -115,12 +115,12 @@ export const RemarkObsidianReferencePlugin: Plugin<
                 }
 
                 // No embeds? skip
-                if (out.every((s) => s.text !== null)) return
+                if (out.every((s) => s.text !== undefined)) return
 
                 // Build new children
                 const newChildren: RootContent[] = []
                 out.forEach((seg) => {
-                    if (seg.text !== null) {
+                    if (seg.text !== undefined) {
                         if (seg.text)
                             newChildren.push({ type: 'text', value: seg.text })
                         return
