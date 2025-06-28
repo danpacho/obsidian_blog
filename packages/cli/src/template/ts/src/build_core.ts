@@ -98,24 +98,6 @@ export const Builder = new BuildSystem({
         contents: async (node, buildTools) =>
             await contentsPathGenerator(node, buildTools),
     },
-    treeSyntax: {
-        fileNameMatcher: ({ name, depth }) => {
-            if (depth >= 6) return false
-            const validFileNames = /[a-zA-Z0-9-_]/
-            return validFileNames.test(name)
-        },
-        folderNameMatcher: ({ name, depth }) => {
-            const startsWithAt = name.startsWith('@')
-            if (startsWithAt) return true
-
-            const first = name.at(0)
-            const last = name.at(-1)
-            if (first === '[' && last === ']') return depth < 3
-            if (first === '{' && last === '}') return depth < 3
-
-            return true
-        },
-    },
 })
     //==============================================================================
     //                             Plugin Registration                            //
@@ -131,8 +113,8 @@ export const Builder = new BuildSystem({
             new CorePlugins.MetaBuilderPlugin(),
             new CorePlugins.MetaImgPathMatcherPlugin(),
             new CorePlugins.StaticParamBuilderPlugin(),
-            new CorePlugins.PaginationBuilderPlugin(),
             new CorePlugins.SeriesInfoGeneratorPlugin(),
+            new CorePlugins.PaginationBuilderPlugin(),
             new CorePlugins.CategoryDescriptionGeneratorPlugin(),
         ],
         'build:contents': [
