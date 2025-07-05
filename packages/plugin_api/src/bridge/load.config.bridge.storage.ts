@@ -175,8 +175,7 @@ export class LoadConfigBridgeStorage {
         ) => {
             for (const pipe of pipes) {
                 const shouldRegisterPlugin =
-                    pluginManager.$config.hasConfig(pipe.name) === false ||
-                    pluginManager.$config.get(pipe.name)?.dynamicConfig === null
+                    pluginManager.$config.hasConfig(pipe.name) === false
 
                 if (shouldRegisterPlugin) {
                     const mergedDynamicConfig = pipe.getMergedDynamicConfig(
