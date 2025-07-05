@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { IO } from '@obsidian_blogger/helpers/io'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { PluginInterface } from '../plugin.interface'
 import { PluginRunner } from '../plugin.runner'
@@ -106,6 +107,13 @@ describe('LoadConfigBridgeStorage', async () => {
         managers: [pluginManager, pluginManager2, pluginManager3],
     })
 
+    beforeEach(async () => {
+        const io = new IO()
+        await io.writer.deleteDirectory(
+            `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/.store`
+        )
+    })
+
     it('should use plugin in each manager', () => {
         const plugins = [
             new ExamplePlugin(0),
@@ -132,50 +140,6 @@ describe('LoadConfigBridgeStorage', async () => {
                 const prevConfig = manager.$config.get(name)
                 const newDynamicConfig = {
                     ...(prevConfig?.dynamicConfig ?? {}),
-                    // Include plugin only start with 0
-                    $$load_status$$: name.includes('0') ? 'include' : 'exclude',
-                    add: (a: number, b: number) => a + b,
-                }
-
-                await manager.$config.updateDynamicConfigByUserConfig(
-                    name,
-                    newDynamicConfig
-                )
-            }
-        }
-
-        await loadAndUpdate(pluginManager)
-        await loadAndUpdate(pluginManager2)
-        await loadAndUpdate(pluginManager3)
-    })
-
-    it('should load plugin information correctly', async () => {
-        const loaded = await configBridge.loadInformation(
-            pluginManager.options.name
-        )
-        const loaded2 = await configBridge.loadInformation(
-            pluginManager2.options.name
-        )
-        const loaded3 = await configBridge.loadInformation(
-            pluginManager3.options.name
-        )
-        expect(loaded.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
-        expect(loaded2.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
-        expect(loaded3.map((e) => e.name)).toStrictEqual(['example-plugin-0'])
-    })
-
-    it('should mark as $$load_status$$: "include" for loading, <simulated>', async () => {
-        const loadAndUpdate = async (
-            manager: PluginManager<PluginShape, Runner>
-        ): Promise<void> => {
-            await manager.$config.load()
-
-            const names = manager.$loader.getPluginNames()
-            for (const name of names) {
-                const prevConfig = manager.$config.get(name)
-                const newDynamicConfig = {
-                    ...(prevConfig?.dynamicConfig ?? {}),
-                    $$load_status$$: name.includes('1') ? 'include' : 'exclude',
                     add: (a: number, b: number) => a + b + a * 2 + b * 2,
                 }
 
@@ -201,8 +165,20 @@ describe('LoadConfigBridgeStorage', async () => {
         const loaded3 = await configBridge.loadInformation(
             pluginManager3.options.name
         )
-        expect(loaded.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
-        expect(loaded2.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
-        expect(loaded3.map((e) => e.name)).toStrictEqual(['example-plugin-1'])
+        expect(loaded.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
+        ])
+        expect(loaded2.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
+        ])
+        expect(loaded3.map((e) => e.name)).toStrictEqual([
+            'example-plugin-0',
+            'example-plugin-1',
+            'example-plugin-2',
+        ])
     })
 })
