@@ -173,22 +173,24 @@ export class LoadConfigBridgeStorage {
             pluginManager: PluginManager<PluginShape, PluginRunner>,
             pipes: Array<PluginShape>
         ) => {
-            for (const pipe of pipes) {
+            for (const codeSidePlugin of pipes) {
                 const shouldRegisterPlugin =
-                    pluginManager.$config.hasConfig(pipe.name) === false
+                    pluginManager.$config.hasConfig(codeSidePlugin.name) ===
+                    false
 
                 if (shouldRegisterPlugin) {
-                    const mergedDynamicConfig = pipe.getMergedDynamicConfig(
-                        pipe.dynamicConfig
-                    )
-                    await pluginManager.$config.addConfig(pipe.name, {
-                        staticConfig: pipe.getMergedStaticConfig(
-                            pipe.staticConfig
+                    const codeDynamicConfig =
+                        codeSidePlugin.getMergedDynamicConfig(
+                            codeSidePlugin.dynamicConfig
+                        )
+                    await pluginManager.$config.addConfig(codeSidePlugin.name, {
+                        staticConfig: codeSidePlugin.getMergedStaticConfig(
+                            codeSidePlugin.staticConfig
                         ),
-                        dynamicConfig: mergedDynamicConfig,
+                        dynamicConfig: codeDynamicConfig,
                     })
                     await pluginManager.$config.updateSinglePluginLoadStatus(
-                        pipe.name,
+                        codeSidePlugin.name,
                         'include'
                     )
                 }
@@ -209,7 +211,7 @@ export class LoadConfigBridgeStorage {
         const extractLoadInformation = (
             pluginManager: PluginManager<PluginShape, PluginRunner>
         ): PluginLoadInformation => {
-            const loadingTargets = Object.entries(
+            const dbLoadingTargetPlugins = Object.entries(
                 pluginManager.$config.storageRecord
             ).filter(([, config]) => {
                 // $$load_status$$ is already recorded. so dynamicConfig is not null at this time
@@ -225,10 +227,13 @@ export class LoadConfigBridgeStorage {
                 return false
             })
 
-            const loadInformation = loadingTargets.map(([key, value]) => ({
-                name: key,
-                dynamicConfig: value.dynamicConfig!,
-            }))
+            const loadInformation = dbLoadingTargetPlugins.map(
+                ([key, value]) => ({
+                    name: key,
+                    dynamicConfig: value.dynamicConfig!,
+                })
+            )
+
             return loadInformation
         }
 
@@ -258,7 +263,7 @@ export class LoadConfigBridgeStorage {
         pluginPipes,
     }: {
         name: string
-        pluginPipes: Array<PluginShape>
+        pluginPipes: Array<PluginShape> // Code db part
     }) {
         const saveConfigs = async (
             pluginManager: PluginManager<PluginShape, PluginRunner>,
@@ -273,21 +278,21 @@ export class LoadConfigBridgeStorage {
                 Object.keys(pluginManager.$config.storageRecord)
             )
 
-            /* 2) upsert */
+            /* 2.1) upsert CODE SIDE static config */
             // For every plugin defined in the inline script (pipes array),
             // ensure it exists in the DB and its configuration is correctly merged.
-            for (const pipe of pipes) {
-                const { name, staticConfig } = pipe // `pipe.dynamicConfig` is the default from the plugin's code
+            for (const codeSidePlugin of pipes) {
+                const { name, staticConfig } = codeSidePlugin // `pipe.dynamicConfig` is the default from the plugin's code
 
                 // 1. Get the current dynamicConfig from the database.
                 // It might be undefined, null, or an object.
-                const updatedDbDynamicConfig =
+                const retrievedDynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig
 
-                if (updatedDbDynamicConfig) {
+                if (retrievedDynamicConfig) {
                     await pluginManager.$config.updateConfig(name, {
                         staticConfig: staticConfig, // Use the static config from the pipe
-                        dynamicConfig: updatedDbDynamicConfig, // Pass the robustly merged dynamicConfig
+                        dynamicConfig: retrievedDynamicConfig, // Keep the existing dynamic config
                     })
                 }
             }
@@ -295,23 +300,39 @@ export class LoadConfigBridgeStorage {
             /* 3) prune */
             // Identify and remove plugins that are no longer in `pipes`
             // but were originally in the DB and marked for inclusion.
-            const registered = new Set(pipes.map((p) => p.name))
+            const codeSideRegisteredPlugins = new Set(pipes.map((p) => p.name))
 
             // Filter from the `initialDbNames` snapshot to avoid deleting newly added pipes.
-            const toRemove = Array.from(initialDbNames).filter((name) => {
-                // If the plugin is still in the current `pipes` list, don't remove it.
-                if (registered.has(name)) return false
-
-                // Get the current row from `storageRecord` (which is updated by upsert step)
-                const row = pluginManager.$config.storageRecord[name]
-
-                // Only remove if it was explicitly marked as 'include'
-                return row?.dynamicConfig?.['$$load_status$$'] === 'include'
-            })
+            const toRemove = Array.from(initialDbNames).filter(
+                (name) => codeSideRegisteredPlugins.has(name) === false
+            )
 
             for (const rm of toRemove) {
                 await pluginManager.$config.remove(rm)
             }
+
+            /* 4) reorder */
+            // Reorder the plugins in the DB to match the order in `pipes`.
+            // This is optional but can help maintain consistency.
+            const orderedPlugins = pipes.map((p) => p.name)
+
+            // Reorder the plugins in the DB to match the order in `pipes`
+            const orderedConfigs = orderedPlugins
+                .map((name) => {
+                    const config = pluginManager.$config.get(name)
+                    return {
+                        name,
+                        config,
+                    }
+                })
+                .filter(({ config }) => config !== undefined)
+
+            // Update the storageRecord with the ordered configs
+            await pluginManager.$config.updateStorage(
+                Object.fromEntries(
+                    orderedConfigs.map(({ name, config }) => [name, config!])
+                )
+            )
         }
 
         await saveConfigs(this.getManager(name), pluginPipes)
@@ -350,13 +371,7 @@ export class LoadConfigBridgeStorage {
         if (!this._initialized) {
             await this.load()
         }
-        const { pluginPipes, loadInformation } =
-            await this.loadPlugins(managerName)
-
-        await this.saveUpdatedPluginConfigs({
-            name: managerName,
-            pluginPipes,
-        })
+        const { loadInformation } = await this.loadPlugins(managerName)
 
         return loadInformation
     }
