@@ -1,5 +1,14 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.16
+
+### Patch Changes
+
+- Enhance core `helpers/io` package for managing file-system efficiently. Updated deps.
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.5.2
+    - @obsidian_blogger/plugin_api@0.4.2
+
 ## 0.4.15
 
 ### Patch Changes
