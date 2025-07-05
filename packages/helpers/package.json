@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/helpers",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "type": "module",
     "description": "Helper class for blogger",
     "private": false,

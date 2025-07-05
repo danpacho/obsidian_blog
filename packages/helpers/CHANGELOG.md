@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.5.3
+
+### Patch Changes
+
+- Fix syncing issue at dynamicConfig
+
 ## 0.5.2
 
 ### Patch Changes
