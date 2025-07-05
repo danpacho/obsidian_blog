@@ -244,6 +244,28 @@ export abstract class StorageInterface<Schema> {
     }
 
     /**
+     * Updates the storage with a new storage object.
+     * @param newStorage - A new storage object to update the current storage.
+     */
+    public async updateStorage(
+        newStorage: Record<string, Schema>
+    ): Promise<void> {
+        this._storage = new Map<string, Schema>(Object.entries(newStorage))
+        await this.save()
+    }
+
+    /**
+     * Updates the storage with a new storage represented as a Map.
+     * @param newStorage - A new storage represented as a Map to update the current storage.
+     */
+    public async updateStorageFromMap(
+        newStorage: Map<string, Schema>
+    ): Promise<void> {
+        this._storage = new Map<string, Schema>(newStorage)
+        await this.save()
+    }
+
+    /**
      * Loads the data from the storage file.
      *
      * This method is called during the initialization process if the storage file already exists.
