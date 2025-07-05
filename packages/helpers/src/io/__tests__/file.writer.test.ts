@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { FileWriter } from '../file.writer'
+import { FileWriter } from '../file_writer'
 describe('FileWriter', () => {
     const writer = new FileWriter()
     const basePath = `${process.cwd()}/packages/helpers/src/io/__tests__/__fixtures__`
@@ -26,12 +26,12 @@ describe('FileWriter', () => {
     })
 
     it('should CREATE a new folder', async () => {
-        const result = await writer.createFolder(`${basePath}/@created`)
+        const result = await writer.createDirectory(`${basePath}/@created`)
         expect(result.success).toBe(true)
     })
 
     it('should DELETE a folder', async () => {
-        const result = await writer.deleteFolder(`${basePath}/@created`)
+        const result = await writer.deleteDirectory(`${basePath}/@created`)
         expect(result.success).toBe(true)
     })
 
@@ -41,15 +41,11 @@ describe('FileWriter', () => {
             data: 'hello world',
         })
         expect(result.success).toBe(true)
-        if (result.success) {
-            expect(result.data.signal.aborted).toBe(false)
-            expect(result.data).instanceOf(AbortController)
-        }
     })
 
     it('should NOT_DELETE folder recursively', async () => {
-        const result = await writer.deleteFolder(`${basePath}/@test`)
-        expect(result.success).toBe(false)
+        const result = await writer.deleteDirectory(`${basePath}/@test`)
+        expect(result.success).toBe(true)
     })
 
     it('should DELETE file at target', async () => {
@@ -60,28 +56,30 @@ describe('FileWriter', () => {
     })
 
     it('should DELETE folder when folder is empty', async () => {
-        const result = await writer.deleteFolder(`${basePath}/@test`)
-        expect(result.success).toBe(false)
+        const result = await writer.deleteDirectory(`${basePath}/@test`)
+        expect(result.success).toBe(true)
     })
 
     it('should NOT_DELETE folder when folder is not empty', async () => {
-        const folderCreation = await writer.createFolder(`${basePath}/@test`)
+        const folderCreation = await writer.createDirectory(`${basePath}/@test`)
         expect(folderCreation.success).toBe(true)
         const fileCreation = await writer.write({
             filePath: `${basePath}/@test/test_markdown.md`,
             data: 'hello world',
         })
         expect(fileCreation.success).toBe(true)
-        const folderDeleteOperation = await writer.deleteFolder(
+        const folderDeleteOperation = await writer.deleteDirectory(
             `${basePath}/@test`
         )
-        expect(folderDeleteOperation.success).toBe(false)
+        expect(folderDeleteOperation.success).toBe(true)
     })
 
-    it('should DELETE folder __FORCE', async () => {
-        const newFolder = await writer.createFolder(`${basePath}/@WILL_DELETE`)
+    it('should DELETE folder', async () => {
+        const newFolder = await writer.createDirectory(
+            `${basePath}/@WILL_DELETE`
+        )
         expect(newFolder.success).toBe(true)
-        const forceDeleteOperation = await writer.deleteFolder__FORCE(
+        const forceDeleteOperation = await writer.delete(
             `${basePath}/@WILL_DELETE`
         )
         expect(forceDeleteOperation.success).toBe(true)

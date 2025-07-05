@@ -232,7 +232,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         switch (category) {
             case 'FOLDER': {
-                const cpResult = await this.$io.cpFolder({
+                const cpResult = await this.$io.cpDirectory({
                     from: buildInfo.build_path.origin,
                     to: buildInfo.build_path.build,
                 })

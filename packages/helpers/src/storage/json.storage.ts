@@ -61,7 +61,7 @@ export class JsonStorage<Schema = any> extends StorageInterface<Schema> {
 
     public async load(): Promise<void> {
         try {
-            const fileExists = await this.$io.reader.fileExists(
+            const fileExists = await this.$io.reader.checkExists(
                 this.options.root
             )
             if (!fileExists) {

@@ -105,7 +105,7 @@ const createBuildSystem = (
     return system
 }
 
-const setupPluginConfigStorage = (distFolder: string) => {
+const _setupPluginConfigStorage = (distFolder: string) => {
     const walkTreeConfigStorage = new PluginConfigStorage({
         name: 'config_storage',
         root: `${distFolder}/bridge/.store/build/build_system__walk_tree.json`,
@@ -183,7 +183,7 @@ const pipe = async ({
     const distFolder = `${PREFIX}/dist/${pluginName}`
 
     // Clean up the dist folder
-    await io.writer.deleteFolder__FORCE(distFolder)
+    await io.writer.deleteDirectory(distFolder)
 
     const system = createBuildSystem(plugin, distFolder)
 
@@ -211,7 +211,7 @@ const pipe = async ({
     ) => {
         const extracted: Array<string> = []
 
-        const contents = await io.reader.readDir(folder)
+        const contents = await io.reader.readDirectory(folder)
 
         if (!contents.success) return extracted
 

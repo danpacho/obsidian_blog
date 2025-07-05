@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { FilePathFinder, FileReader } from '../file.reader'
+import { FilePathFinder, FileReader } from '../file_reader'
 
 describe('FilePathFinder', () => {
     const filePathMatcher = new FilePathFinder()
@@ -17,9 +17,8 @@ describe('FilePathFinder', () => {
 })
 
 describe('FileReader', () => {
-    const reader = new FileReader()
     const finder = new FilePathFinder()
-
+    const reader = new FileReader()
     const basePath = `${process.cwd()}/packages/helpers/src/io/__fixtures__`
 
     it('should extract FILE extension', () => {
@@ -45,13 +44,14 @@ describe('FileReader', () => {
     })
 
     it('should READ directory folder names', async () => {
-        const folderNames = await reader.readDir(basePath)
+        const folderNames = await reader.readDirectory(basePath)
         if (folderNames.success) {
             expect(folderNames.data).toMatchSnapshot()
         }
 
-        const allFolderNames = await reader.readDir(basePath, undefined, {
+        const allFolderNames = await reader.readDirectory(basePath, undefined, {
             recursive: true,
+            encoding: 'utf-8',
         })
         if (allFolderNames.success) {
             expect(allFolderNames.data).toMatchSnapshot()

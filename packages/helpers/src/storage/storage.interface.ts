@@ -81,7 +81,7 @@ export abstract class StorageInterface<Schema> {
     public async init(initTemplateData: string = '{}'): Promise<void> {
         if (this._initialized) return
 
-        const rootExists = await this.$io.reader.fileExists(this.options.root)
+        const rootExists = await this.$io.reader.checkExists(this.options.root)
         if (rootExists) {
             await this.load()
         } else {
@@ -141,7 +141,7 @@ export abstract class StorageInterface<Schema> {
 
         if (!keepPrevDB) {
             const previousRootExists =
-                await this.$io.reader.fileExists(previousRoot)
+                await this.$io.reader.checkExists(previousRoot)
 
             if (previousRootExists) {
                 const deletionResult =

@@ -1,3 +1,3 @@
-export * from './io.manager'
-export * from './file.reader'
-export * from './file.writer'
+export * from './io'
+export * from './file_reader'
+export * from './file_writer'

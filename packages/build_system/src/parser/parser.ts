@@ -131,7 +131,7 @@ export class FileTreeParser {
         root: string = this._ast?.absolutePath ?? '',
         parent?: FolderNode
     ): Promise<FolderNode | undefined> {
-        const folderList = await this.$io.reader.readDir(root)
+        const folderList = await this.$io.reader.readDirectory(root)
         const parentRoot = parent ?? this._ast
         const parentDepth = parentRoot?.nodeDepth ?? 0
         if (!folderList.success) {

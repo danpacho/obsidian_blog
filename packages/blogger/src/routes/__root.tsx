@@ -8,9 +8,8 @@ export const Route = createRootRoute({
 
 const nav = tw.style({
     backgroundColor: 'bg-white',
-    paddingX: 'px-4',
-    paddingY: 'py-2',
-    borderBottomWidth: 'border-b',
+    padding: ['px-4', 'py-2'],
+    borderWidth: 'border-b',
     borderColor: 'border-gray-100',
     display: 'flex',
     flexDirection: 'flex-row',
