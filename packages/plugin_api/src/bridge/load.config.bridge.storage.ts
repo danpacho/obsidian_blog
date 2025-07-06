@@ -73,13 +73,29 @@ export class LoadConfigBridgeStorage {
         this.bridgeStorePrefix = `${options.bridgeRoot}/${options.storePrefix}`
     }
 
-    private async updateConfigStoreRoot() {
-        const managers = Array.from(this.$managerMap.values())
-        for (const manager of managers) {
-            await manager.$config.updateRoot(
-                `${this.bridgeStorePrefix}/${manager.options.name}.json`
+    private async loadConfig(): Promise<void> {
+        try {
+            await Promise.all(
+                Array.from(this.$managerMap.values()).map((manager) =>
+                    manager.$config.load()
+                )
             )
+        } catch (e) {
+            LoadConfigBridgeStorage.$logger.error(
+                'Failed to load plugin configurations'
+            )
+            LoadConfigBridgeStorage.$logger.error(e)
         }
+    }
+
+    private async updateConfigStoreRoot() {
+        await Promise.all(
+            Array.from(this.$managerMap.values()).map((manager) =>
+                manager.$config.updateRoot(
+                    `${this.bridgeStorePrefix}/${manager.options.name}.json`
+                )
+            )
+        )
     }
 
     /**
@@ -158,16 +174,8 @@ export class LoadConfigBridgeStorage {
      * This method ensures all plugins from the inline script are known to the plugin manager's loader.
      * It loads existing configurations but defers the full save/merge logic to `saveUpdatedPluginConfigs`.
      */
-    private async registerAllPlugins(name: string) {
+    private async registerAllPlugins(name: string): Promise<void> {
         const manager = this.getManager(name)
-        try {
-            await manager.$config.load() // Load existing DB state
-        } catch (e) {
-            LoadConfigBridgeStorage.$logger.error(
-                'Failed to load plugin configurations'
-            )
-            LoadConfigBridgeStorage.$logger.error(JSON.stringify(e, null, 4))
-        }
 
         const registerPlugins = async (
             pluginManager: PluginManager<PluginShape, PluginRunner>,
@@ -179,15 +187,13 @@ export class LoadConfigBridgeStorage {
                     false
 
                 if (shouldRegisterPlugin) {
-                    const codeDynamicConfig =
-                        codeSidePlugin.getMergedDynamicConfig(
-                            codeSidePlugin.dynamicConfig
-                        )
                     await pluginManager.$config.addConfig(codeSidePlugin.name, {
                         staticConfig: codeSidePlugin.getMergedStaticConfig(
                             codeSidePlugin.staticConfig
                         ),
-                        dynamicConfig: codeDynamicConfig,
+                        dynamicConfig: codeSidePlugin.getMergedDynamicConfig(
+                            codeSidePlugin.dynamicConfig
+                        ), // <--- !ERROR seems problamatic?
                     })
                     await pluginManager.$config.updateSinglePluginLoadStatus(
                         codeSidePlugin.name,
@@ -286,13 +292,13 @@ export class LoadConfigBridgeStorage {
 
                 // 1. Get the current dynamicConfig from the database.
                 // It might be undefined, null, or an object.
-                const retrievedDynamicConfig =
+                const dbRetrievedDynamicConfig =
                     pluginManager.$config.get(name)?.dynamicConfig
 
-                if (retrievedDynamicConfig) {
+                if (dbRetrievedDynamicConfig) {
                     await pluginManager.$config.updateConfig(name, {
                         staticConfig: staticConfig, // Use the static config from the pipe
-                        dynamicConfig: retrievedDynamicConfig, // Keep the existing dynamic config
+                        dynamicConfig: dbRetrievedDynamicConfig, // Keep the existing dynamic config
                     })
                 }
             }
@@ -340,10 +346,13 @@ export class LoadConfigBridgeStorage {
 
     private async init(): Promise<void> {
         await this.updateConfigStoreRoot()
+        await this.loadConfig()
 
         for (const manager of this.$managerMap.values()) {
             await this.registerAllPlugins(manager.options.name)
         }
+
+        this._initialized = true
     }
     /**
      * Initializes the bridge store.
@@ -370,7 +379,10 @@ export class LoadConfigBridgeStorage {
     public async loadInformation(managerName: string) {
         if (!this._initialized) {
             await this.load()
+        } else {
+            await this.loadConfig()
         }
+
         const { loadInformation } = await this.loadPlugins(managerName)
 
         return loadInformation
