@@ -1,5 +1,19 @@
 # @obsidian_blogger/plugin
 
+## 0.4.5
+
+### Patch Changes
+
+- Fix syncing issue for dynamic config
+
+## 0.4.4
+
+### Patch Changes
+
+- Fix syncing issue at dynamicConfig
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.5.3
+
 ## 0.4.3
 
 ### Patch Changes
