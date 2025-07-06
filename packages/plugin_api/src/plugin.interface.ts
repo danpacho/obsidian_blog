@@ -375,7 +375,7 @@ export abstract class PluginInterface<
         if (!this?.baseDynamicConfigSchema) return staticConfig
 
         const res = this.baseDynamicConfigSchema?.()
-        const mergedConfig = PluginInterface.deepMergeRecord(
+        const mergedConfig = PluginInterface.mergeRecord(
             {
                 dynamicConfigSchema: res,
             },
@@ -440,7 +440,7 @@ export abstract class PluginInterface<
         return parseDynamicConfig(this.staticConfig.dynamicConfigSchema)
     }
 
-    private static isObject(value: unknown): value is Record<string, unknown> {
+    private static isRecord(value: unknown): value is Record<string, unknown> {
         return (
             value !== null && typeof value === 'object' && !Array.isArray(value)
         )
@@ -452,7 +452,7 @@ export abstract class PluginInterface<
      * @param after override record
      * @returns deeply merged record, based on `base` <-- `after`
      */
-    public static deepMergeRecord(
+    private static mergeRecord(
         base: Record<string, unknown>,
         after: Record<string, unknown>
     ): Record<string, unknown> {
@@ -464,10 +464,10 @@ export abstract class PluginInterface<
                 const afterValue = after[key]
 
                 if (
-                    PluginInterface.isObject(baseValue) &&
-                    PluginInterface.isObject(afterValue)
+                    PluginInterface.isRecord(baseValue) &&
+                    PluginInterface.isRecord(afterValue)
                 ) {
-                    result[key] = PluginInterface.deepMergeRecord(
+                    result[key] = PluginInterface.mergeRecord(
                         baseValue,
                         afterValue
                     )
@@ -488,7 +488,7 @@ export abstract class PluginInterface<
         if (this.defaultDynamicConfig === null) return dynamicConfig
         if (!dynamicConfig) return this.defaultDynamicConfig as DynamicConfig
 
-        const mergedArgs = PluginInterface.deepMergeRecord(
+        const mergedArgs = PluginInterface.mergeRecord(
             this.defaultDynamicConfig,
             dynamicConfig
         ) as DynamicConfig
