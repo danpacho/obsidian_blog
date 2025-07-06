@@ -84,10 +84,7 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
     ): Promise<void> {
         if (this.hasConfig(pluginName)) return
 
-        await this.set(pluginName, {
-            staticConfig: config.staticConfig,
-            dynamicConfig: config.dynamicConfig ?? null,
-        })
+        await this.set(pluginName, config)
         return
     }
 
@@ -100,19 +97,16 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
         pluginName: string,
         config: PluginConfig
     ): Promise<void> {
-        const prevConfig = this.get(pluginName)
+        const prevStorageConfig = this.get(pluginName)
 
-        if (!prevConfig) {
+        if (!prevStorageConfig) {
             await this.addConfig(pluginName, config)
             return
         }
 
-        const mergedConfig = this.mergeRecord(prevConfig, {
-            staticConfig: prevConfig.staticConfig,
-            dynamicConfig: config.dynamicConfig ?? null,
-        })
+        const updatedConfig = this.mergeRecord(prevStorageConfig, config)
 
-        await this.set(pluginName, mergedConfig)
+        await this.set(pluginName, updatedConfig)
     }
 
     /**
@@ -130,12 +124,12 @@ export class PluginConfigStorage extends JsonStorage<PluginConfig> {
         // It is not possible, staticConfig is always defined
         if (!prevConfig) return
 
-        const mergedConfig = this.mergeRecord(prevConfig, {
+        const newConfig = this.mergeRecord(prevConfig, {
             staticConfig: prevConfig.staticConfig,
-            dynamicConfig,
+            dynamicConfig: dynamicConfig,
         })
 
-        await this.set(pluginName, mergedConfig)
+        await this.set(pluginName, newConfig)
     }
 
     /**
