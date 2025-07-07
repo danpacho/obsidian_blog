@@ -64,7 +64,6 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
         }
         const ast = await parser.parse()
         if (!ast) {
-            this.$logger.updateName('ASTParser')
             this.$logger.error('Failed to parse file AST')
             return undefined
         }
@@ -78,7 +77,6 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
         this.$jobManager.registerJob({
             name: 'build:internal',
             prepare: async () => {
-                this.$logger.updateName(this.name)
                 this.procedure = this.procedure.bind(this)
             },
             execute: async () => {

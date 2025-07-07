@@ -84,11 +84,6 @@ export abstract class PublishPlugin<
         return this.getRunTimeDependency('io')
     }
 
-    override async prepare(): Promise<void> {
-        this.$logger.updateName(this.staticConfig.name)
-        return
-    }
-
     protected invokeError(
         errorStack: PublishPluginResponse['error'],
         invoker: {

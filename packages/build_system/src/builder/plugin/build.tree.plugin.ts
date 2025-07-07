@@ -145,7 +145,6 @@ export abstract class BuildTreePlugin<
         this.$jobManager.registerJob({
             name: 'build:tree',
             prepare: async () => {
-                this.$logger.updateName(this.name)
                 this.walk = this.walk.bind(this)
             },
             execute: async () => {

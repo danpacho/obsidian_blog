@@ -143,7 +143,6 @@ export abstract class WalkTreePlugin<
         this.$jobManager.registerJob({
             name: 'walk:tree',
             prepare: async () => {
-                this.$logger.updateName(this.name)
                 this.walk = this.walk.bind(this)
             },
             execute: async () => {

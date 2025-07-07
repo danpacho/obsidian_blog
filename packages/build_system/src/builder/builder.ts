@@ -167,7 +167,6 @@ export class Builder {
         }
         const ast = await this.$parser.parse()
         if (!ast) {
-            this.options.logger.updateName('ASTParser')
             this.$logger.error('Failed to parse file AST')
             return undefined
         }
@@ -232,7 +231,7 @@ export class Builder {
     }
 
     private async logBuildResult(): Promise<void> {
-        this.options.logger.updateName('BuildResultLogger')
+        this.options.logger.updateName('build-report')
 
         const buildReport = this.$store.getStoreList('current')
         const ast = await this.getAST()

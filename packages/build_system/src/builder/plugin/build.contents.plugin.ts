@@ -100,8 +100,6 @@ export abstract class BuildContentsPlugin<
         this.$jobManager.registerJob({
             name: 'build:contents',
             prepare: async () => {
-                this.$logger.updateName(this.name)
-
                 const buildStore = this.getRunTimeDependency('buildStore')
 
                 const cachedStore = cachePipe({
