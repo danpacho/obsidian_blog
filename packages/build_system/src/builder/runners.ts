@@ -25,17 +25,21 @@ export class BuildTreePluginRunner extends Runner.PluginRunner<
             BuildTreePluginStaticConfig,
             BuildTreePluginDynamicConfig
         >[],
-        deps: BuildTreePluginDependencies
+        dependencies: BuildTreePluginDependencies
     ) {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(deps)
+                    dependencies.logger.updateName(plugin.name)
+                    plugin.injectDependencies(dependencies)
                     await plugin.prepare?.()
                 },
                 execute: async (controller) => {
-                    return await plugin.execute(controller, deps.cachePipeline)
+                    return await plugin.execute(
+                        controller,
+                        dependencies.cachePipeline
+                    )
                 },
                 cleanup: async (job) => {
                     for (const res of job.response ?? []) {
@@ -60,19 +64,20 @@ export class WalkTreePluginRunner extends Runner.PluginRunner<
             WalkTreePluginStaticConfig,
             WalkTreePluginDynamicConfig
         >[],
-        deps: WalkTreePluginDependencies
+        dependencies: WalkTreePluginDependencies
     ): Promise<this['history']> {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(deps)
+                    dependencies.logger.updateName(plugin.name)
+                    plugin.injectDependencies(dependencies)
                     await plugin.prepare?.()
                 },
                 execute: async (controller) => {
                     const res = await plugin.execute(
                         controller,
-                        deps.cachePipeline
+                        dependencies.cachePipeline
                     )
                     return res
                 },
@@ -138,19 +143,20 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
             BuildContentsPluginStaticConfig,
             BuildPluginDynamicConfig
         >[],
-        deps: BuildContentsPluginDependencies
+        dependencies: BuildContentsPluginDependencies
     ) {
         for (const plugin of pluginPipes) {
             this.$pluginRunner.registerJob({
                 name: plugin.name,
                 prepare: async () => {
-                    plugin.injectDependencies(deps)
+                    dependencies.logger.updateName(plugin.name)
+                    plugin.injectDependencies(dependencies)
                     await plugin.prepare?.()
                 },
                 execute: async (controller) => {
                     const buildedContents = await plugin.execute(
                         controller,
-                        deps.cachePipeline
+                        dependencies.cachePipeline
                     )
 
                     const buildContentsInformationList = buildedContents
@@ -158,7 +164,10 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
                         .filter((e) => e !== undefined)
 
                     if (buildContentsInformationList.length !== 0) {
-                        await this.write(buildContentsInformationList, deps)
+                        await this.write(
+                            buildContentsInformationList,
+                            dependencies
+                        )
                     }
 
                     return buildedContents
