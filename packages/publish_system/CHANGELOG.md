@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.4.20
+
+### Patch Changes
+
+- Fix `prepare` process logging error related to `updateName`
+
 ## 0.4.19
 
 ### Patch Changes

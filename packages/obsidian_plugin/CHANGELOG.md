@@ -1,5 +1,11 @@
 # @obsidian_blogger/plugin
 
+## 0.3.23
+
+### Patch Changes
+
+- Fix `prepare` process logging error related to `updateName`
+
 ## 0.3.22
 
 ### Patch Changes

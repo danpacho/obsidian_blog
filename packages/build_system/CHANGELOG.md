@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.5.12
+
+### Patch Changes
+
+- Fix `prepare` process logging error related to `updateName`
+
 ## 0.5.11
 
 ### Patch Changes
