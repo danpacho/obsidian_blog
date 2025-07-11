@@ -11,6 +11,7 @@ import {
 import { dirname } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 
+import type { PathResolver } from './path_resolver'
 import type { PromiseCallbacks, Promisify } from '../promisify'
 
 export type WriteStreamOption = Exclude<
@@ -22,12 +23,14 @@ export type WriteStreamOption = Exclude<
  * A utility class for writing, modifying, and deleting files and directories.
  */
 export class FileWriter {
+    constructor(private readonly pathResolver: PathResolver) {}
     /**
      * Checks if a file or directory exists.
      */
     public async exists(target: string): Promise<boolean> {
+        const normalizedPath = this.pathResolver.normalize(target)
         try {
-            await access(target, constants.F_OK)
+            await access(normalizedPath, constants.F_OK)
             return true
         } catch {
             return false
@@ -46,9 +49,10 @@ export class FileWriter {
         data: Uint8Array | string
         handler?: PromiseCallbacks<void, Error>
     }): Promisify<void> {
+        const normalizedPath = this.pathResolver.normalize(filePath)
         const controller = new AbortController()
         try {
-            const dir = dirname(filePath)
+            const dir = dirname(normalizedPath)
             await mkdir(dir, { recursive: true })
 
             // Correctly handle options: only set encoding for strings.
@@ -57,7 +61,7 @@ export class FileWriter {
                     ? { encoding: 'utf-8' as const, signal: controller.signal }
                     : { signal: controller.signal }
 
-            await writeFile(filePath, data, options)
+            await writeFile(normalizedPath, data, options)
 
             handler?.onSuccess?.()
             return { success: true, data: undefined }
@@ -81,15 +85,16 @@ export class FileWriter {
         data: Uint8Array | string
         handler?: PromiseCallbacks<void, Error>
     }): Promisify<void> {
+        const normalizedPath = this.pathResolver.normalize(filePath)
         try {
-            const dir = dirname(filePath)
+            const dir = dirname(normalizedPath)
             await mkdir(dir, { recursive: true })
 
             const options =
                 typeof data === 'string'
                     ? { encoding: 'utf-8' as const }
                     : undefined
-            await appendFile(filePath, data, options)
+            await appendFile(normalizedPath, data, options)
 
             handler?.onSuccess?.()
             return { success: true, data: undefined }
@@ -113,6 +118,7 @@ export class FileWriter {
         handler?: PromiseCallbacks<void, Error>
         options?: WriteStreamOption
     }): Promisify<void> {
+        const normalizedPath = this.pathResolver.normalize(filePath)
         // Use a single controller for the entire pipeline.
         const controller = new AbortController()
 
@@ -121,10 +127,10 @@ export class FileWriter {
 
         try {
             // Ensure directory exists with one efficient call.
-            const dir = dirname(filePath)
+            const dir = dirname(normalizedPath)
             await mkdir(dir, { recursive: true })
 
-            writeStream = createWriteStream(filePath, {
+            writeStream = createWriteStream(normalizedPath, {
                 ...options,
                 encoding: undefined,
             })
@@ -150,11 +156,12 @@ export class FileWriter {
         directoryPath: string,
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        const normalizedPath = this.pathResolver.normalize(directoryPath)
         try {
             // Simplified: mkdir with recursive:true is idempotent and handles all cases.
-            await mkdir(directoryPath, { recursive: true })
-            handler?.onSuccess?.(directoryPath)
-            return { success: true, data: directoryPath }
+            await mkdir(normalizedPath, { recursive: true })
+            handler?.onSuccess?.(normalizedPath)
+            return { success: true, data: normalizedPath }
         } catch (error) {
             if (error instanceof Error) handler?.onError?.(error)
             return { success: false, error }
@@ -168,11 +175,12 @@ export class FileWriter {
         filePath: string,
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        const normalizedPath = this.pathResolver.normalize(filePath)
         try {
             // Use rm for consistency; it's the modern API for both files and dirs.
-            await rm(filePath, { force: true }) // force:true ignores "not found" errors.
-            handler?.onSuccess?.(filePath)
-            return { success: true, data: filePath }
+            await rm(normalizedPath, { force: true }) // force:true ignores "not found" errors.
+            handler?.onSuccess?.(normalizedPath)
+            return { success: true, data: normalizedPath }
         } catch (error) {
             if (error instanceof Error) handler?.onError?.(error)
             return { success: false, error }
@@ -186,10 +194,11 @@ export class FileWriter {
         directoryPath: string,
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        const normalizedPath = this.pathResolver.normalize(directoryPath)
         try {
-            await rm(directoryPath, { recursive: true, force: true })
-            handler?.onSuccess?.(directoryPath)
-            return { success: true, data: directoryPath }
+            await rm(normalizedPath, { recursive: true, force: true })
+            handler?.onSuccess?.(normalizedPath)
+            return { success: true, data: normalizedPath }
         } catch (error) {
             if (error instanceof Error) handler?.onError?.(error)
             return { success: false, error }
@@ -203,19 +212,23 @@ export class FileWriter {
         pathname: string,
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        const normalizedPath = this.pathResolver.normalize(pathname)
         try {
-            const stats = await stat(pathname).catch(() => null)
+            const stats = await stat(normalizedPath).catch(() => null)
 
             if (!stats) {
                 // If the path doesn't exist, consider it a success (idempotent delete).
-                handler?.onSuccess?.(pathname)
-                return { success: true, data: pathname }
+                handler?.onSuccess?.(normalizedPath)
+                return { success: true, data: normalizedPath }
             }
 
-            await rm(pathname, { recursive: stats.isDirectory(), force: true })
+            await rm(normalizedPath, {
+                recursive: stats.isDirectory(),
+                force: true,
+            })
 
-            handler?.onSuccess?.(pathname)
-            return { success: true, data: pathname }
+            handler?.onSuccess?.(normalizedPath)
+            return { success: true, data: normalizedPath }
         } catch (error) {
             if (error instanceof Error) handler?.onError?.(error)
             return { success: false, error }

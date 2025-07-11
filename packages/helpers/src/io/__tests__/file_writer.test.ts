@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { FileWriter } from '../file_writer'
+import { PathResolver } from '../path_resolver'
 describe('FileWriter', () => {
-    const writer = new FileWriter()
+    const resolver = new PathResolver()
+    const writer = new FileWriter(resolver)
     const basePath = `${process.cwd()}/packages/helpers/src/io/__tests__/__fixtures__`
     const writingTargetExtension = ['md', 'txt', 'html', 'png', 'jpg'] as const
 

@@ -1,8 +1,9 @@
 import { rename } from 'node:fs/promises'
-import path from 'node:path'
 
-import { FilePathFinder, FileReader } from './file_reader'
+import { FilePathFinder } from './file_path_finder'
+import { FileReader } from './file_reader'
 import { FileWriter } from './file_writer'
+import { PathResolver } from './path_resolver'
 
 import type { ReadStreamOptions } from './file_reader'
 import type { WriteStreamOption } from './file_writer'
@@ -19,10 +20,19 @@ import type { PromiseCallbacks, Promisify } from '../promisify'
  * result object indicating success or failure.
  */
 export class IO {
-    constructor(
-        public readonly writer: FileWriter = new FileWriter(),
-        public readonly reader: FileReader = new FileReader(),
-        public readonly finder: FilePathFinder = new FilePathFinder()
+    /**
+     * @param pathResolver Path resolver for normalizing and resolving paths.
+     * @param writer File writer for writing and deleting files.
+     * @param reader File reader for reading files and directories.
+     * @param finder File path finder for locating files in the file system.
+     */
+    public constructor(
+        public readonly pathResolver: PathResolver = new PathResolver(),
+        public readonly writer: FileWriter = new FileWriter(pathResolver),
+        public readonly reader: FileReader = new FileReader(pathResolver),
+        public readonly finder: FilePathFinder = new FilePathFinder(
+            pathResolver
+        )
     ) {}
 
     /**
@@ -63,18 +73,20 @@ export class IO {
         }: { from: string; to: string; type?: 'media' | 'text' },
         handler?: PromiseCallbacks<Uint8Array | string, Error>
     ): Promisify<Uint8Array | string> {
+        const normalizedFrom = this.pathResolver.normalize(from)
+        const normalizedTo = this.pathResolver.normalize(to)
         try {
             const readResult =
                 type === 'text'
-                    ? await this.reader.readFile(from)
-                    : await this.reader.readMedia(from)
+                    ? await this.reader.readFile(normalizedFrom)
+                    : await this.reader.readMedia(normalizedFrom)
 
             if (!readResult.success) {
                 throw readResult.error
             }
 
             const writeResult = await this.writer.write({
-                filePath: to,
+                filePath: normalizedTo,
                 data: readResult.data,
             })
 
@@ -115,27 +127,30 @@ export class IO {
         },
         handler?: PromiseCallbacks<void, Error>
     ): Promisify<void> {
+        // Normalize paths before using them.
+        const normalizedFrom = this.pathResolver.normalize(from)
+        const normalizedTo = this.pathResolver.normalize(to)
         try {
             const readStream = this.reader.createReadableStream(
                 readOptions
                     ? {
-                          filePath: from,
+                          filePath: normalizedFrom,
                           options: readOptions,
                       }
                     : {
-                          filePath: from,
+                          filePath: normalizedFrom,
                       }
             )
 
             const writeResult = await this.writer.writeStream(
                 writeOptions
                     ? {
-                          filePath: to,
+                          filePath: normalizedTo,
                           stream: readStream,
                           options: writeOptions,
                       }
                     : {
-                          filePath: to,
+                          filePath: normalizedTo,
                           stream: readStream,
                       }
             )
@@ -165,23 +180,30 @@ export class IO {
         { from, to }: { from: string; to: string },
         handler?: PromiseCallbacks<string[], Error>
     ): Promisify<string[]> {
+        // Normalize paths before using them.
+        const normalizedFrom = this.pathResolver.normalize(from)
+        const normalizedTo = this.pathResolver.normalize(to)
+        // Store the paths of copied files for the result.
         const copiedPaths: string[] = []
         try {
-            const fromAbs = path.resolve(from)
-            const toAbs = path.resolve(to)
+            const fromAbs = this.pathResolver.resolve(normalizedFrom)
+            const toAbs = this.pathResolver.resolve(normalizedTo)
 
-            if (toAbs.startsWith(fromAbs + path.sep)) {
+            if (toAbs.startsWith(fromAbs + this.pathResolver.sep)) {
                 throw new Error('Cannot copy a directory into itself.')
             }
 
-            const entries = await this.reader.readDirectory(from)
+            const entries = await this.reader.readDirectory(normalizedFrom)
             if (!entries.success) throw entries.error
 
-            await this.writer.createDirectory(to)
+            await this.writer.createDirectory(normalizedTo)
 
             const copyPromises = entries.data.map((node) => {
-                const fromPath = path.join(from, node.name)
-                const toPath = path.join(to, node.name)
+                const fromPath = this.pathResolver.join(
+                    normalizedFrom,
+                    node.name
+                )
+                const toPath = this.pathResolver.join(normalizedTo, node.name)
                 copiedPaths.push(toPath)
 
                 if (node.isDir) {
@@ -246,19 +268,25 @@ export class IO {
         { from, to }: { from: string; to: string },
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        // Normalize paths before using them.
+        const normalizedFrom = this.pathResolver.normalize(from)
+        const normalizedTo = this.pathResolver.normalize(to)
         try {
-            await rename(from, to)
-            handler?.onSuccess?.(to)
-            return { success: true, data: to }
+            await rename(normalizedFrom, normalizedTo)
+            handler?.onSuccess?.(normalizedTo)
+            return { success: true, data: normalizedTo }
         } catch {
             try {
-                const copyResult = await this.cpFileStream({ from, to })
+                const copyResult = await this.cpFileStream({
+                    from: normalizedFrom,
+                    to: normalizedTo,
+                })
                 if (!copyResult.success) throw copyResult.error
 
-                await this.writer.deleteFile(from)
+                await this.writer.deleteFile(normalizedFrom)
 
-                handler?.onSuccess?.(to)
-                return { success: true, data: to }
+                handler?.onSuccess?.(normalizedTo)
+                return { success: true, data: normalizedTo }
             } catch (fallbackError) {
                 if (fallbackError instanceof Error)
                     handler?.onError?.(fallbackError)
@@ -282,19 +310,29 @@ export class IO {
         { from, to }: { from: string; to: string },
         handler?: PromiseCallbacks<string, Error>
     ): Promisify<string> {
+        // Normalize paths before using them.
+        const normalizedFrom = this.pathResolver.normalize(from)
+        const normalizedTo = this.pathResolver.normalize(to)
         try {
-            await rename(from, to)
-            handler?.onSuccess?.(to)
-            return { success: true, data: to }
+            await rename(normalizedFrom, normalizedTo)
+            handler?.onSuccess?.(normalizedTo)
+            return { success: true, data: normalizedTo }
         } catch (error: any) {
             if (error.code === 'ENOTEMPTY' || error.code === 'EEXIST') {
                 try {
-                    const entries = await this.reader.readDirectory(from)
+                    const entries =
+                        await this.reader.readDirectory(normalizedFrom)
                     if (!entries.success) throw entries.error // Propagate read error
 
                     for (const node of entries.data) {
-                        const fromPath = path.join(from, node.name)
-                        const toPath = path.join(to, node.name)
+                        const fromPath = this.pathResolver.join(
+                            normalizedFrom,
+                            node.name
+                        )
+                        const toPath = this.pathResolver.join(
+                            normalizedTo,
+                            node.name
+                        )
 
                         // Recursively move each item from the source into the destination folder
                         const moveResult = node.isDir
@@ -317,10 +355,10 @@ export class IO {
                     }
 
                     // After successfully moving all contents, delete the now-empty source folder.
-                    await this.writer.deleteDirectory(from)
+                    await this.writer.deleteDirectory(normalizedFrom)
 
-                    handler?.onSuccess?.(to)
-                    return { success: true, data: to }
+                    handler?.onSuccess?.(normalizedTo)
+                    return { success: true, data: normalizedTo }
                 } catch (mergeError) {
                     if (mergeError instanceof Error)
                         handler?.onError?.(mergeError)
@@ -330,13 +368,16 @@ export class IO {
 
             if (error.code === 'EXDEV') {
                 try {
-                    const copyResult = await this.cpDirectory({ from, to })
+                    const copyResult = await this.cpDirectory({
+                        from: normalizedFrom,
+                        to: normalizedTo,
+                    })
                     if (!copyResult.success) throw copyResult.error
 
-                    await this.writer.deleteDirectory(from)
+                    await this.writer.deleteDirectory(normalizedFrom)
 
-                    handler?.onSuccess?.(to)
-                    return { success: true, data: to }
+                    handler?.onSuccess?.(normalizedTo)
+                    return { success: true, data: normalizedTo }
                 } catch (fallbackError) {
                     if (fallbackError instanceof Error)
                         handler?.onError?.(fallbackError)

@@ -1,10 +1,8 @@
-import { createReadStream, statSync } from 'node:fs'
+import { createReadStream } from 'node:fs'
 import { access, readFile, readdir, stat } from 'node:fs/promises'
-import path from 'node:path'
 
-import { glob, globSync } from 'glob'
-
-import type { PromiseCallbacks, Promisify, Stateful } from '../promisify'
+import type { PathResolver } from './path_resolver'
+import type { PromiseCallbacks, Promisify } from '../promisify'
 import type { ReadStream } from 'node:fs'
 
 export interface DirectoryNode {
@@ -25,6 +23,7 @@ export type ReadStreamOptions = Exclude<
  * A utility class for reading files and directories from the filesystem.
  */
 export class FileReader {
+    constructor(private readonly pathResolver: PathResolver) {}
     /**
      * Reads a file and returns its content as a Uint8Array (binary buffer).
      * This method is suitable for reading binary files like images or audio.
@@ -37,10 +36,11 @@ export class FileReader {
         handler?: PromiseCallbacks<Uint8Array, Error>
     ): Promisify<Uint8Array> {
         try {
-            const fileStat = await stat(filePath)
+            const osPath = this.pathResolver.normalize(filePath)
+            const fileStat = await stat(osPath)
 
             if (!fileStat.isFile()) {
-                const error = new Error(`Path is not a file: ${filePath}`)
+                const error = new Error(`Path is not a file: ${osPath}`)
                 handler?.onError?.(error)
                 return { success: false, error }
             }
@@ -50,7 +50,7 @@ export class FileReader {
                 return { success: true, data: new Uint8Array() }
             }
 
-            const buffer = await readFile(filePath)
+            const buffer = await readFile(osPath)
             const data = new Uint8Array(buffer)
             handler?.onSuccess?.(data)
             return { success: true, data }
@@ -71,10 +71,11 @@ export class FileReader {
         handler?: PromiseCallbacks<RawFile, Error>
     ): Promisify<RawFile> {
         try {
-            const fileStat = await stat(filePath)
+            const osPath = this.pathResolver.normalize(filePath)
+            const fileStat = await stat(osPath)
 
             if (!fileStat.isFile()) {
-                const error = new Error(`Path is not a file: ${filePath}`)
+                const error = new Error(`Path is not a file: ${osPath}`)
                 handler?.onError?.(error)
                 return { success: false, error }
             }
@@ -84,7 +85,7 @@ export class FileReader {
                 return { success: true, data: '' }
             }
 
-            const rawStr = await readFile(filePath, { encoding: 'utf-8' })
+            const rawStr = await readFile(osPath, { encoding: 'utf-8' })
             handler?.onSuccess?.(rawStr)
             return { success: true, data: rawStr }
         } catch (e) {
@@ -105,7 +106,8 @@ export class FileReader {
             validator?: (data: unknown) => data is T
         }
     ): Promisify<T> {
-        const result = await this.readFile(filePath)
+        const osPath = this.pathResolver.normalize(filePath)
+        const result = await this.readFile(osPath)
         if (!result.success) {
             if (result.error instanceof Error) handler?.onError?.(result.error)
             return result
@@ -115,7 +117,7 @@ export class FileReader {
             const data = JSON.parse(result.data) as T
             if (handler?.validator && !handler.validator(data)) {
                 const validationError = new Error(
-                    `Invalid JSON structure at ${filePath}`
+                    `Invalid JSON structure at ${osPath}`
                 )
                 handler?.onError?.(validationError)
                 return { success: false, error: validationError }
@@ -125,7 +127,7 @@ export class FileReader {
             return { success: true, data }
         } catch (e) {
             const parseError = new SyntaxError(
-                `Failed to parse JSON file at ${filePath}: ${(e as Error).message}`
+                `Failed to parse JSON file at ${osPath}: ${(e as Error).message}`
             )
             handler?.onError?.(parseError)
             return { success: false, error: parseError }
@@ -145,7 +147,8 @@ export class FileReader {
         filePath: string
         options?: ReadStreamOptions
     }): ReadStream {
-        return createReadStream(filePath, options)
+        const osPath = this.pathResolver.normalize(filePath)
+        return createReadStream(osPath, options)
     }
 
     /**
@@ -165,19 +168,20 @@ export class FileReader {
         options?: ReadStreamOptions
     }): Promisify<{ data: Uint8Array; stream: ReadStream }> {
         try {
-            const fileStat = await stat(filePath)
+            const osPath = this.pathResolver.normalize(filePath)
+            const fileStat = await stat(osPath)
             if (!fileStat.isFile()) {
-                throw new Error(`Path is not a file: ${filePath}`)
+                throw new Error(`Path is not a file: ${osPath}`)
             }
 
             const readableStream = this.createReadableStream(
                 options
                     ? {
-                          filePath,
+                          filePath: osPath,
                           options,
                       }
                     : {
-                          filePath,
+                          filePath: osPath,
                       }
             )
 
@@ -211,11 +215,10 @@ export class FileReader {
         readdirOptions?: Omit<Parameters<typeof readdir>[1], 'withFileTypes'>
     ): Promisify<DirectoryNode[]> {
         try {
-            const fileStat = await stat(directoryPath)
+            const osPath = this.pathResolver.normalize(directoryPath)
+            const fileStat = await stat(osPath)
             if (!fileStat.isDirectory()) {
-                const error = new Error(
-                    `Path is not a directory: ${directoryPath}`
-                )
+                const error = new Error(`Path is not a directory: ${osPath}`)
                 handler?.onError?.(error)
                 return { success: false, error }
             }
@@ -226,17 +229,19 @@ export class FileReader {
                 withFileTypes: true,
             } as const
 
-            const dirDirent = await readdir(directoryPath, finalOptions)
+            const dirDirent = await readdir(osPath, finalOptions)
 
             const directoryNodeList: DirectoryNode[] = dirDirent.map(
                 (dirent) => ({
                     name: dirent.name,
-                    // Using the original `directoryPath` is slightly more robust than `dirent.path`
+                    // Using the original `osPath` is slightly more robust than `dirent.path`
                     // as it doesn't depend on a newer Node.js version.
-                    path: path.join(directoryPath, dirent.name),
+                    path: this.pathResolver.normalize(
+                        this.pathResolver.join(osPath, dirent.name)
+                    ),
                     isDir: dirent.isDirectory(),
                     extension: dirent.isFile()
-                        ? FileReader.getExtension(dirent.name)
+                        ? this.pathResolver.getExtension(dirent.name)
                         : undefined,
                 })
             )
@@ -256,7 +261,8 @@ export class FileReader {
      */
     public async checkExists(path: string): Promise<boolean> {
         try {
-            await access(path)
+            const osPath = this.pathResolver.normalize(path)
+            await access(osPath)
             return true
         } catch {
             return false
@@ -269,40 +275,9 @@ export class FileReader {
      * @returns A promise that resolves to the file size.
      */
     public async getSize(path: string): Promise<number> {
-        const { size } = await stat(path)
+        const osPath = this.pathResolver.normalize(path)
+        const { size } = await stat(osPath)
         return size
-    }
-
-    /**
-     * Get the file extension from a file path string.
-     * @param filePath The file path to extract the extension from.
-     */
-    public static getExtension(filePath: string): string | undefined {
-        // No longer resolves the path against the CWD.
-        return path.extname(filePath).slice(1) || undefined
-    }
-
-    /**
-     * Get the file name with extension from a file path string.
-     * @param filePath The file path to extract the file name from.
-     */
-    public static getFileNameWithExtension(filePath: string): string {
-        // No longer resolves the path against the CWD.
-        return path.basename(filePath)
-    }
-
-    /**
-     * Get the file name without extension from a file path string.
-     * @param filePath The file path to extract the file name from.
-     */
-    public static getFileName(filePath: string): string {
-        // No longer resolves the path against the CWD.
-        const fileNameWithExtension =
-            FileReader.getFileNameWithExtension(filePath)
-        return path.basename(
-            fileNameWithExtension,
-            path.extname(fileNameWithExtension)
-        )
     }
 
     /**
@@ -316,187 +291,5 @@ export class FileReader {
             chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
         }
         return Buffer.concat(chunks)
-    }
-
-    // Other  methods remain the same but are now more reliable due to the above fixes.
-    public static POSIX_SEP = '/' as const
-
-    public static toPosix(pathname: string): string {
-        return pathname.split(path.sep).join(FileReader.POSIX_SEP)
-    }
-
-    /**
-     * Convert a file path to an **absolute** POSIX path.
-     * @param pathname The file path to convert to POSIX absolute path.
-     */
-    public static toPosixAbs(pathname: string): string {
-        return path.resolve(FileReader.toPosix(pathname))
-    }
-
-    /**
-     * Get the relative POSIX path from one path to another.
-     * @param from The starting path.
-     * @param to The target path.
-     * @returns The relative POSIX path.
-     */
-    public static getRelativePosixPath(from: string, to: string): string {
-        return path.relative(
-            FileReader.toPosixAbs(from),
-            FileReader.toPosixAbs(to)
-        )
-    }
-
-    /**
-     * Remove the file extension from a file path.
-     * @param filePath The file path to remove the extension from.
-     */
-    public static removeExtension(filePath: string): string {
-        const extension = path.extname(filePath) // ".md"
-        if (!extension) return filePath // No extension, return original path
-        return filePath.slice(0, -extension.length) // Remove the extension
-    }
-
-    /**
-     * Split a file path into its individual parts.
-     * @param filePath The file path to split into parts.
-     * @returns An array of path parts.
-     */
-    public static splitToPathParts(filePath: string): Array<string> {
-        const pathPartsPOSIX = FileReader.removeExtension(
-            FileReader.toPosix(filePath)
-        )
-        return pathPartsPOSIX.split(FileReader.POSIX_SEP)
-    }
-}
-
-/**
- * A utility class for finding file paths.
- */
-export class FilePathFinder {
-    constructor() {}
-    /**
-     * Finds files matching a name and optional extension.
-     * @param fileName The name of the file to find (without extension).
-     * @param extension The file extension.
-     * @param ignore A list of glob patterns to ignore.
-     * @returns A promise that resolves to a list of matching directory nodes.
-     */
-    public async findFile(
-        fileName: string,
-        extension?: string,
-        ignore?: string[]
-    ): Promisify<DirectoryNode[]> {
-        try {
-            // First, attempt to stat the path directly.
-            const fileStat = await stat(fileName).catch(() => null)
-            if (fileStat) {
-                return {
-                    success: true,
-                    data: [
-                        {
-                            name: FileReader.getFileNameWithExtension(fileName),
-                            path: fileName,
-                            isDir: fileStat.isDirectory(),
-                            extension: fileStat.isFile()
-                                ? FileReader.getExtension(fileName)
-                                : undefined,
-                        },
-                    ],
-                }
-            }
-
-            // If stat fails, perform a glob search.
-            const pattern = extension
-                ? `**/${fileName}.${extension}`
-                : `**/${fileName}`
-            const matches = await glob(pattern, {
-                ignore: [
-                    'node_modules/**',
-                    'dist/**',
-                    'out/**',
-                    'build/**',
-                    'coverage/**',
-                    ...(ignore ?? []),
-                ],
-                withFileTypes: true,
-            })
-
-            const pathList: DirectoryNode[] = matches.map((t) => ({
-                name: t.name,
-                path: path.join(t.path, t.name),
-                isDir: t.isDirectory(),
-                // Uses the robust getExtension method.
-                extension: t.isFile()
-                    ? FileReader.getExtension(t.name)
-                    : undefined,
-            }))
-
-            return { success: true, data: pathList }
-        } catch (e) {
-            return { success: false, error: e }
-        }
-    }
-
-    /**
-     * Synchronously finds files matching a name and optional extension.
-     * @param fileName The name of the file to find (without extension).
-     * @param extension The file extension.
-     * @param ignore A list of glob patterns to ignore.
-     * @returns A result object containing a list of matching directory nodes.
-     */
-    public findFileSync(
-        fileName: string,
-        extension?: string,
-        ignore?: string[]
-    ): Stateful<DirectoryNode[]> {
-        try {
-            // First, attempt to stat the path directly.
-            const fileStat = statSync(fileName, { throwIfNoEntry: false })
-            if (fileStat) {
-                return {
-                    success: true,
-                    data: [
-                        {
-                            name: FileReader.getFileNameWithExtension(fileName),
-                            path: fileName,
-                            isDir: fileStat.isDirectory(),
-                            extension: fileStat.isFile()
-                                ? FileReader.getExtension(fileName)
-                                : undefined,
-                        },
-                    ],
-                }
-            }
-
-            // If stat fails, perform a glob search.
-            const pattern = extension
-                ? `**/${fileName}.${extension}`
-                : `**/${fileName}`
-            const matches = globSync(pattern, {
-                ignore: [
-                    'node_modules/**',
-                    'dist/**',
-                    'out/**',
-                    'build/**',
-                    'coverage/**',
-                    ...(ignore ?? []),
-                ],
-                withFileTypes: true,
-            })
-
-            const pathList: DirectoryNode[] = matches.map((t) => ({
-                name: t.name,
-                path: path.join(t.path, t.name),
-                isDir: t.isDirectory(),
-                // Uses the robust getExtension method.
-                extension: t.isFile()
-                    ? FileReader.getExtension(t.name)
-                    : undefined,
-            }))
-
-            return { success: true, data: pathList }
-        } catch (e) {
-            return { success: false, error: e }
-        }
     }
 }
