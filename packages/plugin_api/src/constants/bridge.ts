@@ -1,3 +1,5 @@
+import path from 'path'
+
 import { type PluginDynamicConfigPrimitiveType } from '../arg_parser'
 
 const DIVIDER = '__' as const
@@ -29,8 +31,8 @@ const STORE_FOLDER = '.store' as const
  * Store prefixes
  */
 export const STORE_PREFIX = {
-    buildSystem: `${STORE_FOLDER}/build`,
-    publishSystem: `${STORE_FOLDER}/publish`,
+    buildSystem: `${STORE_FOLDER}${path.sep}build`,
+    publishSystem: `${STORE_FOLDER}${path.sep}publish`,
 } as const
 
 export type USER_PLUGIN_LOAD_STATUS_KEY = '$$load_status$$'
