@@ -1,6 +1,6 @@
-import { FileReader } from '@obsidian_blogger/helpers'
+import { PathResolver } from '@obsidian_blogger/helpers'
 
-import type { BuildInformation } from '../builder/core/store'
+import type { BuildInformation } from '../builder/core/build_store'
 
 /**
  * Type of file tree node
@@ -25,15 +25,13 @@ export interface ParentNodeInfo {
 /**
  * Represents an abstract class for a file tree node.
  */
-export abstract class FileTreeNode {
+export abstract class FileTreeNode<
+    Extension extends string | undefined = string | undefined,
+> {
     /**
      * The children of the file tree node.
      */
     public readonly children: Array<FileTreeNode> | undefined = undefined
-    /**
-     * The name of the file.
-     */
-    public fileName: string
 
     /**
      * Excluded status current node.
@@ -91,12 +89,12 @@ export abstract class FileTreeNode {
      */
     public constructor(
         public readonly absolutePath: string,
+        public readonly fileName: string,
+        public readonly fileExtension: Extension,
         public readonly nodeDepth: number,
         public readonly category: NodeType = 'UNKNOWN_FILE',
         public label: string | undefined = undefined
-    ) {
-        this.fileName = FileReader.getFileNameWithExtension(absolutePath)
-    }
+    ) {}
 
     /**
      * Sets the label of the file tree node.
@@ -104,13 +102,6 @@ export abstract class FileTreeNode {
      */
     public setLabel(label: string): void {
         this.label = label
-    }
-
-    /**
-     * The file extension of the file tree node.
-     */
-    public get fileExtension(): string | undefined {
-        return FileReader.getExtension(this.fileName)
     }
 
     /**
@@ -124,25 +115,41 @@ export abstract class FileTreeNode {
     public static readonly is: (extension: string | undefined) => boolean
 }
 
-export class FolderNode extends FileTreeNode {
-    public override children: FileTreeNode[] = []
+const _pathResolver = new PathResolver()
+
+export class FolderNode extends FileTreeNode<undefined> {
+    public override children: FileTreeNode<undefined | string>[] = []
     public constructor(
         absolutePath: string,
         nodeDepth: number,
         label?: string
     ) {
-        super(absolutePath, nodeDepth, 'FOLDER', label)
+        super(
+            absolutePath,
+            _pathResolver.getFileNameWithExtension(absolutePath),
+            undefined,
+            nodeDepth,
+            'FOLDER',
+            label
+        )
     }
 }
 
 export type TextFileExtension = 'md' | 'mdx' | 'txt' | 'html'
-export class TextFileNode extends FileTreeNode {
+export class TextFileNode extends FileTreeNode<TextFileExtension> {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
         label?: string
     ) {
-        super(absolutePath, nodeDepth, 'TEXT_FILE', label)
+        super(
+            absolutePath,
+            _pathResolver.getFileNameWithExtension(absolutePath),
+            _pathResolver.getExtension(absolutePath) as TextFileExtension,
+            nodeDepth,
+            'TEXT_FILE',
+            label
+        )
     }
 
     public static override readonly FileExtensionList =
@@ -153,10 +160,6 @@ export class TextFileNode extends FileTreeNode {
         extension
             ? TextFileNode.FileExtensionList.has(extension as TextFileExtension)
             : false
-
-    public override get fileExtension(): TextFileExtension {
-        return super.fileExtension as TextFileExtension
-    }
 }
 
 export type ImageFileExtension =
@@ -173,13 +176,20 @@ export type ImageFileExtension =
     | 'apng'
     | 'heif'
     | 'heic'
-export class ImageFileNode extends FileTreeNode {
+export class ImageFileNode extends FileTreeNode<ImageFileExtension> {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
         label?: string
     ) {
-        super(absolutePath, nodeDepth, 'IMAGE_FILE', label)
+        super(
+            absolutePath,
+            _pathResolver.getFileNameWithExtension(absolutePath),
+            _pathResolver.getExtension(absolutePath) as ImageFileExtension,
+            nodeDepth,
+            'IMAGE_FILE',
+            label
+        )
     }
 
     public static override readonly FileExtensionList =
@@ -207,10 +217,6 @@ export class ImageFileNode extends FileTreeNode {
                   extension as ImageFileExtension
               )
             : false
-
-    public override get fileExtension(): ImageFileExtension {
-        return super.fileExtension as ImageFileExtension
-    }
 }
 
 export type AudioFileExtension =
@@ -222,13 +228,20 @@ export type AudioFileExtension =
     | 'wma'
     | 'alac'
     | 'aiff'
-export class AudioFileNode extends FileTreeNode {
+export class AudioFileNode extends FileTreeNode<AudioFileExtension> {
     public constructor(
         absolutePath: string,
         nodeDepth: number,
         label?: string
     ) {
-        super(absolutePath, nodeDepth, 'AUDIO_FILE', label)
+        super(
+            absolutePath,
+            _pathResolver.getFileNameWithExtension(absolutePath),
+            _pathResolver.getExtension(absolutePath) as AudioFileExtension,
+            nodeDepth,
+            'AUDIO_FILE',
+            label
+        )
     }
 
     public static override readonly FileExtensionList =
@@ -251,8 +264,4 @@ export class AudioFileNode extends FileTreeNode {
                   extension as AudioFileExtension
               )
             : false
-
-    public override get fileExtension(): AudioFileExtension {
-        return super.fileExtension as AudioFileExtension
-    }
 }
