@@ -35,20 +35,31 @@ export class PublishSystem {
     private _initialized: boolean = false
 
     public constructor(public readonly options: PublishSystemConstructor) {
+        this.$io = new IO()
+
+        // Resolve os-specific path
+        const bridgeRoot = this.$io.pathResolver.resolveToOsPath(
+            options.bridgeRoot
+        )
+
+        const normalizedOptions: PublishSystemConstructor = {
+            ...options,
+            bridgeRoot,
+        }
+
         this.$logger = new Logger({
             name: 'publish_system',
             ...options?.logger,
         })
-        this.$io = new IO()
         this.$shell = new ShellExecutor(options?.shell)
         this.$publisher = new Publisher({
             io: this.$io,
             shell: this.$shell,
             logger: this.$logger,
-            bridgeRoot: options.bridgeRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
         })
         this.$configBridgeStorage = new Bridge.LoadConfigBridgeStorage({
-            bridgeRoot: options.bridgeRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
             storePrefix: PublishSystem.storagePrefix,
             managers: [
                 this.$publisher.$buildScriptPluginManager,
@@ -57,7 +68,7 @@ export class PublishSystem {
             ],
         })
         this.$historyBridgeStorage = new Bridge.HistoryBridgeStorage({
-            bridgeRoot: options.bridgeRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
             storePrefix: PublishSystem.storagePrefix,
             managers: [
                 this.$publisher.$buildScriptPluginManager,
