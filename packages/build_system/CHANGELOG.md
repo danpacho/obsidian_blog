@@ -1,5 +1,14 @@
 # @obsidian_blogger/build_system
 
+## 0.5.13
+
+### Patch Changes
+
+- Refactor os-dependent file-path management using new class `PathResolver`
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.4.6
+    - @obsidian_blogger/helpers@0.5.4
+
 ## 0.5.12
 
 ### Patch Changes

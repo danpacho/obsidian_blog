@@ -1,5 +1,11 @@
 # @obsidian_blogger/helpers
 
+## 0.5.4
+
+### Patch Changes
+
+- Refactor os-dependent file-path management using new class `PathResolver`
+
 ## 0.5.3
 
 ### Patch Changes
