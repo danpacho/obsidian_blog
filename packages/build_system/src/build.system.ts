@@ -41,25 +41,49 @@ export class BuildSystem {
 
     public constructor(options: BuildSystemConstructor) {
         this.$io = new IO()
+
+        // Resolve os-specific path
+        const vaultRoot = this.$io.pathResolver.resolveToOsPath(
+            options.vaultRoot
+        )
+        const bridgeRoot = this.$io.pathResolver.resolveToOsPath(
+            options.bridgeRoot
+        )
+        const buildPath = {
+            contents: this.$io.pathResolver.resolveToOsPath(
+                options.buildPath.contents
+            ),
+            assets: this.$io.pathResolver.resolveToOsPath(
+                options.buildPath.assets
+            ),
+        }
+
+        const normalizedOptions: BuildSystemConstructor = {
+            ...options,
+            vaultRoot,
+            bridgeRoot,
+            buildPath,
+        }
+
         this.$logger = new Logger({
             name: 'build_system',
         })
         this.$parser = new FileTreeParser({
-            ...options,
+            ...normalizedOptions,
             io: this.$io,
-            rootFolder: options.vaultRoot,
+            rootFolder: vaultRoot,
         })
         this.$builder = new Builder({
-            ...options,
+            ...normalizedOptions,
             io: this.$io,
             parser: this.$parser,
             logger: this.$logger,
             storagePrefix: BuildSystem.bridgeStorePrefix,
-            bridgeRoot: options.bridgeRoot,
-            vaultRoot: options.vaultRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
+            vaultRoot: normalizedOptions.vaultRoot,
         })
         this.$configBridgeStorage = new Bridge.LoadConfigBridgeStorage({
-            bridgeRoot: options.bridgeRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
             storePrefix: BuildSystem.bridgeStorePrefix,
             managers: [
                 this.$builder.$buildContentsPluginManager,
@@ -68,7 +92,7 @@ export class BuildSystem {
             ],
         })
         this.$historyBridgeStorage = new Bridge.HistoryBridgeStorage({
-            bridgeRoot: options.bridgeRoot,
+            bridgeRoot: normalizedOptions.bridgeRoot,
             storePrefix: BuildSystem.bridgeStorePrefix,
             managers: [
                 this.$builder.$builderInternalPluginManager,
