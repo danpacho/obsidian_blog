@@ -1,7 +1,3 @@
-import path from 'node:path'
-
-import { FileReader } from '@obsidian_blogger/helpers/io'
-
 import {
     WalkTreePlugin,
     type WalkTreePluginDynamicConfig,
@@ -58,18 +54,20 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         const referenceMap: ReferenceMap = new Map()
 
         for (const ref of imageReference) {
-            const pureFilename = FileReader.getFileNameWithExtension(ref.origin)
+            const pureFilename = this.$io.pathResolver.getFileNameWithExtension(
+                ref.origin
+            )
             if (!pureFilename) continue
 
             const entry = referenceMap.get(pureFilename) || []
 
-            const posixBuildPath = FileReader.toPosix(ref.build)
+            const buildPath = ref.build
 
-            const buildReplaced = posixBuildPath.replace(buildAssetPath, '')
+            const buildReplaced = buildPath.replace(buildAssetPath, '')
 
             entry.push({
                 origin: ref.origin,
-                build: posixBuildPath,
+                build: buildPath,
                 buildReplaced: buildReplaced,
             })
             referenceMap.set(pureFilename, entry)
@@ -92,7 +90,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
                 origin: report.build_path.origin,
             }))
 
-        const buildAssetPath = FileReader.toPosix(this.$buildPath.assets)
+        const buildAssetPath = this.$buildPath.assets
 
         this.referenceMap = this.buildReferenceMap(
             assetReferencesUUIDList,
@@ -101,8 +99,9 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
     }
 
     private resolveAssetPath(link: string): string | null {
-        const fileNameWithExt = FileReader.getFileNameWithExtension(link)
-        const fullFileName = FileReader.toPosix(path.normalize(link))
+        const fileNameWithExt =
+            this.$io.pathResolver.getFileNameWithExtension(link)
+        const fullFileName = this.$io.pathResolver.normalize(link)
 
         if (!fileNameWithExt) return null
         const candidates = this.referenceMap!.get(fileNameWithExt)
@@ -110,7 +109,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         if (candidates.length === 1) return candidates[0]!.buildReplaced
         // Prefer exact matches in origin path
         const found = candidates.filter((r) =>
-            FileReader.toPosix(r.origin).includes(fileNameWithExt)
+            this.$io.pathResolver.normalize(r.origin).includes(fileNameWithExt)
         )
         if (found.length === 0) {
             return null
@@ -120,7 +119,7 @@ export class MetaImgPathMatcherPlugin extends WalkTreePlugin<
         }
 
         const exactMatch = found.find((r) =>
-            FileReader.toPosix(r.origin).includes(fullFileName)
+            this.$io.pathResolver.normalize(r.origin).includes(fullFileName)
         )
 
         if (exactMatch) {

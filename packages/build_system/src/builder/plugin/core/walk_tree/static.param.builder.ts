@@ -1,5 +1,3 @@
-import { FileReader } from '@obsidian_blogger/helpers'
-
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
@@ -186,12 +184,14 @@ export class StaticParamBuilderPlugin extends WalkTreePlugin<
         const finalBuildPath = node.buildInfo?.build_path.build
         if (!finalBuildPath) return
 
-        const paramBuildPath = FileReader.getRelativePosixPath(
+        const paramBuildPath = this.$io.pathResolver.getRelativePath(
             this.$buildPath.contents,
             finalBuildPath
         )
 
-        const buildList = FileReader.splitToPathParts(paramBuildPath)
+        const buildList =
+            this.$io.pathResolver.splitToPathSegments(paramBuildPath)
+
         const staticParamsContainer = this.createRecord(
             this.analyzed.dynamicParams,
             ''

@@ -1,5 +1,3 @@
-import { FileReader } from '@obsidian_blogger/helpers/io'
-
 import { ParamAnalyzer } from '../../../../routes'
 import {
     WalkTreePlugin,
@@ -271,12 +269,13 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
             throw new Error(msg, { cause: node })
         }
 
-        const posixOrigin = FileReader.toPosix(injectPath.origin)
-        const segments = FileReader.splitToPathParts(posixOrigin)
+        const segments = this.$io.pathResolver.splitToPathSegments(
+            injectPath.origin
+        )
         const category = this.getCategoryFromPath(segments)
 
         /* series & seriesOrder */
-        const seriesInfo = await this.getSeriesInfo(posixOrigin)
+        const seriesInfo = await this.getSeriesInfo(injectPath.origin)
 
         /* Update meta */
         /* Omit [this.dynamicConfig.seriesOrderPropertyName] */
