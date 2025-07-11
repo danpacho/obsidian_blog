@@ -140,8 +140,8 @@ describe('IO Manager', () => {
         })
 
         it('should copy file stream [pdf]', async () => {
-            const from = `${process.cwd()}/packages/helpers/src/io/__tests__/data/large.pdf`
-            const to = `${basePath}/@cp_stream/large.pdf`
+            const from = `${process.cwd()}/packages/helpers/src/io/__tests__/data/large_sample.pdf`
+            const to = `${basePath}/@cp_stream/large_sample.pdf`
 
             const cp = await io.cpFileStream({
                 from,
