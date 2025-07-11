@@ -1,9 +1,9 @@
 import { IO as IOManager } from '@obsidian_blogger/helpers'
 import { describe, expect, it } from 'vitest'
 
-import { BuildStore } from './store'
+import { BuildStore } from '../build_store'
 
-import type { BuildInformation } from './store'
+import type { BuildInformation } from '../build_store'
 import type { UUID } from 'crypto'
 
 describe('BuildStore', () => {

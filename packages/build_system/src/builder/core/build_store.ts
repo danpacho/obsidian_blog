@@ -1,13 +1,10 @@
-import { existsSync, realpathSync } from 'node:fs'
-import path from 'node:path'
-
 import {
     type IO,
     type Promisify,
     type Stateful,
 } from '@obsidian_blogger/helpers'
 
-import type { NodeId } from './info.generator'
+import type { NodeId } from './info_generator'
 import type { NodeType } from '../../parser/node'
 
 /**
@@ -169,20 +166,6 @@ export class BuildStore {
     }
 
     /**
-     * Canonicalize a path so the same file always yields the same string
-     */
-    private canonicalPath(p: string): string {
-        const exists = existsSync(p)
-        let out = exists ? realpathSync.native(p) : path.resolve(p)
-
-        out = path.normalize(out) // fix “..”, “.”, slashes
-        if (process.platform === 'win32') out = out.toLowerCase() // case-fold
-        if (out.length > 1) out = out.replace(/[\\/]+$/, '') // trim trailing /
-
-        return out
-    }
-
-    /**
      * Finds a build information item by its build path.
      * @param buildPath The build path to search for.
      * @param target The target to search in ('current' or 'prev').
@@ -192,10 +175,13 @@ export class BuildStore {
         buildPath: string,
         { target }: { target: 'current' | 'prev' }
     ): Stateful<BuildInformation, Error> {
-        const wanted = this.canonicalPath(buildPath)
+        const wanted = this.options.io.pathResolver.normalize(buildPath)
 
         const buildInformation = this.getStoreList(target).find(
-            (report) => this.canonicalPath(report.build_path.build) === wanted
+            (report) =>
+                this.options.io.pathResolver.normalize(
+                    report.build_path.build
+                ) === wanted
         )
 
         if (!buildInformation) {

@@ -1,5 +1,5 @@
-import type { NodeId } from './info.generator'
-import type { BuildInformation, BuildStore } from './store'
+import type { BuildInformation, BuildStore } from './build_store'
+import type { NodeId } from './info_generator'
 import type { FileTreeNode } from '../../parser/node'
 import type { Stateful } from '@obsidian_blogger/helpers'
 

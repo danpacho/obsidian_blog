@@ -1,9 +1,8 @@
 import { type UUID, createHash } from 'crypto'
-import path, { posix, win32 } from 'path'
 
-import { FileReader, type IO } from '@obsidian_blogger/helpers'
+import { type IO } from '@obsidian_blogger/helpers'
 
-import type { BuildInformation } from './store'
+import type { BuildInformation } from './build_store'
 import type { FileTreeNode } from '../../parser/node'
 import type { BuildPluginDependencies } from '../plugin/build.plugin'
 
@@ -13,6 +12,8 @@ import type { BuildPluginDependencies } from '../plugin/build.plugin'
 export type NodeId = UUID
 /**
  * A function that generates a build path for a node
+ * @description **internally, automatically handles OS specific path separators.**
+ *
  * @param node The node to generate a path for
  * @param buildTools The build tools
  * @returns The target generated path
@@ -93,32 +94,17 @@ export class BuildInfoGenerator {
 
     private getSafeRoutePath(...routes: Array<string>): string {
         // 1) unify separators
-        const route = path.join(...routes)
-        const normalizedRoute = path.normalize(route)
-
-        const DIVIDER = '|' as const
-        const unified = normalizedRoute.replaceAll(path.sep, DIVIDER)
-
-        // 2) split & drop any empty pieces
-        const routeSegments = unified
-            .split(DIVIDER)
-            // remove unnecessary characters
-            .map((e) => e.replace(/[@{}[\]()<>?!#+=~^'"`\s]/g, ''))
+        const purifiedRoutes = routes
+            .map((route) => route.replace(/[@{}[\]()<>?!#+=~^'"`\s]/g, ''))
             .filter(Boolean)
 
-        let safeRoute: string
-        if (process.platform === 'win32') {
-            // Windows: back-slashes, no leading slash
-            safeRoute = win32.join(...routeSegments)
-            safeRoute = win32.normalize(safeRoute)
-        } else {
-            // macOS/Linux: forward-slashes, ensure leading slash
-            safeRoute = posix.join('/', ...routeSegments)
-            safeRoute = posix.normalize(safeRoute)
-        }
+        const route = this.$io.pathResolver.join(...purifiedRoutes)
 
-        const buildPath = this.getBuildPath(safeRoute)
+        // 2) automatically resolve to OS specific path
+        // e.g. /path/to/file.md -> C:\path\to\file.md
+        const normalizedRoute = this.$io.pathResolver.resolveToOsPath(route)
 
+        const buildPath = this.getBuildPath(normalizedRoute)
         return buildPath
     }
 
@@ -137,7 +123,7 @@ export class BuildInfoGenerator {
         return uuid
     }
 
-    private getBaseString(originPath: string, raw: string): string {
+    private getHashSeed(originPath: string, raw: string): string {
         return `${originPath}&${raw}`
     }
 
@@ -155,11 +141,10 @@ export class BuildInfoGenerator {
         if (!raw.success)
             throw new Error(`failed to read file at ${originPath}`)
 
-        const buildBaseString = this.getBaseString(originPath, raw.data)
+        const buildBaseString = this.getHashSeed(originPath, raw.data)
 
-        const generatedRoute = await this.options.pathGenerator.contents(
-            contentNode,
-            buildTools
+        const generatedRoute = this.$io.pathResolver.resolveToOsPath(
+            await this.options.pathGenerator.contents(contentNode, buildTools)
         )
 
         const buildPath = this.getSafeRoutePath(
@@ -206,32 +191,37 @@ export class BuildInfoGenerator {
         if (strict) {
             const raw = await this.$io.reader.readMedia(originPath)
             if (!raw.success) {
-                const buildBaseString = this.getBaseString(
+                const buildBaseString = this.getHashSeed(
                     originPath,
                     assetNode.category
                 )
                 id = this.encodeHashUUID(buildBaseString)
             } else {
-                const buildBaseString = this.getBaseString(
+                const buildBaseString = this.getHashSeed(
                     originPath,
                     raw.data.toString()
                 )
                 id = this.encodeHashUUID(buildBaseString)
             }
         } else {
-            const buildBaseString = this.getBaseString(
+            const buildBaseString = this.getHashSeed(
                 originPath,
                 assetNode.category
             )
             id = this.encodeHashUUID(buildBaseString)
         }
 
-        const generatedRoute: string | undefined =
-            await this.options.pathGenerator.assets?.(assetNode, buildTools)
+        const generatedAssetPath = await this.options.pathGenerator.assets?.(
+            assetNode,
+            buildTools
+        )
+        const generatedRoute: string | undefined = generatedAssetPath
+            ? this.$io.pathResolver.resolveToOsPath(generatedAssetPath)
+            : undefined
 
         const resultId: string = generatedRoute
             ? `${id}_${generatedRoute}`
-            : `${id}_${FileReader.getFileName(assetNode.fileName)}`
+            : `${id}_${this.$io.pathResolver.getFileName(assetNode.fileName)}`
 
         const buildPath: string = this.getSafeRoutePath(
             this.options.buildPath.assets,

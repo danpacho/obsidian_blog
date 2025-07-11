@@ -1,4 +1,4 @@
-import type { BuildInformation, BuildStoreList } from './store'
+import type { BuildInformation, BuildStoreList } from './build_store'
 import type { FileTreeParser } from '../../parser'
 import type { FileTreeNode, FolderNode } from '../../parser/node'
 import type { Logger } from '@obsidian_blogger/helpers/logger'

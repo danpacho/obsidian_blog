@@ -13,16 +13,16 @@ import {
     InjectBuildInfoToGeneratedTree,
     SyncBuildStore,
 } from './builder.internal'
-import { BuildResultLogger } from './core/build.logger'
+import { BuildResultLogger } from './core/build_logger'
+import { BuildStore, type BuildStoreConstructor } from './core/build_store'
 import {
     BuildCacheManager,
     type BuildCacheManagerConstructor,
-} from './core/cache.manager'
+} from './core/cache_manager'
 import {
     BuildInfoGenerator,
     type BuildInfoGeneratorConstructor,
-} from './core/info.generator'
-import { BuildStore, type BuildStoreConstructor } from './core/store'
+} from './core/info_generator'
 import { type BuildSystemPluginAdapter } from './plugin'
 import {
     BuildContentsPluginRunner,
