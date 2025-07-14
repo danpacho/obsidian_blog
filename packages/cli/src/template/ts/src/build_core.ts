@@ -3,10 +3,13 @@ import {
     BuildSystem,
     CorePlugins,
     type Node,
+    type PathGenerator,
 } from '@obsidian_blogger/build_system'
+import { IO } from '@obsidian_blogger/helpers/io'
 
-import type { PathGenerator } from '@obsidian_blogger/build_system'
-
+//==============================================================================
+//                           Contents Path Generator                          //
+//==============================================================================
 const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
     const analyzeFileName = (
         folderName?: string
@@ -46,6 +49,8 @@ const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
         }
     }
 
+    const io = new IO()
+
     const getBuildRouteInfo = ({
         node,
         rootPath,
@@ -54,29 +59,29 @@ const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
         rootPath: string
     }): string => {
         const absPath = node.absolutePath
-        const originPath = absPath.replace(rootPath, '')
+        const relativePath = absPath.replace(rootPath, '')
 
-        const buildFolderPath = originPath
-            .split('/')
-            .filter(Boolean)
+        const pathSegments = io.pathResolver
+            .splitToPathSegments(relativePath)
             .slice(0, -1)
-            .reduce<string>((buildPath, e) => {
-                const { type, value } = analyzeFileName(e)
-                switch (type) {
-                    case 'route': {
-                        return `${buildPath}/${value}`
-                    }
-                    case 'group': {
-                        return `${buildPath}/${value}`
-                    }
-                    case 'series': {
-                        return buildPath
-                    }
-                    case 'root': {
-                        return buildPath
-                    }
+
+        const buildFolderPath = pathSegments.reduce<string>((buildPath, e) => {
+            const { type, value } = analyzeFileName(e)
+            switch (type) {
+                case 'route': {
+                    return `${buildPath}/${value}`
                 }
-            }, '')
+                case 'group': {
+                    return `${buildPath}/${value}`
+                }
+                case 'series': {
+                    return buildPath
+                }
+                case 'root': {
+                    return buildPath
+                }
+            }
+        }, '')
 
         return buildFolderPath
     }
