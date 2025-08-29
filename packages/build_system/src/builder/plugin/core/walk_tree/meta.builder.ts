@@ -196,7 +196,7 @@ export class MetaBuilderPlugin extends WalkTreePlugin<
             order: number | undefined
         }
     } | null> {
-        const parts = originPath.split('/')
+        const parts = this.$io.pathResolver.splitToPathSegments(originPath)
 
         const series = parts.reduceRight<{
             found: boolean
