@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.2
+
+### Patch Changes
+
+- Add content_id for clarifying content correctly, fix MOVED transaction opeartion marked as ADDED
+
 ## 0.6.1
 
 ### Patch Changes
