@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.5.14
+
+### Patch Changes
+
+- Add `MOVED` flag file transaction operation support.
+
 ## 0.5.13
 
 ### Patch Changes
