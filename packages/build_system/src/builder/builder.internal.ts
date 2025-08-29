@@ -166,6 +166,7 @@ export class SyncBuildStore extends BuilderInternalPlugin {
         const buildInfoGenerator =
             this.getRunTimeDependency('buildInfoGenerator')
 
+        // Inject build information
         switch (node.category) {
             case 'TEXT_FILE': {
                 const contentsBuildInfo =
@@ -176,6 +177,7 @@ export class SyncBuildStore extends BuilderInternalPlugin {
                 node.injectBuildInfo({
                     build_path: contentsBuildInfo.build_path,
                     id: contentsBuildInfo.id,
+                    content_id: contentsBuildInfo.content_id,
                     build_state: 'ADDED',
                 })
                 break
@@ -189,25 +191,22 @@ export class SyncBuildStore extends BuilderInternalPlugin {
                 node.injectBuildInfo({
                     build_path: assetsBuildInfo.build_path,
                     id: assetsBuildInfo.id,
+                    content_id: assetsBuildInfo.content_id,
                     build_state: 'ADDED',
                 })
                 break
             }
         }
 
-        const update =
-            this.getRunTimeDependency('cacheManager').updateStore(node)
+        const buildInformation =
+            this.getRunTimeDependency('cacheManager').processNode(node)
 
-        if (!update.success) {
-            this.$logger.error(update.error.message)
-            throw update.error
-        }
-
-        node.injectBuildInfo(update.data)
+        node.injectBuildInfo(buildInformation)
     }
 
     public override async cleanup(): Promise<void> {
-        this.getRunTimeDependency('cacheManager').syncRemovedStore()
+        this.getRunTimeDependency('cacheManager').finalize()
+        await this.getRunTimeDependency('cacheManager').save()
     }
 }
 
@@ -215,64 +214,77 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
     protected defineStaticConfig(): BuilderInternalPluginStaticConfig {
         return {
             name: 'duplicate-obsidian-vault-into-source',
-            description: 'Duplicating the Obsidian vault into the source',
+            description:
+                'Intelligently duplicates the Obsidian vault into the source',
         }
     }
 
     public async procedure(node: FileTreeNode): Promise<void> {
-        const { buildInfo, absolutePath, category } = node
+        const { buildInfo, absolutePath } = node
         if (!buildInfo?.build_path) {
             this.$logger.error(
                 `Build info is not available for ${absolutePath}`
             )
-            throw new Error(`Build info is not available for ${absolutePath}`)
+            return // Throwing might halt the entire build, logging is safer.
         }
 
-        switch (category) {
-            case 'FOLDER': {
-                const cpResult = await this.$io.cpDirectory({
-                    from: buildInfo.build_path.origin,
-                    to: buildInfo.build_path.build,
-                })
-                if (!cpResult.success) {
-                    this.$logger.error(
-                        `Failed to copy folder ${absolutePath} to ${buildInfo.build_path.build}`
-                    )
-                }
-                return
-            }
-            case 'TEXT_FILE': {
-                const cpResult = await this.$io.cpFile({
-                    from: buildInfo.build_path.origin,
-                    to: buildInfo.build_path.build,
-                    type: 'text',
-                })
-                if (!cpResult.success) {
-                    this.$logger.error(
-                        `Failed to copy text file ${absolutePath} to ${buildInfo.build_path.build}`
-                    )
-                }
-                return
-            }
-            default: {
-                const cpResult = await this.$io.cpFile({
-                    from: buildInfo.build_path.origin,
-                    to: buildInfo.build_path.build,
-                    type: 'media',
-                })
-                if (!cpResult.success) {
-                    this.$logger.error(
-                        `Failed to copy media file ${absolutePath} to ${buildInfo.build_path.build}`
-                    )
-                }
-                return
-            }
+        const store = this.getRunTimeDependency('buildStore')
+        const currentState = store.findById(buildInfo.id, { target: 'current' })
+
+        if (!currentState.success) {
+            this.$logger.warn(
+                `Could not find final state for ${absolutePath}, skipping copy.`
+            )
+            return
+        }
+
+        const buildState = currentState.data.build_state
+
+        switch (buildState) {
+            case 'ADDED':
+            case 'UPDATED':
+                // Only copy files that are new or have been updated.
+                await this.copyNode(node)
+                break
+
+            case 'CACHED':
+            case 'MOVED':
+            case 'REMOVED':
+                break
+
+            default:
+                this.$logger.warn(
+                    `Unknown build state "${buildState}" for ${absolutePath}`
+                )
+        }
+    }
+
+    private async copyNode(node: FileTreeNode): Promise<void> {
+        const { buildInfo, absolutePath, category } = node
+        if (!buildInfo) return // Should be guarded already, but for type safety.
+
+        const { origin, build } = buildInfo.build_path
+        const copyOperation =
+            category === 'FOLDER'
+                ? this.$io.cpDirectory({ from: origin, to: build })
+                : this.$io.cpFileStream({
+                      from: origin,
+                      to: build,
+                  })
+
+        const result = await copyOperation
+        if (!result.success) {
+            this.$logger.error(
+                `Failed to copy ${category.toLowerCase()} ${absolutePath} to ${build}`
+            )
         }
     }
 
     private async _moveAll(): Promise<void> {
         const store = this.getRunTimeDependency('buildStore')
+
         const moveTargets = store.getMoveTarget()
+
         if (moveTargets.length === 0) return
 
         // collect entries with normalized paths
@@ -286,6 +298,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             }
             const oldRaw = prevInfo.data.build_path.build
             const newRaw = target.build_path.build
+
             const oldPath = this.$io.pathResolver
                 ? this.$io.pathResolver.resolveToOsPath(oldRaw)
                 : oldRaw
@@ -298,12 +311,14 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         // filter errors out and log them
         const errors = entries.filter((e: any) => (e as any).error)
+
         for (const e of errors) {
             this.$logger.error(
                 'Could not find previous build state for MOVED file:',
                 (e as any).target?.build_path?.origin
             )
         }
+
         let valid = entries.filter((e: any) => !(e as any).error) as Array<{
             oldPath: string
             newPath: string
@@ -333,6 +348,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             if (destExists) {
                 // Policy A: keep the newly created destination; remove old
                 const del = await this.$io.writer.delete(oldPath)
+
                 if (!del.success) {
                     this.$logger.error(
                         `Failed to delete old path ${oldPath} for moved id ${id}:`,
@@ -345,7 +361,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                 continue
             }
 
-            // destination does not exist -> attempt move
             try {
                 const moveResult = isDir
                     ? await this.$io.moveDirectory({
@@ -355,12 +370,12 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                     : await this.$io.moveFile({ from: oldPath, to: newPath })
 
                 if (!moveResult.success) {
-                    // fallback: if cp exists, try copy+delete (handles cross-device)
                     if (isDir) {
                         const cp = await this.$io.cpDirectory({
                             from: oldPath,
                             to: newPath,
                         })
+
                         if (cp.success) {
                             await this.$io.writer.delete(oldPath)
                             results.push({ success: true, id })
@@ -372,6 +387,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                             to: newPath,
                             type: 'media',
                         })
+
                         if (cp.success) {
                             await this.$io.writer.delete(oldPath)
                             results.push({ success: true, id })
@@ -401,11 +417,14 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
 
         // report summary
+
         const failed = results.filter((r) => !r.success)
+
         if (failed.length > 0) {
             this.$logger.error(
                 `Some assets could not be moved: ${failed.length} failures.`
             )
+
             for (const f of failed) {
                 this.$logger.error(`Failed move id ${f.id}:`, f.error)
             }
@@ -414,7 +433,9 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
     private async _removeAll(): Promise<void> {
         const store = this.getRunTimeDependency('buildStore')
+
         const removeTarget = store.getRemoveTarget()
+
         if (removeTarget.length === 0) return
 
         const removeBatch = await Promise.all(
@@ -424,8 +445,10 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         )
 
         const hasError = removeBatch.some((result) => !result.success)
+
         if (hasError) {
             this.$logger.error('Some files could not be removed.')
+
             for (const result of removeBatch) {
                 if (!result.success) {
                     this.$logger.error(`Failed to remove: ${result.error}`)
@@ -471,6 +494,7 @@ export class InjectBuildInfoToGeneratedTree extends BuilderInternalPlugin {
 
         node.injectBuildInfo({
             id: generatedBuildInfo.data.id,
+            content_id: generatedBuildInfo.data.content_id,
             build_path: generatedBuildInfo.data.build_path,
             build_state: generatedBuildInfo.data.build_state,
         })
