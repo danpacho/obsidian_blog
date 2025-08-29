@@ -22,6 +22,11 @@ export interface BuildInformation {
     created_at: string
 
     /**
+     * The timestamp when the build information is updated.
+     */
+    updated_at: string
+
+    /**
      * The name of the file.
      */
     file_name: string
@@ -218,8 +223,13 @@ export class BuildStore {
             target: 'current' | 'prev'
         }
     ): Stateful<BuildInformation> {
+        const wanted = this.options.io.pathResolver.normalize(originPath)
+
         const buildInformation = this.getStoreList(target).find(
-            (report) => report.build_path.origin === originPath
+            (report) =>
+                this.options.io.pathResolver.normalize(
+                    report.build_path.origin
+                ) === wanted
         )
         if (!buildInformation) {
             return {
