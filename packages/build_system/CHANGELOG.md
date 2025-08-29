@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.0
+
+### Minor Changes
+
+- Core update for supporting `MOVED` file transaction operation.
+
 ## 0.5.15
 
 ### Patch Changes
