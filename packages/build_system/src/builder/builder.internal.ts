@@ -289,7 +289,10 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         // collect entries with normalized paths
         const entries = moveTargets.map((target) => {
-            const prevInfo = store.findById(target.id, { target: 'prev' })
+            const prevInfo = store.findByContentId(target.content_id, {
+                target: 'prev',
+            })
+
             if (!prevInfo.success) {
                 return {
                     error: new Error(`No prev for ${target.build_path.origin}`),
