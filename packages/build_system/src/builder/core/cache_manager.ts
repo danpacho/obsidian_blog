@@ -1,46 +1,42 @@
 import type { BuildInformation, BuildStore } from './build_store'
-import type { NodeId } from './info_generator'
+import type { ContentId, NodeId } from './info_generator'
 import type { FileTreeNode } from '../../parser/node'
 import type { Stateful } from '@obsidian_blogger/helpers'
 
 export interface BuildCacheManagerConstructor {
     store: BuildStore
 }
+
 /**
- * Represents a manager for the build cache.
+ * Represents a manager for the build cache using a two-phase determination logic.
  */
 export class BuildCacheManager {
-    /**
-     * Creates a new instance of BuildCacheManager.
-     * @param options - The options for the BuildCacheManager.
-     */
+    private tentativeAdded = new Map<NodeId, BuildInformation>()
+    private unaccountedPrevFiles = new Map<NodeId, BuildInformation>()
+
     public constructor(
         private readonly options: BuildCacheManagerConstructor
     ) {}
 
-    private readonly movedFromOrigins = new Set<string>()
-
-    /**
-     * Gets the store used by the BuildCacheManager.
-     */
     public get $store() {
         return this.options.store
     }
 
     /**
-     * Sets up the build cache.
-     * @returns A promise that resolves when the setup is complete.
+     * Setup store
      */
     public async setup(): Promise<void> {
         const loaded = await this.$store.loadReport()
         if (!loaded.success) {
             this.$store.resetStore()
         }
+        // Create a mutable copy of previous files to track unaccounted ones.
+        this.unaccountedPrevFiles = new Map(this.$store.store.prev)
+        this.tentativeAdded.clear()
     }
 
     /**
-     * Saves the build cache.
-     * @returns A promise that resolves to a boolean indicating whether the save was successful.
+     * Save store
      */
     public async save(): Promise<boolean> {
         const saved = await this.$store.saveReport()
@@ -48,172 +44,141 @@ export class BuildCacheManager {
     }
 
     /**
-     * Checks if the cache contains a build with the specified ID.
-     * @param newId - The ID of the build to check.
-     * @returns A boolean indicating whether the cache contains the build.
+     * Processes a single node and performs initial status marking.
+     * @param node - The file tree node to process.
+     * @returns BuildInformation
      */
-    private checkCache(newId: NodeId): boolean {
-        return this.$store.findById(newId, { target: 'prev' }).success
-    }
-
-    private normalizePath(path: string) {
-        return this.$store.options.io.pathResolver.normalize(path)
-    }
-
-    /**
-     * Updates the store with the build information of a file.
-     * @param node - The file tree node containing the build information.
-     * @returns A stateful object containing the updated build information or an error.
-     */
-    public updateStore(node: FileTreeNode): Stateful<BuildInformation, Error> {
+    public processNode(node: FileTreeNode): BuildInformation {
         const { buildInfo } = node
-        if (!buildInfo)
-            return {
-                success: false,
-                error: new Error(`Update impossible: no build information`),
-            }
-
-        const newId = buildInfo.id
-        const newOriginNormalized = this.normalizePath(
-            buildInfo.build_path.origin
-        )
-
-        if (this.checkCache(newId)) {
-            const prevInfo = this.$store.findById(newId, {
-                target: 'prev',
-            })
-            if (!prevInfo.success) {
-                return {
-                    success: false,
-                    error: new Error(
-                        `No previous build information at ${buildInfo.build_path.origin}`
-                    ),
+        if (!buildInfo) {
+            throw new Error(
+                `[BuildCacheManager] buildInfo is not defined for ${node.fileName}`,
+                {
+                    cause: node,
                 }
-            }
-
-            const prevOriginNormalized = this.normalizePath(
-                prevInfo.data.build_path.origin
             )
+        }
 
-            const isNodeMoved = prevOriginNormalized !== newOriginNormalized
+        const { id: nodeId, build_path } = buildInfo
 
-            if (isNodeMoved) {
-                this.movedFromOrigins.add(prevOriginNormalized)
-
-                const updatedInfo: BuildInformation = {
-                    ...prevInfo.data,
-                    ...buildInfo,
-                    build_state: 'MOVED',
-                    updated_at: new Date().toISOString(),
-                    build_path: {
-                        build: buildInfo.build_path.build,
-                        origin: buildInfo.build_path.origin,
-                    },
-                }
-
-                this.$store.update(newId, updatedInfo)
-
-                return {
-                    success: true,
-                    data: updatedInfo,
-                }
-            }
-
+        // 1. Check for CACHED status
+        if (this.unaccountedPrevFiles.has(nodeId)) {
+            const prevInfo = this.unaccountedPrevFiles.get(nodeId)!
             const updatedInfo: BuildInformation = {
-                ...prevInfo.data,
+                ...prevInfo,
                 ...buildInfo,
                 build_state: 'CACHED',
                 updated_at: new Date().toISOString(),
             }
-
-            this.$store.update(newId, updatedInfo)
-
-            return {
-                success: true,
-                data: updatedInfo,
-            }
+            this.$store.update(nodeId, updatedInfo)
+            this.unaccountedPrevFiles.delete(nodeId) // Accounted for.
+            return updatedInfo
         }
 
-        const originBuildInfo = this.$store.findByOriginPath(
-            buildInfo.build_path.origin,
-            {
-                target: 'prev',
-            }
+        // 2. Check for UPDATED status
+        const prevInfoAtOrigin = this.$store.findByOriginPath(
+            build_path.origin,
+            { target: 'prev' }
         )
-
-        const isUpdated = originBuildInfo.success === true
-        const wasMovedOrigin = this.movedFromOrigins.has(newOriginNormalized)
-
-        if (isUpdated) {
-            if (wasMovedOrigin) {
-                const createdAt = new Date().toISOString()
-                const newInfo: BuildInformation = {
-                    id: newId,
-                    build_state: 'ADDED',
-                    created_at: createdAt,
-                    updated_at: createdAt,
-                    file_name: node.fileName,
-                    file_type: node.category,
-                    build_path: {
-                        build: buildInfo.build_path.build,
-                        origin: buildInfo.build_path.origin,
-                    },
-                }
-
-                this.$store.add(newId, newInfo)
-
-                this.movedFromOrigins.delete(newOriginNormalized)
-
-                return { success: true, data: newInfo }
-            } else {
-                const oldId = originBuildInfo.data.id
-
-                if (oldId !== newId) {
-                    // remove old one
-                    const removed = this.$store.remove(oldId)
-                    if (!removed.success) {
-                        // console.debug('remove oldId failed', rem.error)
-                    }
-                }
-
-                const updatedInfo: BuildInformation = {
-                    ...originBuildInfo.data,
-                    ...buildInfo,
-                    id: newId,
-                    updated_at: new Date().toISOString(),
-                    build_state: 'UPDATED',
-                }
-
-                this.$store.update(newId, updatedInfo)
-
-                return { success: true, data: updatedInfo }
+        if (prevInfoAtOrigin.success) {
+            const oldInfo = prevInfoAtOrigin.data
+            const updatedInfo: BuildInformation = {
+                ...oldInfo,
+                ...buildInfo,
+                build_state: 'UPDATED',
+                updated_at: new Date().toISOString(),
             }
+            this.$store.update(nodeId, updatedInfo)
+            this.unaccountedPrevFiles.delete(oldInfo.id) // Accounted for.
+            return updatedInfo
         }
 
+        // 3. Mark as TENTATIVE_ADDED
         const createdAt = new Date().toISOString()
         const newInfo: BuildInformation = {
-            id: newId,
-            build_state: 'ADDED',
+            ...buildInfo,
+            build_state: 'ADDED', // Tentative state
             created_at: createdAt,
             updated_at: createdAt,
             file_name: node.fileName,
             file_type: node.category,
-            build_path: {
-                build: buildInfo.build_path.build,
-                origin: buildInfo.build_path.origin,
-            },
         }
-        this.$store.add(newId, newInfo)
-        return {
-            success: true,
-            data: newInfo,
-        }
+        this.tentativeAdded.set(nodeId, newInfo)
+        return newInfo
     }
 
     /**
-     * Checks the build state of a build with the specified ID.
-     * @param buildId - The ID of the build to check.
-     * @returns A stateful object containing the build state or an error.
+     * Reconciles all changes to determine the final state
+     *
+     * Should be called after all nodes have been processed by `processNode`.
+     */
+    public finalize(): void {
+        // Build ContentId maps for efficient lookup
+        const unaccountedPrevContentMap = this.buildContentIdMap(
+            Array.from(this.unaccountedPrevFiles.values())
+        )
+        const tentativeAddedContentMap = this.buildContentIdMap(
+            Array.from(this.tentativeAdded.values())
+        )
+
+        // 1. Determine MOVED files
+        for (const [contentId, newInfos] of tentativeAddedContentMap) {
+            if (unaccountedPrevContentMap.has(contentId)) {
+                const oldInfos = unaccountedPrevContentMap.get(contentId)!
+
+                const matchCount = Math.min(newInfos.length, oldInfos.length)
+                for (let i = 0; i < matchCount; i++) {
+                    const newInfo = newInfos.pop()!
+                    const oldInfo = oldInfos.pop()!
+
+                    const movedInfo: BuildInformation = {
+                        ...oldInfo,
+                        ...newInfo,
+                        build_state: 'MOVED',
+                        updated_at: new Date().toISOString(),
+                    }
+                    this.tentativeAdded.set(newInfo.id, movedInfo)
+                    this.unaccountedPrevFiles.delete(oldInfo.id)
+                }
+            }
+        }
+
+        // 2. Finalize ADDED and MOVED in the store
+        for (const finalInfo of this.tentativeAdded.values()) {
+            this.$store.update(finalInfo.id, finalInfo)
+        }
+
+        // 3. Determine and finalize REMOVED files
+        for (const removedInfo of this.unaccountedPrevFiles.values()) {
+            this.$store.update(removedInfo.id, {
+                ...removedInfo,
+                build_state: 'REMOVED',
+                updated_at: new Date().toISOString(),
+            })
+        }
+
+        // Clean up for next run if needed
+        this.tentativeAdded.clear()
+        this.unaccountedPrevFiles.clear()
+    }
+
+    private buildContentIdMap(
+        infos: BuildInformation[]
+    ): Map<ContentId, BuildInformation[]> {
+        const map = new Map<ContentId, BuildInformation[]>()
+        for (const info of infos) {
+            if (!info.content_id) continue
+            const list = map.get(info.content_id) ?? []
+            list.push(info)
+            map.set(info.content_id, list)
+        }
+        return map
+    }
+
+    /**
+     * Check the build state of a node using ID
+     * @param buildId - Target node ID
+     * @returns build status
      */
     public checkStatus(
         buildId: NodeId
@@ -236,7 +201,7 @@ export class BuildCacheManager {
     /**
      * Checks the build state of a build with the specified path.
      * @param path - The path of the build to check.
-     * @returns A stateful object containing the build state or an error.
+     * @returns build status
      */
     public checkStatusByPath(
         path: string
@@ -254,34 +219,5 @@ export class BuildCacheManager {
             success: true,
             data: res.data.build_state,
         }
-    }
-
-    /**
-     * Syncs the removed builds in the store.
-     */
-    public syncRemovedStore(): void {
-        const prev = this.$store.getStoreList('prev')
-        if (prev.length === 0) return
-
-        const current = this.$store.getStoreList('current')
-        const currentOriginPathList = current.map(({ build_path }) =>
-            this.normalizePath(build_path.origin)
-        )
-
-        prev.filter(
-            (origin) =>
-                !currentOriginPathList.includes(
-                    this.normalizePath(origin.build_path.origin)
-                ) &&
-                !this.movedFromOrigins.has(
-                    this.normalizePath(origin.build_path.origin)
-                )
-        ).forEach((removedBuildInfo) => {
-            this.$store.update(removedBuildInfo.id, {
-                ...removedBuildInfo,
-                build_state: 'REMOVED',
-                updated_at: new Date().toISOString(),
-            })
-        })
     }
 }
