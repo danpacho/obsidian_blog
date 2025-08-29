@@ -10,6 +10,12 @@ import type { BuildPluginDependencies } from '../plugin/build.plugin'
  *  A unique identifier for a node
  */
 export type NodeId = UUID
+
+/**
+ *  Unique content identifier id for a node
+ */
+export type ContentId = UUID
+
 /**
  * A function that generates a build path for a node
  * @description **internally, automatically handles OS specific path separators.**
@@ -69,6 +75,12 @@ export interface BuildInfoGeneratorConstructor {
         assets?: PathGenerator
     }
 }
+
+type BuildInfoGenerationTarget = Pick<
+    BuildInformation,
+    'id' | 'content_id' | 'build_path'
+>
+
 export class BuildInfoGenerator {
     public constructor(
         private readonly options: BuildInfoGeneratorConstructor
@@ -123,8 +135,12 @@ export class BuildInfoGenerator {
         return uuid
     }
 
-    private getHashSeed(originPath: string, raw: string): string {
+    private getNodeHashSeed(originPath: string, raw: string): string {
         return `${originPath}&${raw}`
+    }
+
+    private getContentHashSeed(raw: string): string {
+        return raw
     }
 
     /**
@@ -134,14 +150,15 @@ export class BuildInfoGenerator {
     public async generateContentBuildInfo(
         contentNode: FileTreeNode,
         buildTools: BuildPluginDependencies
-    ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
+    ): Promise<BuildInfoGenerationTarget> {
         const originPath = contentNode.absolutePath
 
         const raw = await this.$io.reader.readFile(originPath)
         if (!raw.success)
             throw new Error(`failed to read file at ${originPath}`)
 
-        const buildBaseString = this.getHashSeed(originPath, raw.data)
+        const buildBaseString = this.getNodeHashSeed(originPath, raw.data)
+        const contentBuildBaseString = this.getContentHashSeed(raw.data)
 
         const generatedRoute = this.$io.pathResolver.resolveToOsPath(
             await this.options.pathGenerator.contents(contentNode, buildTools)
@@ -157,9 +174,11 @@ export class BuildInfoGenerator {
             origin: originPath,
         }
         const id = this.encodeHashUUID(buildBaseString)
+        const contentId = this.encodeHashUUID(contentBuildBaseString)
 
         return {
             id,
+            content_id: contentId,
             build_path: path,
         }
     }
@@ -172,7 +191,7 @@ export class BuildInfoGenerator {
         assetNode: FileTreeNode,
         buildTools: BuildPluginDependencies,
         strict: boolean = false
-    ): Promise<Pick<BuildInformation, 'id' | 'build_path'>> {
+    ): Promise<BuildInfoGenerationTarget> {
         const ASSET_PREFIX = {
             image: 'images',
             audio: 'audios',
@@ -188,27 +207,37 @@ export class BuildInfoGenerator {
         const originPath = assetNode.absolutePath
 
         let id: NodeId
+        let contentId: ContentId
         if (strict) {
             const raw = await this.$io.reader.readMedia(originPath)
             if (!raw.success) {
-                const buildBaseString = this.getHashSeed(
-                    originPath,
-                    assetNode.category
+                const rawSize = String(
+                    await this.$io.reader.getSize(originPath)
                 )
+                const buildBaseString = this.getNodeHashSeed(
+                    originPath,
+                    rawSize
+                )
+                const contentBuildBaseString = this.getContentHashSeed(rawSize)
                 id = this.encodeHashUUID(buildBaseString)
+                contentId = this.encodeHashUUID(contentBuildBaseString)
             } else {
-                const buildBaseString = this.getHashSeed(
+                const rawString = raw.data.toString()
+                const buildBaseString = this.getNodeHashSeed(
                     originPath,
-                    raw.data.toString()
+                    rawString
                 )
+                const contentBuildBaseString =
+                    this.getContentHashSeed(rawString)
                 id = this.encodeHashUUID(buildBaseString)
+                contentId = this.encodeHashUUID(contentBuildBaseString)
             }
         } else {
-            const buildBaseString = this.getHashSeed(
-                originPath,
-                assetNode.category
-            )
+            const rawSize = String(await this.$io.reader.getSize(originPath))
+            const buildBaseString = this.getNodeHashSeed(originPath, rawSize)
+            const contentBuildBaseString = this.getContentHashSeed(rawSize)
             id = this.encodeHashUUID(buildBaseString)
+            contentId = this.encodeHashUUID(contentBuildBaseString)
         }
 
         const generatedAssetPath = await this.options.pathGenerator.assets?.(
@@ -230,6 +259,7 @@ export class BuildInfoGenerator {
         )
         return {
             id,
+            content_id: contentId,
             build_path: {
                 build: buildPath,
                 origin: originPath,
