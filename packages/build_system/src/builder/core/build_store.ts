@@ -37,8 +37,9 @@ export interface BuildInformation {
      * - `ADDED`: target file is added
      * - `UPDATED`: target file is updated
      * - `REMOVED`: target file is removed
+     * - `MOVED`: target file is moved
      */
-    build_state: 'CACHED' | 'ADDED' | 'UPDATED' | 'REMOVED'
+    build_state: 'CACHED' | 'ADDED' | 'UPDATED' | 'REMOVED' | 'MOVED'
 
     /**
      * The paths for the original and built files.
@@ -109,6 +110,16 @@ export class BuildStore {
     public getRemoveTarget(): BuildStoreList {
         return this.getStoreList('current').filter(
             (report) => report.build_state === 'REMOVED'
+        )
+    }
+
+    /**
+     * Gets the list of build store items that have the 'MOVED' build state.
+     * @returns An array of build store items.
+     */
+    public getMoveTarget(): BuildStoreList {
+        return this.getStoreList('current').filter(
+            (report) => report.build_state === 'MOVED'
         )
     }
 
