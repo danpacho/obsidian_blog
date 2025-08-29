@@ -12,7 +12,16 @@ export type NodeType =
     | 'AUDIO_FILE'
     | 'UNKNOWN_FILE'
 
-type NodeBuildInfo = Pick<BuildInformation, 'build_path' | 'id' | 'build_state'>
+type NodeBuildInfo = Pick<
+    BuildInformation,
+    // ids
+    | 'id'
+    | 'content_id'
+    // stat
+    | 'build_state'
+    // path
+    | 'build_path'
+>
 
 export interface ParentNodeInfo {
     absolutePath: string
