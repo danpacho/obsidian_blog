@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.5.15
+
+### Patch Changes
+
+- Fix OS-dependent path segment analyze error at MetaBuilder core plugin
+
 ## 0.5.14
 
 ### Patch Changes
