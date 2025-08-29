@@ -53,7 +53,11 @@ export class BuildCacheManager {
      * @returns A boolean indicating whether the cache contains the build.
      */
     private checkCache(newId: NodeId): boolean {
-        return this.$store.store.prev.has(newId)
+        return this.$store.findById(newId, { target: 'prev' }).success
+    }
+
+    private normalizePath(path: string) {
+        return this.$store.options.io.pathResolver.normalize(path)
     }
 
     /**
@@ -70,6 +74,10 @@ export class BuildCacheManager {
             }
 
         const newId = buildInfo.id
+        const newOriginNormalized = this.normalizePath(
+            buildInfo.build_path.origin
+        )
+
         if (this.checkCache(newId)) {
             const prevInfo = this.$store.findById(newId, {
                 target: 'prev',
@@ -83,16 +91,28 @@ export class BuildCacheManager {
                 }
             }
 
-            if (
-                prevInfo.data.build_path.origin !== buildInfo.build_path.origin
-            ) {
-                this.movedFromOrigins.add(prevInfo.data.build_path.origin)
+            const prevOriginNormalized = this.normalizePath(
+                prevInfo.data.build_path.origin
+            )
+
+            const isNodeMoved = prevOriginNormalized !== newOriginNormalized
+
+            if (isNodeMoved) {
+                this.movedFromOrigins.add(prevOriginNormalized)
+
                 const updatedInfo: BuildInformation = {
                     ...prevInfo.data,
                     ...buildInfo,
                     build_state: 'MOVED',
+                    updated_at: new Date().toISOString(),
+                    build_path: {
+                        build: buildInfo.build_path.build,
+                        origin: buildInfo.build_path.origin,
+                    },
                 }
+
                 this.$store.update(newId, updatedInfo)
+
                 return {
                     success: true,
                     data: updatedInfo,
@@ -103,7 +123,9 @@ export class BuildCacheManager {
                 ...prevInfo.data,
                 ...buildInfo,
                 build_state: 'CACHED',
+                updated_at: new Date().toISOString(),
             }
+
             this.$store.update(newId, updatedInfo)
 
             return {
@@ -120,44 +142,71 @@ export class BuildCacheManager {
         )
 
         const isUpdated = originBuildInfo.success === true
-        const isAdded = originBuildInfo.success === false
+        const wasMovedOrigin = this.movedFromOrigins.has(newOriginNormalized)
+
         if (isUpdated) {
-            const updatedInfo: BuildInformation = {
-                ...originBuildInfo.data,
-                id: newId,
-                created_at: new Date().toISOString(),
-                build_state: 'UPDATED',
-            }
-            this.$store.update(newId, updatedInfo)
-            return {
-                success: true,
-                data: updatedInfo,
-            }
-        }
-        if (isAdded) {
-            const newInfo: BuildInformation = {
-                id: newId,
-                build_state: 'ADDED',
-                created_at: new Date().toISOString(),
-                file_name: node.fileName,
-                file_type: node.category,
-                build_path: {
-                    build: buildInfo.build_path.build,
-                    origin: buildInfo.build_path.origin,
-                },
-            }
-            this.$store.add(newId, newInfo)
-            return {
-                success: true,
-                data: newInfo,
+            if (wasMovedOrigin) {
+                const createdAt = new Date().toISOString()
+                const newInfo: BuildInformation = {
+                    id: newId,
+                    build_state: 'ADDED',
+                    created_at: createdAt,
+                    updated_at: createdAt,
+                    file_name: node.fileName,
+                    file_type: node.category,
+                    build_path: {
+                        build: buildInfo.build_path.build,
+                        origin: buildInfo.build_path.origin,
+                    },
+                }
+
+                this.$store.add(newId, newInfo)
+
+                this.movedFromOrigins.delete(newOriginNormalized)
+
+                return { success: true, data: newInfo }
+            } else {
+                const oldId = originBuildInfo.data.id
+
+                if (oldId !== newId) {
+                    // remove old one
+                    const removed = this.$store.remove(oldId)
+                    if (!removed.success) {
+                        // console.debug('remove oldId failed', rem.error)
+                    }
+                }
+
+                const updatedInfo: BuildInformation = {
+                    ...originBuildInfo.data,
+                    ...buildInfo,
+                    id: newId,
+                    updated_at: new Date().toISOString(),
+                    build_state: 'UPDATED',
+                }
+
+                this.$store.update(newId, updatedInfo)
+
+                return { success: true, data: updatedInfo }
             }
         }
 
+        const createdAt = new Date().toISOString()
+        const newInfo: BuildInformation = {
+            id: newId,
+            build_state: 'ADDED',
+            created_at: createdAt,
+            updated_at: createdAt,
+            file_name: node.fileName,
+            file_type: node.category,
+            build_path: {
+                build: buildInfo.build_path.build,
+                origin: buildInfo.build_path.origin,
+            },
+        }
+        this.$store.add(newId, newInfo)
         return {
-            success: false,
-            error: new Error(
-                `Update impossible: no build information at ${buildInfo.build_path.origin}`
-            ),
+            success: true,
+            data: newInfo,
         }
     }
 
@@ -215,18 +264,23 @@ export class BuildCacheManager {
         if (prev.length === 0) return
 
         const current = this.$store.getStoreList('current')
-        const currentOriginPathList = current.map(
-            ({ build_path }) => build_path.origin
+        const currentOriginPathList = current.map(({ build_path }) =>
+            this.normalizePath(build_path.origin)
         )
 
         prev.filter(
             (origin) =>
-                !currentOriginPathList.includes(origin.build_path.origin) &&
-                !this.movedFromOrigins.has(origin.build_path.origin)
+                !currentOriginPathList.includes(
+                    this.normalizePath(origin.build_path.origin)
+                ) &&
+                !this.movedFromOrigins.has(
+                    this.normalizePath(origin.build_path.origin)
+                )
         ).forEach((removedBuildInfo) => {
-            this.$store.add(removedBuildInfo.id, {
+            this.$store.update(removedBuildInfo.id, {
                 ...removedBuildInfo,
                 build_state: 'REMOVED',
+                updated_at: new Date().toISOString(),
             })
         })
     }
