@@ -15,6 +15,7 @@ const mkInfo = (
     const now = new Date().toISOString()
     return {
         id: id as any,
+        content_id: id as any,
         created_at: now,
         updated_at: now,
         file_name,
