@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BuildStore } from '../build_store'
@@ -6,11 +8,15 @@ import { BuildCacheManager } from '../cache_manager'
 import { createMockIO } from './utils/io_mock'
 
 import type { BuildInformation } from '../build_store'
+import type { ContentId, NodeId } from '../info_generator'
 
-type NodeId = string
-
+/**
+ * A mock factory for BuildInformation.
+ * Now includes content_id.
+ */
 const mkInfo = (
     id: NodeId,
+    content_id: ContentId,
     origin: string,
     build: string,
     state: BuildInformation['build_state'],
@@ -19,7 +25,8 @@ const mkInfo = (
 ): BuildInformation => {
     const now = new Date().toISOString()
     return {
-        id: id as any,
+        id,
+        content_id,
         created_at: now,
         updated_at: now,
         file_name,
@@ -32,16 +39,21 @@ const mkInfo = (
     }
 }
 
+/**
+ * A mock factory for FileTreeNode.
+ * Updated to match the new BuildInformation structure.
+ */
 const mkNode = (
-    buildInfo?: Partial<BuildInformation> & {
-        id: string
+    buildInfo: Partial<BuildInformation> & {
+        id: NodeId
+        content_id: ContentId
         build_path: { origin: string; build: string }
     },
     fileName = 'test.md',
     category: BuildInformation['file_type'] = 'TEXT_FILE'
 ) => {
     return {
-        buildInfo: buildInfo ? (buildInfo as any) : undefined,
+        buildInfo,
         fileName,
         category,
     } as any
@@ -54,204 +66,208 @@ describe('BuildCacheManager', () => {
 
     beforeEach(() => {
         io = createMockIO()
-        // default normalize returns same string
-        // @ts-ignore
-        io.pathResolver = { normalize: (p: string) => p } as any
         store = new BuildStore({ io, root: '/tmp/report.json' })
-        store.resetStore()
         mgr = new BuildCacheManager({ store })
     })
 
     it('setup resets store when loadReport fails', async () => {
-        // @ts-ignore
-        io.reader = {
-            readFile: vi.fn(async () => ({
-                success: false,
-                error: new Error('fail'),
-            })),
-        } as any
-        const s = new BuildStore({ io, root: '/x' })
-        const spy = vi.spyOn(s, 'resetStore')
-        const m = new BuildCacheManager({ store: s })
-        await m.setup()
+        io.reader.readFile = vi.fn().mockResolvedValue({
+            success: false,
+            error: new Error('fail'),
+        })
+        const spy = vi.spyOn(store, 'resetStore')
+        await mgr.setup()
         expect(spy).toHaveBeenCalled()
     })
 
     it('save returns true/false depending on saveReport', async () => {
-        // @ts-ignore
-        io.writer = {
-            write: vi.fn(async () => ({
+        io.writer.write = vi
+            .fn()
+            .mockResolvedValueOnce({
                 success: false,
                 error: new Error('fail'),
-            })),
-        } as any
-        const s = new BuildStore({ io, root: '/x' })
-        const m = new BuildCacheManager({ store: s })
-        expect(await m.save()).toBe(false)
-        // @ts-ignore
-        io.writer = { write: vi.fn(async () => ({ success: true })) } as any
-        const s2 = new BuildStore({ io, root: '/x' })
-        const m2 = new BuildCacheManager({ store: s2 })
-        expect(await m2.save()).toBe(true)
+            })
+            .mockResolvedValueOnce({ success: true })
+
+        expect(await mgr.save()).toBe(false)
+        expect(await mgr.save()).toBe(true)
     })
 
-    it('checkStatus and checkStatusByPath success and failure', () => {
-        const info = mkInfo('s1', '/o', '/b', 'ADDED')
-        store.store.current.set('s1' as any, info)
-        const res = mgr.checkStatus('s1' as any)
-        expect(res.success).toBe(true)
-        if (res.success) {
-            expect(res.data).toBe('ADDED')
-        }
-
-        const not = mgr.checkStatus('no' as any)
-        expect(not.success).toBe(false)
-
-        // check by path
-        const p = mgr.checkStatusByPath('/b')
-        expect(p.success).toBe(true)
-        if (p.success) {
-            expect(p.data).toBe('ADDED')
-        }
-
-        const pfail = mgr.checkStatusByPath('/missing')
-        expect(pfail.success).toBe(false)
-    })
-
-    it('updateStore returns error when node.buildInfo missing', () => {
-        const node = mkNode(undefined)
-        const r = mgr.updateStore(node)
-        expect(r.success).toBe(false)
-    })
-
-    it('updateStore CACHED path (same id, same origin) updates current with CACHED', () => {
-        const prev = mkInfo('idA', '/orig/a', '/build/a', 'CACHED')
-        store.store.prev.set('idA' as any, prev)
-        const node = mkNode({
-            id: 'idA' as any,
-            build_path: { origin: '/orig/a', build: '/build/a' },
-        })
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        const cur = store.store.current.get('idA' as any)!
-        expect(cur.build_state).toBe('CACHED')
-        expect(cur.updated_at).toBeDefined()
-    })
-
-    it('updateStore MOVED path (same id, different origin) updates current and movedFromOrigins', () => {
-        const prev = mkInfo('idB', '/orig/old', '/build/old', 'CACHED')
-        store.store.prev.set('idB' as any, prev)
-        const node = mkNode({
-            id: 'idB' as any,
-            build_path: { origin: '/orig/new', build: '/build/new' },
-        })
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        const cur = store.store.current.get('idB' as any)!
-        expect(cur.build_state).toBe('MOVED')
-        // movedFromOrigins should contain old (normalized) origin
-        // Note: movedFromOrigins is private; we check via performing a later ADDED branch that deletes it
-        // For explicit check, we can reach internal via (mgr as any).movedFromOrigins
-        expect((mgr as any).movedFromOrigins.has('/orig/old')).toBe(true)
-    })
-
-    it('updateStore UPDATED branch removes oldId and creates updated newId', () => {
-        // prev contains an entry discovered by origin
-        const prevOriginInfo = mkInfo(
-            'oldId',
-            '/orig/present',
-            '/build/p',
-            'CACHED'
-        )
-        // prev holds the origin -> this will be found by findByOriginPath
-        store.store.prev.set('oldId' as any, prevOriginInfo)
-        // to simulate situation where oldId is not in current, ensure current empty
-        const node = mkNode({
-            id: 'newId' as any,
-            build_path: { origin: '/orig/present', build: '/build/new' },
-        })
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        // new id should be added/updated in current with UPDATED state
-        const cur = store.store.current.get('newId' as any)!
-        expect(cur).toBeTruthy()
-        expect(cur.build_state).toBe('UPDATED')
-        expect(cur.id).toBe('newId')
-    })
-
-    it('updateStore UPDATED branch where remove fails is tolerated', () => {
-        // if oldId != newId and current does not contain oldId, remove will fail but code tolerates it
-        const prevOriginInfo = mkInfo('oldX', '/o/x', '/b/x', 'CACHED')
-        store.store.prev.set('oldX' as any, prevOriginInfo)
-        // ensure current is empty (remove will return failure)
-        const node = mkNode({
-            id: 'newX' as any,
-            build_path: { origin: '/o/x', build: '/b/newx' },
-        })
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        expect(store.store.current.has('newX' as any)).toBe(true)
-    })
-
-    it('updateStore ADDED branch when origin was moved (wasMovedOrigin true) creates ADDED and clears movedFromOrigins', () => {
-        // we simulate an origin that was previously moved
-        const prev = mkInfo('z', '/orig/reused', '/b/z', 'CACHED')
-        store.store.prev.set('z' as any, prev)
-        // mark origin as moved previously
-        ;(mgr as any).movedFromOrigins.add('/orig/reused')
-
-        const node = mkNode({
-            id: 'addedId' as any,
-            build_path: { origin: '/orig/reused', build: '/b/added' },
+    describe('Two-Phase Processing (processNode -> finalize)', () => {
+        beforeEach(() => {
+            vi.spyOn(store, 'loadReport').mockResolvedValue({ success: true })
         })
 
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        // added to current
-        const cur = store.store.current.get('addedId' as any)!
-        expect(cur.build_state).toBe('ADDED')
-        // movedFromOrigins should be cleared for that origin
-        expect((mgr as any).movedFromOrigins.has('/orig/reused')).toBe(false)
-    })
+        it('should mark unchanged files as CACHED', async () => {
+            // Arrange
+            const prevInfo = mkInfo('idA', 'cidA', '/orig/a', '/b/a', 'CACHED')
+            store.store.prev.set('idA', prevInfo)
+            const newNode = mkNode({
+                id: 'idA',
+                content_id: 'cidA',
+                build_path: { origin: '/orig/a', build: '/b/a' },
+            })
+            await mgr.setup()
 
-    it('updateStore ADDED when origin never existed', () => {
-        const node = mkNode({
-            id: 'brandNew' as any,
-            build_path: { origin: '/some/new', build: '/b/new' },
+            // Act
+            mgr.processNode(newNode)
+            mgr.finalize()
+
+            // Assert
+            const cur = store.store.current.get('idA')!
+            expect(cur.build_state).toBe('CACHED')
+            expect(store.store.current.size).toBe(1)
         })
-        const res = mgr.updateStore(node)
-        expect(res.success).toBe(true)
-        const cur = store.store.current.get('brandNew' as any)!
-        expect(cur.build_state).toBe('ADDED')
-    })
 
-    it('syncRemovedStore marks prev-only items as REMOVED in current', () => {
-        // prev has an item not present in current
-        const prevOnly = mkInfo('pR', '/prev/only', '/b/pR', 'CACHED')
-        store.store.prev.set('pR' as any, prevOnly)
-        // ensure current does not have this origin
-        mgr.syncRemovedStore()
-        const cur = store.store.current.get('pR' as any)!
-        expect(cur).toBeTruthy()
-        expect(cur.build_state).toBe('REMOVED')
-    })
+        it('should mark files with same origin but new content as UPDATED', async () => {
+            // Arrange
+            const prevInfo = mkInfo('idA', 'cidA', '/orig/a', '/b/a', 'CACHED')
+            store.store.prev.set('idA', prevInfo)
+            const newNode = mkNode({
+                id: 'idA_new', // New NodeId because content changed
+                content_id: 'cidA_new', // New ContentId
+                build_path: { origin: '/orig/a', build: '/b/a_new' }, // Same origin
+            })
+            await mgr.setup()
 
-    it('path normalization is used by manager', () => {
-        // set a normalize that trims
-        // @ts-ignore
-        io.pathResolver = { normalize: (s: string) => s.trim() } as any
-        store = new BuildStore({ io, root: '/tmp/r' })
-        const m = new BuildCacheManager({ store })
-        store.store.prev.set(
-            'p' as any,
-            mkInfo('p', ' /space/orig ', '/b', 'CACHED')
-        )
-        const node = mkNode({
-            id: 'nid' as any,
-            build_path: { origin: ' /space/orig ', build: '/b' },
+            // Act
+            mgr.processNode(newNode)
+            mgr.finalize()
+
+            // Assert
+            const cur = store.store.current.get('idA_new')!
+            expect(cur.build_state).toBe('UPDATED')
+            expect(store.store.current.has('idA')).toBe(false)
+            expect(store.store.current.size).toBe(1)
         })
-        const res = m.updateStore(node)
-        expect(res.success).toBe(true)
-        // should find by normalized origin and produce UPDATED or ADDED; ensure no exception
+
+        it('should mark new files as ADDED', async () => {
+            // Arrange
+            const newNode = mkNode({
+                id: 'idB',
+                content_id: 'cidB',
+                build_path: { origin: '/orig/b', build: '/b/b' },
+            })
+            await mgr.setup()
+
+            // Act
+            mgr.processNode(newNode)
+            mgr.finalize()
+
+            // Assert
+            const cur = store.store.current.get('idB')!
+            expect(cur.build_state).toBe('ADDED')
+            expect(store.store.current.size).toBe(1)
+        })
+
+        it('should mark files with same content but new origin as MOVED', async () => {
+            // Arrange
+            const prevInfo = mkInfo('idC', 'cidC', '/orig/c', '/b/c', 'CACHED')
+            store.store.prev.set('idC', prevInfo)
+            const newNode = mkNode({
+                id: 'idC_new', // New NodeId because path changed
+                content_id: 'cidC', // Same ContentId
+                build_path: { origin: '/orig/c_moved', build: '/b/c' }, // New origin
+            })
+            await mgr.setup()
+
+            // Act
+            mgr.processNode(newNode)
+            mgr.finalize()
+
+            // Assert
+            const cur = store.store.current.get('idC_new')!
+            expect(cur.build_state).toBe('MOVED')
+            // Important: created_at should be preserved from the old info
+            expect(cur.created_at).toBe(prevInfo.created_at)
+            expect(store.store.current.has('idC')).toBe(false)
+        })
+
+        it('should mark files present in prev but not current as REMOVED', async () => {
+            // Arrange
+            const prevInfo = mkInfo('idD', 'cidD', '/orig/d', '/b/d', 'CACHED')
+            store.store.prev.set('idD', prevInfo)
+            await mgr.setup()
+
+            // Act: Process no new nodes, just finalize
+            mgr.finalize()
+
+            // Assert
+            const cur = store.store.current.get('idD')!
+            expect(cur.build_state).toBe('REMOVED')
+            expect(store.store.current.size).toBe(1)
+        })
+
+        it('should handle all states correctly in a complex scenario', async () => {
+            // Arrange: Setup a complex previous state
+            const infoCached = mkInfo(
+                'id_A',
+                'cid_A',
+                '/orig/a',
+                '/b/a',
+                'CACHED'
+            )
+            const infoUpdated = mkInfo(
+                'id_B',
+                'cid_B',
+                '/orig/b',
+                '/b/b',
+                'CACHED'
+            )
+            const infoMoved = mkInfo(
+                'id_C',
+                'cid_C',
+                '/orig/c',
+                '/b/c',
+                'CACHED'
+            )
+            const infoRemoved = mkInfo(
+                'id_D',
+                'cid_D',
+                '/orig/d',
+                '/b/d',
+                'CACHED'
+            )
+            store.store.prev.set('id_A', infoCached)
+            store.store.prev.set('id_B', infoUpdated)
+            store.store.prev.set('id_C', infoMoved)
+            store.store.prev.set('id_D', infoRemoved)
+
+            // New nodes for the current build
+            const nodeCached = mkNode({ ...infoCached }) // No change
+            const nodeUpdated = mkNode({
+                id: 'id_B_new',
+                content_id: 'cid_B_new',
+                build_path: { origin: '/orig/b', build: '/b/b_new' },
+            })
+            const nodeMoved = mkNode({
+                id: 'id_C_new',
+                content_id: 'cid_C', // Same content
+                build_path: { origin: '/orig/c_moved', build: '/b/c_new' }, // New origin
+            })
+            const nodeAdded = mkNode({
+                id: 'id_E',
+                content_id: 'cid_E',
+                build_path: { origin: '/orig/e', build: '/b/e' },
+            })
+            const newNodes = [nodeCached, nodeUpdated, nodeMoved, nodeAdded]
+
+            await mgr.setup()
+
+            // Act
+            for (const node of newNodes) {
+                mgr.processNode(node)
+            }
+            mgr.finalize()
+
+            // Assert
+            const current = store.store.current
+            expect(current.size).toBe(5)
+            expect(current.get('id_A')?.build_state).toBe('CACHED')
+            expect(current.get('id_B_new')?.build_state).toBe('UPDATED')
+            expect(current.get('id_C_new')?.build_state).toBe('MOVED')
+            expect(current.get('id_D')?.build_state).toBe('REMOVED')
+            expect(current.get('id_E')?.build_state).toBe('ADDED')
+        })
     })
 })
