@@ -270,10 +270,57 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
     }
 
-    public override async cleanup(): Promise<void> {
+    private async _moveAll(): Promise<void> {
         const store = this.getRunTimeDependency('buildStore')
+        const moveTargets = store.getMoveTarget()
+        if (moveTargets.length === 0) return
 
+        const movePromises = moveTargets.map((target) => {
+            const prevInfo = store.findById(target.id, { target: 'prev' })
+
+            if (prevInfo.success) {
+                const oldBuildPath = prevInfo.data.build_path.build
+                const newBuildPath = target.build_path.build
+                const isDir = target.file_type === 'FOLDER'
+
+                return isDir
+                    ? this.$io.moveDirectory({
+                          from: oldBuildPath,
+                          to: newBuildPath,
+                      })
+                    : this.$io.moveFile({
+                          from: oldBuildPath,
+                          to: newBuildPath,
+                      })
+            }
+
+            this.$logger.error(
+                `Could not find previous build state for MOVED file: ${target.build_path.origin}`
+            )
+
+            return Promise.resolve({
+                success: false,
+                error: new Error('Previous state not found'),
+            })
+        })
+
+        const moveBatch = await Promise.all(movePromises)
+
+        const hasError = moveBatch.some((result) => !result.success)
+        if (hasError) {
+            this.$logger.error('Some assets could not be moved.')
+            for (const result of moveBatch) {
+                if (!result.success) {
+                    this.$logger.error(`Failed to move: ${result.error}`)
+                }
+            }
+        }
+    }
+
+    private async _removeAll(): Promise<void> {
+        const store = this.getRunTimeDependency('buildStore')
         const removeTarget = store.getRemoveTarget()
+        if (removeTarget.length === 0) return
 
         const removeBatch = await Promise.all(
             removeTarget.map((target) =>
@@ -282,7 +329,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         )
 
         const hasError = removeBatch.some((result) => !result.success)
-
         if (hasError) {
             this.$logger.error('Some files could not be removed.')
             for (const result of removeBatch) {
@@ -291,7 +337,12 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                 }
             }
         }
+    }
 
+    public override async cleanup(): Promise<void> {
+        await Promise.all([this._moveAll(), this._removeAll()])
+
+        const store = this.getRunTimeDependency('buildStore')
         const save = await store.saveReport()
 
         if (!save.success) {
@@ -473,7 +524,9 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
 
         const updateTargetReport = totalTargetReport.filter(
             ({ build_state }) =>
-                build_state === 'UPDATED' || build_state === 'ADDED'
+                build_state === 'UPDATED' ||
+                build_state === 'ADDED' ||
+                build_state === 'MOVED'
         )
 
         return updateTargetReport
