@@ -249,6 +249,30 @@ export class BuildStore {
     }
 
     /**
+     * Finds the first build information entry that matches the given ContentId.
+     * @param contentId - The content ID to search for.
+     * @param options - The store to search in ('prev' or 'current').
+     * @returns A stateful object with the found data or an error.
+     */
+    public findByContentId(
+        contentId: ContentId,
+        options: { target: 'prev' | 'current' }
+    ): Stateful<BuildInformation> {
+        const targetStore = this.store[options.target]
+        for (const info of targetStore.values()) {
+            if (info.content_id === contentId) {
+                return { success: true, data: info }
+            }
+        }
+        return {
+            success: false,
+            error: new Error(
+                `No build information found with content_id: ${contentId}`
+            ),
+        }
+    }
+
+    /**
      * Resets the store by clearing the previous and current build store maps.
      */
     public resetStore(): void {
