@@ -4,7 +4,7 @@ import {
     type Stateful,
 } from '@obsidian_blogger/helpers'
 
-import type { NodeId } from './info_generator'
+import type { ContentId, NodeId } from './info_generator'
 import type { NodeType } from '../../parser/node'
 
 /**
@@ -15,6 +15,11 @@ export interface BuildInformation {
      * The unique identifier of the node.
      */
     id: NodeId
+
+    /**
+     *  Unique content identifier id for a node
+     */
+    content_id: ContentId
 
     /**
      * The timestamp when the build information was created.
