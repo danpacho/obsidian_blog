@@ -18,6 +18,8 @@ export class BuildCacheManager {
         private readonly options: BuildCacheManagerConstructor
     ) {}
 
+    private readonly movedFromOrigins = new Set<string>()
+
     /**
      * Gets the store used by the BuildCacheManager.
      */
@@ -80,6 +82,23 @@ export class BuildCacheManager {
                     ),
                 }
             }
+
+            if (
+                prevInfo.data.build_path.origin !== buildInfo.build_path.origin
+            ) {
+                this.movedFromOrigins.add(prevInfo.data.build_path.origin)
+                const updatedInfo: BuildInformation = {
+                    ...prevInfo.data,
+                    ...buildInfo,
+                    build_state: 'MOVED',
+                }
+                this.$store.update(newId, updatedInfo)
+                return {
+                    success: true,
+                    data: updatedInfo,
+                }
+            }
+
             const updatedInfo: BuildInformation = {
                 ...prevInfo.data,
                 ...buildInfo,
@@ -202,7 +221,8 @@ export class BuildCacheManager {
 
         prev.filter(
             (origin) =>
-                !currentOriginPathList.includes(origin.build_path.origin)
+                !currentOriginPathList.includes(origin.build_path.origin) &&
+                !this.movedFromOrigins.has(origin.build_path.origin)
         ).forEach((removedBuildInfo) => {
             this.$store.add(removedBuildInfo.id, {
                 ...removedBuildInfo,
