@@ -171,6 +171,10 @@ export class BuildResultLogger {
                             buildState = this.$logger.c.bgRed(lowerCaseState)
                             break
                         }
+                        case 'MOVED': {
+                            buildState = `${this.$logger.c.bgMagenta(lowerCaseState)}`
+                            break
+                        }
                     }
                     return ` › ${buildState}`
                 }
