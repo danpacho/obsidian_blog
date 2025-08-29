@@ -1,5 +1,4 @@
 import { IO } from '@obsidian_blogger/helpers/io'
-import { PluginConfigStorage } from '@obsidian_blogger/plugin_api/bridge'
 
 import { BuildSystem } from '../../../index'
 import { MetaEngine } from '../../../meta/engine'
@@ -105,27 +104,6 @@ const createBuildSystem = (
     return system
 }
 
-const _setupPluginConfigStorage = (distFolder: string) => {
-    const walkTreeConfigStorage = new PluginConfigStorage({
-        name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system__walk_tree.json`,
-    })
-    const buildTreeConfigStorage = new PluginConfigStorage({
-        name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system__build_tree.json`,
-    })
-    const buildContentsConfigStorage = new PluginConfigStorage({
-        name: 'config_storage',
-        root: `${distFolder}/bridge/.store/build/build_system__build_contents.json`,
-    })
-
-    return {
-        buildTree: buildTreeConfigStorage,
-        walkTree: walkTreeConfigStorage,
-        buildContents: buildContentsConfigStorage,
-    }
-}
-
 type TESTER_CONTENTS =
     | 'markdown.md'
     | 'img.md'
@@ -151,10 +129,12 @@ const pipe = async ({
     plugin,
     targetContents,
     targetAssets,
+    cleanupDist = true,
 }: {
     plugin: Partial<BuildSystemPluginAdapter>
     targetContents?: ContentsSelector<TESTER_CONTENTS>
     targetAssets?: ContentsSelector<TESTER_ASSETS>
+    cleanupDist?: boolean
 }): Promise<{
     buildFileNames: {
         contents: string[]
@@ -182,8 +162,10 @@ const pipe = async ({
 
     const distFolder = `${PREFIX}/dist/${pluginName}`
 
-    // Clean up the dist folder
-    await io.writer.deleteDirectory(distFolder)
+    if (cleanupDist) {
+        // Clean up the dist folder
+        await io.writer.deleteDirectory(distFolder)
+    }
 
     const system = createBuildSystem(plugin, distFolder)
 
