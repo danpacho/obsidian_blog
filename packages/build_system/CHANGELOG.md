@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.1
+
+### Patch Changes
+
+- Fix file movement situation update based on cases
+
 ## 0.6.0
 
 ### Minor Changes
