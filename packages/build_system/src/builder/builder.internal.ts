@@ -275,44 +275,139 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         const moveTargets = store.getMoveTarget()
         if (moveTargets.length === 0) return
 
-        const movePromises = moveTargets.map((target) => {
+        // collect entries with normalized paths
+        const entries = moveTargets.map((target) => {
             const prevInfo = store.findById(target.id, { target: 'prev' })
-
-            if (prevInfo.success) {
-                const oldBuildPath = prevInfo.data.build_path.build
-                const newBuildPath = target.build_path.build
-                const isDir = target.file_type === 'FOLDER'
-
-                return isDir
-                    ? this.$io.moveDirectory({
-                          from: oldBuildPath,
-                          to: newBuildPath,
-                      })
-                    : this.$io.moveFile({
-                          from: oldBuildPath,
-                          to: newBuildPath,
-                      })
+            if (!prevInfo.success) {
+                return {
+                    error: new Error(`No prev for ${target.build_path.origin}`),
+                    target,
+                }
             }
-
-            this.$logger.error(
-                `Could not find previous build state for MOVED file: ${target.build_path.origin}`
-            )
-
-            return Promise.resolve({
-                success: false,
-                error: new Error('Previous state not found'),
-            })
+            const oldRaw = prevInfo.data.build_path.build
+            const newRaw = target.build_path.build
+            const oldPath = this.$io.pathResolver
+                ? this.$io.pathResolver.resolveToOsPath(oldRaw)
+                : oldRaw
+            const newPath = this.$io.pathResolver
+                ? this.$io.pathResolver.resolveToOsPath(newRaw)
+                : newRaw
+            const isDir = target.file_type === 'FOLDER'
+            return { oldPath, newPath, isDir, id: target.id, target }
         })
 
-        const moveBatch = await Promise.all(movePromises)
+        // filter errors out and log them
+        const errors = entries.filter((e: any) => (e as any).error)
+        for (const e of errors) {
+            this.$logger.error(
+                'Could not find previous build state for MOVED file:',
+                (e as any).target?.build_path?.origin
+            )
+        }
+        let valid = entries.filter((e: any) => !(e as any).error) as Array<{
+            oldPath: string
+            newPath: string
+            isDir: boolean
+            id: string
+        }>
 
-        const hasError = moveBatch.some((result) => !result.success)
-        if (hasError) {
-            this.$logger.error('Some assets could not be moved.')
-            for (const result of moveBatch) {
-                if (!result.success) {
-                    this.$logger.error(`Failed to move: ${result.error}`)
+        // skip identical paths
+        valid = valid.filter((e) => e.oldPath !== e.newPath)
+
+        // sort by oldPath depth DESC -> children first
+        valid.sort(
+            (a, b) =>
+                this.$io.pathResolver.splitToPathSegments(b.oldPath).length -
+                this.$io.pathResolver.splitToPathSegments(a.oldPath).length
+        )
+
+        const results: Array<{ success: boolean; error?: any; id?: string }> =
+            []
+
+        for (const e of valid) {
+            const { oldPath, newPath, isDir, id } = e
+
+            // check destination existence if API provides check
+            const destExists = await this.$io.reader.checkExists(newPath)
+
+            if (destExists) {
+                // Policy A: keep the newly created destination; remove old
+                const del = await this.$io.writer.delete(oldPath)
+                if (!del.success) {
+                    this.$logger.error(
+                        `Failed to delete old path ${oldPath} for moved id ${id}:`,
+                        del.error
+                    )
+                    results.push({ success: false, error: del.error, id })
+                } else {
+                    results.push({ success: true, id })
                 }
+                continue
+            }
+
+            // destination does not exist -> attempt move
+            try {
+                const moveResult = isDir
+                    ? await this.$io.moveDirectory({
+                          from: oldPath,
+                          to: newPath,
+                      })
+                    : await this.$io.moveFile({ from: oldPath, to: newPath })
+
+                if (!moveResult.success) {
+                    // fallback: if cp exists, try copy+delete (handles cross-device)
+                    if (isDir) {
+                        const cp = await this.$io.cpDirectory({
+                            from: oldPath,
+                            to: newPath,
+                        })
+                        if (cp.success) {
+                            await this.$io.writer.delete(oldPath)
+                            results.push({ success: true, id })
+                            continue
+                        }
+                    } else if (!isDir) {
+                        const cp = await this.$io.cpFile({
+                            from: oldPath,
+                            to: newPath,
+                            type: 'media',
+                        })
+                        if (cp.success) {
+                            await this.$io.writer.delete(oldPath)
+                            results.push({ success: true, id })
+                            continue
+                        }
+                    }
+
+                    this.$logger.error(
+                        `Move failed for ${oldPath} -> ${newPath}:`,
+                        moveResult.error
+                    )
+                    results.push({
+                        success: false,
+                        error: moveResult.error,
+                        id,
+                    })
+                } else {
+                    results.push({ success: true, id })
+                }
+            } catch (err) {
+                this.$logger.error(
+                    `Exception when moving ${oldPath} -> ${newPath}:`,
+                    err
+                )
+                results.push({ success: false, error: err, id })
+            }
+        }
+
+        // report summary
+        const failed = results.filter((r) => !r.success)
+        if (failed.length > 0) {
+            this.$logger.error(
+                `Some assets could not be moved: ${failed.length} failures.`
+            )
+            for (const f of failed) {
+                this.$logger.error(`Failed move id ${f.id}:`, f.error)
             }
         }
     }
@@ -340,7 +435,8 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
     }
 
     public override async cleanup(): Promise<void> {
-        await Promise.all([this._moveAll(), this._removeAll()])
+        await this._moveAll()
+        await this._removeAll()
 
         const store = this.getRunTimeDependency('buildStore')
         const save = await store.saveReport()
