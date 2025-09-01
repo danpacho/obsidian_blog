@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.9
+
+### Patch Changes
+
+- Fix caching logic for reference updated text files
+
 ## 0.6.8
 
 ### Patch Changes
