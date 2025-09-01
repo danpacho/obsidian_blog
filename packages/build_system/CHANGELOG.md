@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.7
+
+### Patch Changes
+
+- Fix obsidian reference collection process, add MOVED, assest moved nodes
+
 ## 0.6.6
 
 ### Patch Changes
