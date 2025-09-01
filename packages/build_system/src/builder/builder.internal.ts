@@ -10,7 +10,12 @@ import {
 import { PluginCachePipelines } from './plugin/cache.interface'
 
 import type { FileTreeNode, FileTreeParser, FolderNode } from '../parser'
-import type { BuildCacheManager, BuildStore, BuildStoreList } from './core'
+import type {
+    BuildCacheManager,
+    BuildInformation,
+    BuildStore,
+    BuildStoreList,
+} from './core'
 import type {
     BuildContentsPlugin,
     BuildTreePlugin,
@@ -327,6 +332,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             newPath: string
             isDir: boolean
             id: string
+            target: BuildInformation
         }>
 
         // skip identical paths
@@ -344,25 +350,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         for (const e of valid) {
             const { oldPath, newPath, isDir, id } = e
-
-            // check destination existence if API provides check
-            const destExists = await this.$io.reader.checkExists(newPath)
-
-            if (destExists) {
-                // Policy A: keep the newly created destination; remove old
-                const del = await this.$io.writer.delete(oldPath)
-
-                if (!del.success) {
-                    this.$logger.error(
-                        `Failed to delete old path ${oldPath} for moved id ${id}:`,
-                        del.error
-                    )
-                    results.push({ success: false, error: del.error, id })
-                } else {
-                    results.push({ success: true, id })
-                }
-                continue
-            }
 
             try {
                 const moveResult = isDir
@@ -385,10 +372,9 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                             continue
                         }
                     } else if (!isDir) {
-                        const cp = await this.$io.cpFile({
+                        const cp = await this.$io.cpFileStream({
                             from: oldPath,
                             to: newPath,
-                            type: 'media',
                         })
 
                         if (cp.success) {
@@ -420,7 +406,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
 
         // report summary
-
         const failed = results.filter((r) => !r.success)
 
         if (failed.length > 0) {
