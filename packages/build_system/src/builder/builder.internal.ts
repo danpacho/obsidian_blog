@@ -10,12 +10,7 @@ import {
 import { PluginCachePipelines } from './plugin/cache.interface'
 
 import type { FileTreeNode, FileTreeParser, FolderNode } from '../parser'
-import type {
-    BuildCacheManager,
-    BuildInformation,
-    BuildStore,
-    BuildStoreList,
-} from './core'
+import type { BuildCacheManager, BuildStore, BuildStoreList } from './core'
 import type {
     BuildContentsPlugin,
     BuildTreePlugin,
@@ -293,32 +288,22 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         if (moveTargets.length === 0) return
 
         // collect entries with normalized paths
-        const entries = moveTargets.map((newTarget) => {
-            const prevInfo = store.findByContentId(newTarget.content_id, {
+        const entries = moveTargets.map((target) => {
+            const prevInfo = store.findByContentId(target.content_id, {
                 target: 'prev',
             })
 
             if (!prevInfo.success) {
                 return {
-                    error: new Error(
-                        `No prev for ${newTarget.build_path.origin}`
-                    ),
-                    target: newTarget,
+                    error: new Error(`No prev for ${target.build_path.origin}`),
+                    target,
                 }
             }
-
             const oldPath = prevInfo.data.build_path.build
-            const newPath = newTarget.build_path.build
-            const isDir = newTarget.file_type === 'FOLDER'
+            const newPath = target.build_path.build
 
-            return {
-                oldPath,
-                newPath,
-                isDir,
-                id: newTarget.id,
-                newTarget,
-                oldTarget: prevInfo.data,
-            }
+            const isDir = target.file_type === 'FOLDER'
+            return { oldPath, newPath, isDir, id: target.id, target }
         })
 
         // filter errors out and log them
@@ -336,8 +321,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             newPath: string
             isDir: boolean
             id: string
-            newTarget: BuildInformation
-            oldTarget: BuildInformation
         }>
 
         // skip identical paths
@@ -354,49 +337,34 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             []
 
         for (const e of valid) {
-            const { oldPath, newPath, isDir, id, oldTarget } = e
+            const { oldPath, newPath, isDir, id } = e
+
+            // check destination existence if API provides check
+            const destExists = await this.$io.reader.checkExists(newPath)
+
+            if (destExists) {
+                // Policy A: keep the newly created destination; remove old
+                const del = await this.$io.writer.delete(oldPath)
+
+                if (!del.success) {
+                    this.$logger.error(
+                        `Failed to delete old path ${oldPath} for moved id ${id}:`,
+                        del.error
+                    )
+                    results.push({ success: false, error: del.error, id })
+                } else {
+                    results.push({ success: true, id })
+                }
+                continue
+            }
 
             try {
-                const isFromExist = await this.$io.reader.checkExists(oldPath)
-                if (!isFromExist) {
-                    this.$logger.warn(
-                        `${oldPath} is not existed. Copy from ${oldTarget.build_path.origin}. Not safe progress, from should be correctly existed by prev build result.`
-                    )
-
-                    const forceCopy = isDir
-                        ? await this.$io.cpDirectory({
-                              from: oldTarget.build_path.origin,
-                              to: oldPath,
-                          })
-                        : await this.$io.cpFileStream({
-                              from: oldTarget.build_path.origin,
-                              to: oldPath,
-                          })
-
-                    if (!forceCopy.success) {
-                        this.$logger.error(
-                            `Copy from ${oldTarget.build_path.origin} operation failed.`
-                        )
-
-                        results.push({
-                            success: false,
-                            error: forceCopy.error,
-                            id,
-                        })
-
-                        continue
-                    }
-                }
-
                 const moveResult = isDir
                     ? await this.$io.moveDirectory({
                           from: oldPath,
                           to: newPath,
                       })
-                    : await this.$io.moveFile({
-                          from: oldPath,
-                          to: newPath,
-                      })
+                    : await this.$io.moveFile({ from: oldPath, to: newPath })
 
                 if (!moveResult.success) {
                     if (isDir) {
@@ -411,9 +379,10 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                             continue
                         }
                     } else if (!isDir) {
-                        const cp = await this.$io.cpFileStream({
+                        const cp = await this.$io.cpFile({
                             from: oldPath,
                             to: newPath,
+                            type: 'media',
                         })
 
                         if (cp.success) {
@@ -445,6 +414,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
 
         // report summary
+
         const failed = results.filter((r) => !r.success)
 
         if (failed.length > 0) {
