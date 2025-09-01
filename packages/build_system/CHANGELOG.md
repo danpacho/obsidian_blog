@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.4
+
+### Patch Changes
+
+- Fix unsafe removal process at moved node's duplication process
+
 ## 0.6.3
 
 ### Patch Changes
