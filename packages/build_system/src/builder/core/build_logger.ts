@@ -29,6 +29,37 @@ export class BuildResultLogger {
      */
     public constructor(public readonly option: BuildResultLoggerConstructor) {}
 
+    private getBuildState(state?: BuildInformation['build_state']): string {
+        if (!state) return ''
+        const lowerCaseState = this.$logger.c
+            .ansi256(0)
+            .underline(` ${state.toLowerCase()} `)
+        let buildState = ''
+        switch (state) {
+            case 'ADDED': {
+                buildState = `${this.$logger.c.bgGreen(lowerCaseState)}`
+                break
+            }
+            case 'CACHED': {
+                buildState = `${this.$logger.c.bgYellowBright(lowerCaseState)}`
+                break
+            }
+            case 'UPDATED': {
+                buildState = `${this.$logger.c.bgBlueBright(lowerCaseState)}`
+                break
+            }
+            case 'REMOVED': {
+                buildState = this.$logger.c.bgRed(lowerCaseState)
+                break
+            }
+            case 'MOVED': {
+                buildState = `${this.$logger.c.bgMagenta(lowerCaseState)}`
+                break
+            }
+        }
+        return ` › ${buildState}`
+    }
+
     /**
      * Generates the log message for a file or folder node in the tree.
      * @param node - The file or folder node.
@@ -47,12 +78,16 @@ export class BuildResultLogger {
         switch (category) {
             case 'FOLDER': {
                 const folderLeaf = isLastElement ? ` └─›` : ` ├─›`
-                const folderLog = `${LEAF.repeat(logDepth)}${folderLeaf} ${this.$logger.c.dim(`${fileName}`)}`
+                const folderLog = `${LEAF.repeat(
+                    logDepth
+                )}${folderLeaf} ${this.$logger.c.dim(`${fileName}`)}`
                 return folderLog
             }
             default: {
                 const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
-                const fileLog = `${LEAF.repeat(logDepth)}${fileLeaf} ${this.$logger.c.white(fileName)}`
+                const fileLog = `${LEAF.repeat(
+                    logDepth
+                )}${fileLeaf} ${this.$logger.c.white(fileName)}`
                 return fileLog
             }
         }
@@ -90,7 +125,11 @@ export class BuildResultLogger {
     }): Promise<FolderNode | undefined> {
         this.$logger.log(
             this.$logger.c.green(
-                ` ● [ ${this.$logger.c.bold(ast.fileName)} ] » ${this.$logger.c.underline(this.$parser.options.rootFolder)}`
+                ` ● [ ${this.$logger.c.bold(
+                    ast.fileName
+                )} ] » ${this.$logger.c.underline(
+                    this.$parser.options.rootFolder
+                )}`
             ),
             {
                 prefix: 'none',
@@ -118,6 +157,57 @@ export class BuildResultLogger {
             ast,
             buildReport,
         })
+        await this.writeAssetLog({
+            buildReport,
+        })
+    }
+
+    private async writeAssetLog({
+        buildReport,
+    }: {
+        buildReport: BuildStoreList
+    }): Promise<void> {
+        const allASTPaths = new Set<string>()
+        await this.$parser.walk(
+            async (node) => {
+                allASTPaths.add(node.absolutePath)
+            },
+            {
+                type: 'DFS',
+            }
+        )
+
+        const assetReports = buildReport.filter(
+            (report) => !allASTPaths.has(report.build_path.build)
+        )
+
+        if (!assetReports.length) return
+
+        this.$logger.log(
+            this.$logger.c.green(` ● [ ${this.$logger.c.bold('assets')} ]`),
+            {
+                prefix: 'none',
+            }
+        )
+
+        const buildLog: Array<string> = []
+
+        assetReports.forEach((report, index) => {
+            const isLastElement = index === assetReports.length - 1
+            const fileName =
+                report.build_path.build.split(/[/\\]/).pop() ??
+                report.build_path.build
+
+            const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
+            const fileLog = `${fileLeaf} ${this.$logger.c.white(fileName)}`
+            const stateLog = this.getBuildState(report.build_state)
+            const log = `${fileLog}${stateLog}`
+            buildLog.push(log)
+        })
+
+        this.$logger.log(buildLog.join('\n'), {
+            prefix: 'none',
+        })
     }
 
     /**
@@ -135,7 +225,11 @@ export class BuildResultLogger {
             const removed: Array<string> = buildReportList
                 .filter((report) => report.build_state === 'REMOVED')
                 .map((report) => {
-                    return `${this.$logger.c.bgRed.ansi256(0).underline(' - removed ')} » ${this.$logger.c.red(report.build_path.origin)}`
+                    return `${this.$logger.c.bgRed
+                        .ansi256(0)
+                        .underline(' - removed ')} » ${this.$logger.c.red(
+                        report.build_path.origin
+                    )}`
                 })
             buildLog.push(...removed)
         }
@@ -146,39 +240,6 @@ export class BuildResultLogger {
                     (report) => report.build_path.build === node.absolutePath
                 )?.build_state
 
-                const getBuildState = (
-                    state?: BuildInformation['build_state']
-                ): string => {
-                    if (!state) return ''
-                    const lowerCaseState = this.$logger.c
-                        .ansi256(0)
-                        .underline(` ${state.toLowerCase()} `)
-                    let buildState = ''
-                    switch (state) {
-                        case 'ADDED': {
-                            buildState = `${this.$logger.c.bgGreen(lowerCaseState)}`
-                            break
-                        }
-                        case 'CACHED': {
-                            buildState = `${this.$logger.c.bgYellowBright(lowerCaseState)}`
-                            break
-                        }
-                        case 'UPDATED': {
-                            buildState = `${this.$logger.c.bgBlueBright(lowerCaseState)}`
-                            break
-                        }
-                        case 'REMOVED': {
-                            buildState = this.$logger.c.bgRed(lowerCaseState)
-                            break
-                        }
-                        case 'MOVED': {
-                            buildState = `${this.$logger.c.bgMagenta(lowerCaseState)}`
-                            break
-                        }
-                    }
-                    return ` › ${buildState}`
-                }
-
                 const isLastElement: boolean =
                     (siblings?.length ?? 0) - 1 === siblingsIndex
 
@@ -186,7 +247,7 @@ export class BuildResultLogger {
                     node,
                     isLastElement
                 )
-                const stateLog: string = getBuildState(buildState)
+                const stateLog: string = this.getBuildState(buildState)
                 const log = `${treeLog}${stateLog}`
 
                 buildLog.push(log)
