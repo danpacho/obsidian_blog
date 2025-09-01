@@ -293,28 +293,32 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         if (moveTargets.length === 0) return
 
         // collect entries with normalized paths
-        const entries = moveTargets.map((target) => {
-            const prevInfo = store.findByContentId(target.content_id, {
+        const entries = moveTargets.map((newTarget) => {
+            const prevInfo = store.findByContentId(newTarget.content_id, {
                 target: 'prev',
             })
 
             if (!prevInfo.success) {
                 return {
-                    error: new Error(`No prev for ${target.build_path.origin}`),
-                    target,
+                    error: new Error(
+                        `No prev for ${newTarget.build_path.origin}`
+                    ),
+                    target: newTarget,
                 }
             }
-            const oldRaw = prevInfo.data.build_path.build
-            const newRaw = target.build_path.build
 
-            const oldPath = this.$io.pathResolver
-                ? this.$io.pathResolver.resolveToOsPath(oldRaw)
-                : oldRaw
-            const newPath = this.$io.pathResolver
-                ? this.$io.pathResolver.resolveToOsPath(newRaw)
-                : newRaw
-            const isDir = target.file_type === 'FOLDER'
-            return { oldPath, newPath, isDir, id: target.id, target }
+            const oldPath = prevInfo.data.build_path.build
+            const newPath = newTarget.build_path.build
+            const isDir = newTarget.file_type === 'FOLDER'
+
+            return {
+                oldPath,
+                newPath,
+                isDir,
+                id: newTarget.id,
+                newTarget,
+                oldTarget: prevInfo.data,
+            }
         })
 
         // filter errors out and log them
@@ -332,7 +336,8 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             newPath: string
             isDir: boolean
             id: string
-            target: BuildInformation
+            newTarget: BuildInformation
+            oldTarget: BuildInformation
         }>
 
         // skip identical paths
@@ -349,15 +354,49 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             []
 
         for (const e of valid) {
-            const { oldPath, newPath, isDir, id } = e
+            const { oldPath, newPath, isDir, id, oldTarget } = e
 
             try {
+                const isFromExist = await this.$io.reader.checkExists(oldPath)
+                if (!isFromExist) {
+                    this.$logger.warn(
+                        `${oldPath} is not existed. Copy from ${oldTarget.build_path.origin}. Not safe progress, from should be correctly existed by prev build result.`
+                    )
+
+                    const forceCopy = isDir
+                        ? await this.$io.cpDirectory({
+                              from: oldTarget.build_path.origin,
+                              to: oldPath,
+                          })
+                        : await this.$io.cpFileStream({
+                              from: oldTarget.build_path.origin,
+                              to: oldPath,
+                          })
+
+                    if (!forceCopy.success) {
+                        this.$logger.error(
+                            `Copy from ${oldTarget.build_path.origin} operation failed.`
+                        )
+
+                        results.push({
+                            success: false,
+                            error: forceCopy.error,
+                            id,
+                        })
+
+                        continue
+                    }
+                }
+
                 const moveResult = isDir
                     ? await this.$io.moveDirectory({
                           from: oldPath,
                           to: newPath,
                       })
-                    : await this.$io.moveFile({ from: oldPath, to: newPath })
+                    : await this.$io.moveFile({
+                          from: oldPath,
+                          to: newPath,
+                      })
 
                 if (!moveResult.success) {
                     if (isDir) {
