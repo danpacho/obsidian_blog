@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.8
+
+### Patch Changes
+
+- Optimize performance for obsidian reference and build logger
+
 ## 0.6.7
 
 ### Patch Changes
