@@ -11,8 +11,9 @@ interface BuildResultLoggerConstructor {
         assets: string
     }
 }
+
 /**
- * Represents a logger for build results.
+ * Represents a logger for build results using an efficient, single-pass algorithm.
  */
 export class BuildResultLogger {
     private get $logger() {
@@ -23,11 +24,139 @@ export class BuildResultLogger {
         return this.option.parser
     }
 
-    /**
-     * Creates a new instance of BuildResultLogger.
-     * @param option - The options for the logger.
-     */
     public constructor(public readonly option: BuildResultLoggerConstructor) {}
+
+    /**
+     * The main public method to write the entire build log.
+     * It orchestrates the logging in a single pass over the file tree.
+     */
+    public async writeBuilderLog({
+        ast,
+        buildReport,
+    }: {
+        ast: FolderNode
+        buildReport: BuildStoreList
+    }): Promise<void> {
+        this.writeBuildReportHeader()
+
+        // 1. Convert the report array to a Map for O(1) average time lookups.
+        const reportMap = new Map(
+            buildReport.map((report) => [report.build_path.build, report])
+        )
+
+        // 2. Log removed files first, and remove them from the map.
+        this.logRemovedFiles(reportMap)
+
+        // 3. Walk the tree ONCE to log content files.
+        // This method will also remove the logged files from the reportMap.
+        await this.logContentTree(ast, reportMap)
+
+        // 4. Any reports left in the map must be assets. Log them.
+        this.logAssets(reportMap)
+    }
+
+    private writeBuildReportHeader(): void {
+        const localDate = new Date().toLocaleString()
+        this.$logger.box(
+            `${this.$logger.c.green('Build Report')} - ${localDate}`,
+            {
+                borderStyle: 'round',
+                padding: 0.75,
+                borderColor: 'green',
+            }
+        )
+    }
+
+    private logRemovedFiles(reportMap: Map<string, BuildInformation>): void {
+        const removedLogs: string[] = []
+        for (const report of reportMap.values()) {
+            if (report.build_state === 'REMOVED') {
+                removedLogs.push(
+                    `${this.$logger.c.bgRed
+                        .ansi256(0)
+                        .underline(' - removed ')} » ${this.$logger.c.red(
+                        report.build_path.origin
+                    )}`
+                )
+                // Once logged, remove from the map so it's not processed again.
+                reportMap.delete(report.build_path.build)
+            }
+        }
+
+        if (removedLogs.length > 0) {
+            this.$logger.log(removedLogs.join('\n'), { prefix: 'none' })
+        }
+    }
+
+    /**
+     * Walks the AST, logs content files, and removes them from the report map.
+     */
+    private async logContentTree(
+        ast: FolderNode,
+        reportMap: Map<string, BuildInformation>
+    ): Promise<void> {
+        this.$logger.log(
+            this.$logger.c.green(
+                ` ● [ ${this.$logger.c.bold(
+                    ast.fileName
+                )} ] » ${this.$logger.c.underline(
+                    this.$parser.options.rootFolder
+                )}`
+            ),
+            { prefix: 'none' }
+        )
+
+        const buildLog: string[] = []
+
+        await this.$parser.walk(
+            async (node, { siblings, siblingsIndex }) => {
+                const report = reportMap.get(node.absolutePath)
+                const isLastElement =
+                    (siblings?.length ?? 0) - 1 === siblingsIndex
+
+                const treeLog = this.getTreeLogMessage(node, isLastElement)
+                const stateLog = this.getBuildState(report?.build_state)
+                buildLog.push(`${treeLog}${stateLog}`)
+
+                // Critical step: remove the processed content file from the map.
+                if (report) {
+                    reportMap.delete(node.absolutePath)
+                }
+            },
+            { type: 'DFS' }
+        )
+
+        this.$logger.log(buildLog.join('\n'), { prefix: 'none' })
+    }
+
+    /**
+     * Logs the remaining reports in the map, which are guaranteed to be assets.
+     */
+    private logAssets(assetMap: Map<string, BuildInformation>): void {
+        if (assetMap.size === 0) return
+
+        this.$logger.log(
+            this.$logger.c.green(` ● [ ${this.$logger.c.bold('assets')} ]`),
+            { prefix: 'none' }
+        )
+
+        const buildLog: string[] = []
+        const assetReports = Array.from(assetMap.values())
+
+        assetReports.forEach((report, index) => {
+            const isLastElement = index === assetReports.length - 1
+            const fileName =
+                report.build_path.build.split(/[/\\]/).pop() ??
+                report.build_path.build
+
+            const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
+            const fileLog = `${fileLeaf} ${this.$logger.c.white(fileName)}`
+            const stateLog = this.getBuildState(report.build_state)
+            buildLog.push(`${fileLog}${stateLog}`)
+        })
+
+        this.$logger.log(buildLog.join('\n'), { prefix: 'none' })
+    }
 
     private getBuildState(state?: BuildInformation['build_state']): string {
         if (!state) return ''
@@ -60,12 +189,6 @@ export class BuildResultLogger {
         return ` › ${buildState}`
     }
 
-    /**
-     * Generates the log message for a file or folder node in the tree.
-     * @param node - The file or folder node.
-     * @param isLastElement - Indicates if the node is the last element in its parent's children.
-     * @returns The log message for the node.
-     */
     private getTreeLogMessage(
         node: FileTreeNode,
         isLastElement: boolean = false
@@ -91,174 +214,5 @@ export class BuildResultLogger {
                 return fileLog
             }
         }
-    }
-
-    /**
-     * Writes the header for the build report.
-     */
-    private writeBuildReportHeader(): void {
-        const localDate = new Date().toLocaleString()
-        this.$logger.box(
-            `${this.$logger.c.green('Build Report')} - ${localDate}`,
-            {
-                borderStyle: 'round',
-                padding: 0.75,
-                borderColor: 'green',
-            }
-        )
-    }
-
-    /**
-     * Writes the AST log for a target root directory.
-     * @param targetRootDirPath - The path of the target root directory.
-     * @param buildReportSet - The build report set.
-     * @param logRemoved - Indicates if removed files should be logged.
-     */
-    private async writeASTLog({
-        ast,
-        buildReport,
-        logRemoved = false,
-    }: {
-        ast: FolderNode
-        buildReport: BuildStoreList
-        logRemoved?: boolean
-    }): Promise<FolderNode | undefined> {
-        this.$logger.log(
-            this.$logger.c.green(
-                ` ● [ ${this.$logger.c.bold(
-                    ast.fileName
-                )} ] » ${this.$logger.c.underline(
-                    this.$parser.options.rootFolder
-                )}`
-            ),
-            {
-                prefix: 'none',
-            }
-        )
-        await this.walkASTForBuildLog(buildReport, logRemoved)
-
-        return ast
-    }
-
-    /**
-     * Writes the builder log for the build report.
-     * @param buildReport - The build report.
-     */
-    public async writeBuilderLog({
-        ast,
-        buildReport,
-    }: {
-        ast: FolderNode
-        buildReport: BuildStoreList
-    }): Promise<void> {
-        this.writeBuildReportHeader()
-
-        await this.writeASTLog({
-            ast,
-            buildReport,
-        })
-        await this.writeAssetLog({
-            buildReport,
-        })
-    }
-
-    private async writeAssetLog({
-        buildReport,
-    }: {
-        buildReport: BuildStoreList
-    }): Promise<void> {
-        const allASTPaths = new Set<string>()
-        await this.$parser.walk(
-            async (node) => {
-                allASTPaths.add(node.absolutePath)
-            },
-            {
-                type: 'DFS',
-            }
-        )
-
-        const assetReports = buildReport.filter(
-            (report) => !allASTPaths.has(report.build_path.build)
-        )
-
-        if (!assetReports.length) return
-
-        this.$logger.log(
-            this.$logger.c.green(` ● [ ${this.$logger.c.bold('assets')} ]`),
-            {
-                prefix: 'none',
-            }
-        )
-
-        const buildLog: Array<string> = []
-
-        assetReports.forEach((report, index) => {
-            const isLastElement = index === assetReports.length - 1
-            const fileName =
-                report.build_path.build.split(/[/\\]/).pop() ??
-                report.build_path.build
-
-            const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
-            const fileLog = `${fileLeaf} ${this.$logger.c.white(fileName)}`
-            const stateLog = this.getBuildState(report.build_state)
-            const log = `${fileLog}${stateLog}`
-            buildLog.push(log)
-        })
-
-        this.$logger.log(buildLog.join('\n'), {
-            prefix: 'none',
-        })
-    }
-
-    /**
-     * Walks the AST and generates the build log.
-     * @param buildReportList - The build report list.
-     * @param logRemoved - Indicates if removed files should be logged.
-     */
-    private async walkASTForBuildLog(
-        buildReportList: BuildStoreList,
-        logRemoved: boolean = false
-    ): Promise<void> {
-        const buildLog: Array<string> = []
-
-        if (logRemoved) {
-            const removed: Array<string> = buildReportList
-                .filter((report) => report.build_state === 'REMOVED')
-                .map((report) => {
-                    return `${this.$logger.c.bgRed
-                        .ansi256(0)
-                        .underline(' - removed ')} » ${this.$logger.c.red(
-                        report.build_path.origin
-                    )}`
-                })
-            buildLog.push(...removed)
-        }
-
-        await this.$parser.walk(
-            async (node, { siblings, siblingsIndex }) => {
-                const buildState = buildReportList.find(
-                    (report) => report.build_path.build === node.absolutePath
-                )?.build_state
-
-                const isLastElement: boolean =
-                    (siblings?.length ?? 0) - 1 === siblingsIndex
-
-                const treeLog: string = this.getTreeLogMessage(
-                    node,
-                    isLastElement
-                )
-                const stateLog: string = this.getBuildState(buildState)
-                const log = `${treeLog}${stateLog}`
-
-                buildLog.push(log)
-            },
-            {
-                type: 'DFS',
-            }
-        )
-
-        this.$logger.log(buildLog.join('\n'), {
-            prefix: 'none',
-        })
     }
 }
