@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.5
+
+### Patch Changes
+
+- Fix edge case for move files - when from(prev build path) does not existed.
+
 ## 0.6.4
 
 ### Patch Changes
