@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.6
+
+### Patch Changes
+
+- Rollback, not an error for movement
+
 ## 0.6.5
 
 ### Patch Changes
