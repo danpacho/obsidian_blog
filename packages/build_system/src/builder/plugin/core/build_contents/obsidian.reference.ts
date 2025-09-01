@@ -373,32 +373,34 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             return []
         }
 
+        const filesToProcess = this.referenceUpdateTextFileList.filter(
+            (textFile) => this.cacheChecker(textFile.build_state)
+        )
+
         const buildAssetPath = this.$buildPath.assets
 
-        const processingPromises = this.referenceUpdateTextFileList.map(
-            async (textFile) => {
-                const textFileContent = await this.$io.reader.readFile(
-                    textFile.build_path.build
-                )
-                if (textFileContent.success) {
-                    const updatedVFile = await this.$processor.remark
-                        .use(this.RemarkObsidianReferencePlugin, {
-                            referenceMap: this.referenceMap!,
-                            buildAssetPath,
-                        })
-                        .process(textFileContent.data)
+        const processingPromises = filesToProcess.map(async (textFile) => {
+            const textFileContent = await this.$io.reader.readFile(
+                textFile.build_path.build
+            )
+            if (textFileContent.success) {
+                const updatedVFile = await this.$processor.remark
+                    .use(this.RemarkObsidianReferencePlugin, {
+                        referenceMap: this.referenceMap!,
+                        buildAssetPath,
+                    })
+                    .process(textFileContent.data)
 
-                    return {
-                        newContent: updatedVFile.toString(),
-                        writePath: textFile.build_path.build,
-                    }
+                return {
+                    newContent: updatedVFile.toString(),
+                    writePath: textFile.build_path.build,
                 }
-                this.$logger.warn(
-                    `Could not read file: ${textFile.build_path.build}`
-                )
-                return null
             }
-        )
+            this.$logger.warn(
+                `Could not read file: ${textFile.build_path.build}`
+            )
+            return null
+        })
 
         const referenceUpdatedList = (
             await Promise.all(processingPromises)
