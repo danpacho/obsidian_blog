@@ -6,7 +6,8 @@ import {
     type BuildContentsPluginStaticConfig,
 } from '../../build.contents.plugin'
 
-import type { BuildStoreList } from '../../../core'
+import type { BuildInformation, BuildStoreList } from '../../../core'
+import type { BuildContentsUpdateInformation } from '../../build.contents.plugin'
 import type { Parent, RootContent } from 'mdast'
 import type { Plugin } from 'unified'
 
@@ -311,25 +312,25 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         | ObsidianReferencePluginOptions['referenceMap']
         | undefined = undefined
 
-    private referenceUpdateTextFileList: BuildStoreList | undefined = undefined
+    private hasMovedAssets = false
 
     public override async prepare(): Promise<void> {
         const buildStore =
             this.getRunTimeDependency('buildStore').getStoreList('current')
 
-        const assetReferencesUUIDList = buildStore
-            .filter(
-                ({ file_type }) =>
-                    file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
-            )
-            .map((report) => ({
-                build: report.build_path.build,
-                origin: report.build_path.origin,
-            }))
-
-        this.referenceUpdateTextFileList = buildStore.filter(
-            ({ file_type }) => file_type === 'TEXT_FILE'
+        const assetReferences = buildStore.filter(
+            ({ file_type }) =>
+                file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
         )
+
+        this.hasMovedAssets = assetReferences.some(
+            (report) => report.build_state === 'MOVED'
+        )
+
+        const assetReferencesUUIDList = assetReferences.map((report) => ({
+            build: report.build_path.build,
+            origin: report.build_path.origin,
+        }))
 
         const buildAssetPath = this.$buildPath.assets
 
@@ -339,44 +340,65 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         )
     }
 
-    public async buildContents(): Promise<
-        Array<{
-            newContent: string
-            writePath: string
-        }>
-    > {
-        if (!this.referenceMap || !this.referenceUpdateTextFileList) {
-            this.$logger.error(
-                'referenceMap or referenceUpdateTextFileList not prepared'
-            )
+    public override cacheChecker = (
+        buildState: BuildInformation['build_state']
+    ): boolean => {
+        // filtering => true === target
+        if (this.hasMovedAssets) {
+            // If assets were moved, we must re-process all text files
+            // to ensure links are updated, regardless of their cache status.
+            return true
+        }
+
+        // Default behavior: Only process new, updated, or moved text files.
+        return (
+            buildState === 'UPDATED' ||
+            buildState === 'ADDED' ||
+            buildState === 'MOVED'
+        )
+    }
+
+    public async buildContents({
+        buildStore: filesToProcess,
+    }: {
+        buildStore: BuildStoreList
+    }): Promise<BuildContentsUpdateInformation> {
+        if (!this.referenceMap) {
+            this.$logger.error('referenceMap not prepared')
             return []
         }
 
         const buildAssetPath = this.$buildPath.assets
 
-        const referenceUpdatedList =
-            await this.referenceUpdateTextFileList.reduce<
-                Promise<{ newContent: string; writePath: string }[]>
-            >(async (acc, textFile) => {
-                const awaitedAcc = await acc
-                const textFileContent = await this.$io.reader.readFile(
-                    textFile.build_path.build
-                )
-                if (textFileContent.success) {
-                    const updatedVFile = await this.$processor.remark
-                        .use(this.RemarkObsidianReferencePlugin, {
-                            referenceMap: this.referenceMap!,
-                            buildAssetPath,
-                        })
-                        .process(textFileContent.data)
-
-                    awaitedAcc.push({
-                        newContent: updatedVFile.toString(),
-                        writePath: textFile.build_path.build,
+        const processingPromises = filesToProcess.map(async (textFile) => {
+            const textFileContent = await this.$io.reader.readFile(
+                textFile.build_path.build
+            )
+            if (textFileContent.success) {
+                const updatedVFile = await this.$processor.remark
+                    .use(this.RemarkObsidianReferencePlugin, {
+                        referenceMap: this.referenceMap!,
+                        buildAssetPath,
                     })
+                    .process(textFileContent.data)
+
+                return {
+                    newContent: updatedVFile.toString(),
+                    writePath: textFile.build_path.build,
                 }
-                return awaitedAcc
-            }, Promise.resolve([]))
+            }
+            this.$logger.warn(
+                `Could not read file: ${textFile.build_path.build}`
+            )
+            return null
+        })
+
+        const referenceUpdatedList = (
+            await Promise.all(processingPromises)
+        ).filter(
+            (result): result is { newContent: string; writePath: string } =>
+                result !== null
+        )
 
         return referenceUpdatedList
     }
