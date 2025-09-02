@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.6.10
+
+### Patch Changes
+
+- Fix reference collection MOVED assets
+
 ## 0.6.9
 
 ### Patch Changes
