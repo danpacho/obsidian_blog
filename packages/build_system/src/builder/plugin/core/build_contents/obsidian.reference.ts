@@ -14,6 +14,7 @@ import type { Plugin } from 'unified'
 type ImageReference = Array<{
     origin: string
     build: string
+    origin_old?: string
 }>
 
 interface ObsidianReferencePluginOptions {
@@ -23,6 +24,7 @@ interface ObsidianReferencePluginOptions {
             origin: string
             build: string
             buildReplaced: string
+            origin_old?: string
         }>
     >
 }
@@ -52,29 +54,25 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             const candidates = referenceMap.get(fileNameWithExt)
             if (!candidates?.length) return null
             if (candidates.length === 1) return candidates[0]!.buildReplaced
-            // Prefer exact matches in origin path
-            const found = candidates.filter((r) =>
-                this.$io.pathResolver
-                    .normalize(r.origin)
-                    .includes(fileNameWithExt)
-            )
-            if (found.length === 0) {
-                return null
-            }
-            if (found.length === 1) {
-                return found[0]!.buildReplaced
-            }
 
-            const exactMatch = found.find((r) =>
-                this.$io.pathResolver.normalize(r.origin).includes(fullFileName)
+            // Prefer exact matches in origin path (current or old)
+            const exactMatch = candidates.find(
+                (r) =>
+                    this.$io.pathResolver
+                        .normalize(r.origin)
+                        .includes(fullFileName) ||
+                    (r.origin_old &&
+                        this.$io.pathResolver
+                            .normalize(r.origin_old)
+                            .includes(fullFileName))
             )
 
             if (exactMatch) {
                 return exactMatch.buildReplaced
             }
 
-            // If no exact match, return the first candidate
-            return found[0]!.buildReplaced
+            // If no exact match, we should not guess.
+            return null
         }
 
         // Parse dimension strings like "300x200" or "150"
@@ -283,7 +281,12 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         buildAssetPath: string
     ): Map<
         string,
-        Array<{ origin: string; build: string; buildReplaced: string }>
+        Array<{
+            origin: string
+            build: string
+            buildReplaced: string
+            origin_old?: string
+        }>
     > {
         const referenceMap: ObsidianReferencePluginOptions['referenceMap'] =
             new Map()
@@ -299,11 +302,20 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             const buildPath = ref.build
             const buildReplaced = buildPath.replace(buildAssetPath, '')
 
-            entry.push({
-                origin: ref.origin,
-                build: buildPath,
-                buildReplaced: buildReplaced,
-            })
+            entry.push(
+                ref.origin_old
+                    ? {
+                          origin: ref.origin,
+                          build: buildPath,
+                          buildReplaced: buildReplaced,
+                          origin_old: ref.origin_old,
+                      }
+                    : {
+                          origin: ref.origin,
+                          build: buildPath,
+                          buildReplaced: buildReplaced,
+                      }
+            )
             referenceMap.set(pureFilename, entry)
         }
         return referenceMap
@@ -316,15 +328,17 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
     private referenceUpdateTextFileList: BuildStoreList | undefined = undefined
 
     public override async prepare(): Promise<void> {
-        const buildStore =
+        const buildStoreCurrent =
             this.getRunTimeDependency('buildStore').getStoreList('current')
+        const buildStorePrev =
+            this.getRunTimeDependency('buildStore').getStoreList('prev')
 
-        const assetReferences = buildStore.filter(
+        const assetReferences = buildStoreCurrent.filter(
             ({ file_type }) =>
                 file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
         )
 
-        this.referenceUpdateTextFileList = buildStore.filter(
+        this.referenceUpdateTextFileList = buildStoreCurrent.filter(
             ({ file_type }) => file_type === 'TEXT_FILE'
         )
 
@@ -332,10 +346,29 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             (report) => report.build_state === 'MOVED'
         )
 
-        const assetReferencesUUIDList = assetReferences.map((report) => ({
-            build: report.build_path.build,
-            origin: report.build_path.origin,
-        }))
+        const assetReferencesUUIDList: ImageReference = assetReferences.map(
+            (report) => {
+                let origin_old: string | undefined = undefined
+                if (report.build_state === 'MOVED') {
+                    const prevReport = buildStorePrev.find(
+                        (prev) => prev.content_id === report.content_id
+                    )
+                    if (prevReport) {
+                        origin_old = prevReport.build_path.origin
+                    }
+                }
+                return origin_old
+                    ? {
+                          build: report.build_path.build,
+                          origin: report.build_path.origin,
+                          origin_old,
+                      }
+                    : {
+                          build: report.build_path.build,
+                          origin: report.build_path.origin,
+                      }
+            }
+        )
 
         const buildAssetPath = this.$buildPath.assets
 
