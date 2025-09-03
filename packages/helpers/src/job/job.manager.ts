@@ -43,6 +43,17 @@ export interface Job<JobResponse = unknown> {
 export type InferJobResponse<JobShape> =
     JobShape extends Job<infer Res> ? Res : never
 
+export interface JobFlowController {
+    /**
+     * Stops the job execution, after current job
+     */
+    stop: () => void
+    /**
+     * Resumes the job execution, after current job
+     */
+    resume: () => void
+}
+
 /**
  * Represents a job registration in the job manager.
  * @template JobResponse The type of the job response.
@@ -78,23 +89,14 @@ export interface JobRegistration<JobResponse, JobPrepare> {
      * @returns A promise that resolves to the job response.
      */
     execute(
-        controller: {
-            /**
-             * Stops the job execution, after current job
-             */
-            stop: () => void
-            /**
-             * Resumes the job execution, after current job
-             */
-            resume: () => void
-        },
+        controller: JobFlowController,
         preparedCalculation: JobPrepare | undefined
     ): Promise<JobResponse>
 
     /**
      * Lifecycle hooks for the job registration.
      *
-     * A function that is **executed after** the job completes.
+     * A function that is **executed after** the **Each** job completes.
      * @param job The completed job.
      * @returns A promise that resolves when the after-job tasks are completed.
      */
@@ -293,7 +295,7 @@ export class JobManager<JobResponse = unknown, JobPrepare = unknown> {
             this.jobStart(targetHistoryJob)
             await this.notifyJobProgress(targetHistoryJob)
             try {
-                const jobResponse = await job.execute(
+                const jobResponse: JobResponse = await job.execute(
                     processController,
                     preparedArgs
                 )
