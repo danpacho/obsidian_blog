@@ -70,10 +70,7 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
         return ast
     }
 
-    public async execute(
-        _: { stop: () => void; resume: () => void },
-        cachePipe: PluginCachePipelines['treeCachePipeline']
-    ) {
+    public async execute() {
         this.$jobManager.registerJob({
             name: 'build:internal',
             prepare: async () => {
@@ -82,6 +79,7 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
             execute: async () => {
                 const parser = this.getRunTimeDependency('parser')
                 const cacheManager = this.getRunTimeDependency('cacheManager')
+                const cachePipeline = this.getRunTimeDependency('cachePipeline')
 
                 const error: BuildPluginResponse['error'] = []
 
@@ -101,7 +99,7 @@ export abstract class BuilderInternalPlugin extends BuildPlugin<
                 await parser.walk(
                     async (node, context) => {
                         if (
-                            cachePipe({
+                            cachePipeline({
                                 node,
                                 context,
                                 cacheManager,
@@ -243,7 +241,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         switch (buildState) {
             case 'ADDED':
             case 'UPDATED':
-                // Only copy files that are new or have been updated.
                 await this.copyNode(node)
                 break
 
@@ -261,19 +258,41 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
     private async copyNode(node: FileTreeNode): Promise<void> {
         const { buildInfo, absolutePath, category } = node
+        const store = this.getRunTimeDependency('buildStore')
+
         if (!buildInfo) return // Should be guarded already, but for type safety.
 
         const { origin, build } = buildInfo.build_path
+
+        const prevInfoByContentID = store.findByOriginPath(
+            buildInfo.build_path.origin,
+            {
+                target: 'prev',
+            }
+        )
+        if (prevInfoByContentID.success) {
+            this.$logger.info(prevInfoByContentID)
+            // we should remove prev file
+            // image node id is changed based on <fileSize> -> ID changed -> prev delete needed.
+            const deletePrev = await this.$io.writer.delete(
+                prevInfoByContentID.data.build_path.build
+            )
+            if (!deletePrev) {
+                this.$logger.warn(
+                    `Failed to delete ${prevInfoByContentID.data.build_path.build}, this file should be removed for newly updated file ${build}`
+                )
+            }
+        }
+
         const copyOperation =
             category === 'FOLDER'
-                ? this.$io.cpDirectory({ from: origin, to: build })
-                : this.$io.cpFileStream({
+                ? await this.$io.cpDirectory({ from: origin, to: build })
+                : await this.$io.cpFileStream({
                       from: origin,
                       to: build,
                   })
 
-        const result = await copyOperation
-        if (!result.success) {
+        if (!copyOperation.success) {
             this.$logger.error(
                 `Failed to copy ${category.toLowerCase()} ${absolutePath} to ${build}`
             )
@@ -289,17 +308,20 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
 
         // collect entries with normalized paths
         const entries = moveTargets.map((target) => {
-            const prevInfo = store.findByContentId(target.content_id, {
-                target: 'prev',
-            })
+            const prevInfoByContentID = store.findByContentId(
+                target.content_id,
+                {
+                    target: 'prev',
+                }
+            )
 
-            if (!prevInfo.success) {
+            if (!prevInfoByContentID.success) {
                 return {
                     error: new Error(`No prev for ${target.build_path.origin}`),
                     target,
                 }
             }
-            const oldPath = prevInfo.data.build_path.build
+            const oldPath = prevInfoByContentID.data.build_path.build
             const newPath = target.build_path.build
 
             const isDir = target.file_type === 'FOLDER'
@@ -339,25 +361,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         for (const e of valid) {
             const { oldPath, newPath, isDir, id } = e
 
-            // check destination existence if API provides check
-            const destExists = await this.$io.reader.checkExists(newPath)
-
-            if (destExists) {
-                // Policy A: keep the newly created destination; remove old
-                const del = await this.$io.writer.delete(oldPath)
-
-                if (!del.success) {
-                    this.$logger.error(
-                        `Failed to delete old path ${oldPath} for moved id ${id}:`,
-                        del.error
-                    )
-                    results.push({ success: false, error: del.error, id })
-                } else {
-                    results.push({ success: true, id })
-                }
-                continue
-            }
-
             try {
                 const moveResult = isDir
                     ? await this.$io.moveDirectory({
@@ -367,31 +370,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
                     : await this.$io.moveFile({ from: oldPath, to: newPath })
 
                 if (!moveResult.success) {
-                    if (isDir) {
-                        const cp = await this.$io.cpDirectory({
-                            from: oldPath,
-                            to: newPath,
-                        })
-
-                        if (cp.success) {
-                            await this.$io.writer.delete(oldPath)
-                            results.push({ success: true, id })
-                            continue
-                        }
-                    } else if (!isDir) {
-                        const cp = await this.$io.cpFile({
-                            from: oldPath,
-                            to: newPath,
-                            type: 'media',
-                        })
-
-                        if (cp.success) {
-                            await this.$io.writer.delete(oldPath)
-                            results.push({ success: true, id })
-                            continue
-                        }
-                    }
-
                     this.$logger.error(
                         `Move failed for ${oldPath} -> ${newPath}:`,
                         moveResult.error
@@ -414,7 +392,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
 
         // report summary
-
         const failed = results.filter((r) => !r.success)
 
         if (failed.length > 0) {
@@ -454,7 +431,7 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
         }
     }
 
-    public override async cleanup(): Promise<void> {
+    public override async cleanupAll(): Promise<void> {
         await this._moveAll()
         await this._removeAll()
 
@@ -503,34 +480,11 @@ export class BuilderInternalPluginRunner extends Runner.PluginRunner<
     BuilderInternalPlugin,
     BuilderInternalPluginDependencies
 > {
-    public async run(
-        pluginPipes: BuilderInternalPlugin[],
-        context: BuilderInternalPluginDependencies
-    ) {
-        for (const plugin of pluginPipes) {
-            this.$pluginRunner.registerJob({
-                name: plugin.name,
-                prepare: async () => {
-                    plugin.injectDependencies(context)
-                    await plugin.prepare?.()
-                },
-                execute: async (controller) => {
-                    return await plugin.execute(
-                        controller,
-                        context.cachePipeline
-                    )
-                },
-                cleanup: async (job) => {
-                    for (const res of job.response ?? []) {
-                        await plugin.cleanup?.(res)
-                    }
-                },
-            })
-        }
-
-        await this.$pluginRunner.processJobs()
-
-        return this.history
+    protected override async pluginPrepare(
+        plugin: BuilderInternalPlugin,
+        runtimeDependencies: BuilderInternalPluginDependencies
+    ): Promise<void> {
+        runtimeDependencies.logger.updateName(plugin.name)
     }
 }
 
