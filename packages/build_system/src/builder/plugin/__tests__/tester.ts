@@ -7,38 +7,74 @@ import type { FileTreeNode } from '../../../parser/node'
 import type { BuildSystemPluginAdapter } from '../../builder.plugin.interface'
 import type { PathGenerator } from '../../core'
 
-const PREFIX = `${process.cwd()}/packages/build_system/src/builder/plugin/__tests__/__fixtures__`
+const io = new IO()
+
+const PREFIX = io.pathResolver.resolveToOsPath(
+    `${process.cwd()}/packages/build_system/src/builder/plugin/__tests__/__fixtures__`
+)
+const VAULT_ROOT = io.pathResolver.resolveToOsPath(`${PREFIX}/$$root$$`)
+const DIST_ROOT = io.pathResolver.resolveToOsPath(`${PREFIX}/dist`)
+
+const getPluginPaths = (pluginName: string) => {
+    const dist = io.pathResolver.resolveToOsPath(`${DIST_ROOT}/${pluginName}`)
+    const vault = io.pathResolver.resolveToOsPath(`${dist}/vault`)
+    const bridge = io.pathResolver.resolveToOsPath(`${dist}/bridge`)
+    const build = io.pathResolver.resolveToOsPath(`${dist}/build`)
+    const contents = io.pathResolver.resolveToOsPath(`${build}/contents`)
+    const assets = io.pathResolver.resolveToOsPath(`${build}/assets`)
+
+    return {
+        dist,
+        vault,
+        build,
+        contents,
+        bridge,
+        assets,
+        vaultPath: (p: string) =>
+            io.pathResolver.resolveToOsPath(`${vault}/${p}`),
+        contentsPath: (p: string) =>
+            io.pathResolver.resolveToOsPath(`${contents}/${p}`),
+        assetsPath: (p: string) =>
+            io.pathResolver.resolveToOsPath(`${assets}/${p}`),
+    }
+}
 
 const createBuildSystem = (
     plugin: Partial<BuildSystemPluginAdapter>,
-    distFolder: string
+    paths: ReturnType<typeof getPluginPaths>
 ) => {
-    const pathGen: PathGenerator = async (node, { vaultRoot }) => {
+    const contentsPathGenerator: PathGenerator = async (node, buildTools) => {
         const analyzeFileName = (
             folderName?: string
         ): {
             type: 'route' | 'group' | 'series' | 'root'
             value: string
         } => {
+            // empty -> root
             if (!folderName) {
                 return {
                     type: 'root',
                     value: '',
                 }
             }
+            // [folderName] -> route
             if (folderName.match(/^\[(.*?)\]$/)) {
                 const matchedValue = folderName.slice(1, -1)
                 return {
                     type: 'route',
                     value: matchedValue,
                 }
-            } else if (folderName.startsWith('@')) {
+            }
+            // @[folderName] -> series
+            else if (folderName.startsWith('@')) {
                 const matchedValue = folderName.substring(1)
                 return {
                     type: 'series',
                     value: matchedValue,
                 }
-            } else {
+            }
+            // folderName -> group
+            else {
                 return {
                     type: 'group',
                     value: folderName,
@@ -54,48 +90,36 @@ const createBuildSystem = (
             rootPath: string
         }): string => {
             const absPath = node.absolutePath
-            const originPath = absPath.replace(rootPath, '')
+            const relativePath = absPath.replace(rootPath, '')
 
-            const buildFolderPath = originPath
-                .split('/')
-                .filter(Boolean)
+            const pathSegments = io.pathResolver
+                .splitToPathSegments(relativePath)
                 .slice(0, -1)
-                .reduce<string>((buildPath, e) => {
-                    const { type, value } = analyzeFileName(e)
-                    switch (type) {
-                        case 'route': {
-                            return `${buildPath}/${value}`
-                        }
-                        case 'group': {
-                            return `${buildPath}/${value}`
-                        }
-                        case 'series': {
-                            return buildPath
-                        }
-                        case 'root': {
-                            return buildPath
-                        }
-                    }
-                }, '')
+
+            const buildFolderPath = pathSegments
+                .map((e) => analyzeFileName(e))
+                .filter((e) => e.type === 'route' || e.type === 'group')
+                .map((e) => e.value)
+                .join('/')
 
             return buildFolderPath
         }
 
         return getBuildRouteInfo({
             node,
-            rootPath: vaultRoot,
+            rootPath: buildTools.vaultRoot,
         })
     }
 
     const system = new BuildSystem({
-        vaultRoot: `${PREFIX}/$$root$$`,
-        bridgeRoot: `${distFolder}/bridge`,
+        vaultRoot: paths.vault,
+        bridgeRoot: paths.bridge,
         buildPath: {
-            contents: `${distFolder}/contents`,
-            assets: `${distFolder}/assets`,
+            contents: paths.contents,
+            assets: paths.assets,
         },
         pathGenerator: {
-            contents: pathGen,
+            contents: contentsPathGenerator,
         },
     })
 
@@ -149,8 +173,6 @@ const pipe = async ({
         assets: string
     }
 }> => {
-    const io = new IO()
-
     const pluginName = Object.values(plugin)
         .map((e) => {
             if (Array.isArray(e)) {
@@ -160,14 +182,22 @@ const pipe = async ({
         })
         .join('_')
 
-    const distFolder = `${PREFIX}/dist/${pluginName}`
+    const paths = getPluginPaths(pluginName)
 
     if (cleanupDist) {
         // Clean up the dist folder
-        await io.writer.deleteDirectory(distFolder)
+        await io.writer.deleteDirectory(paths.dist)
     }
 
-    const system = createBuildSystem(plugin, distFolder)
+    const isAlreadyCopied = await io.reader.checkExists(paths.vault)
+    if (!isAlreadyCopied) {
+        await io.cpDirectory({
+            from: VAULT_ROOT,
+            to: paths.vault,
+        })
+    }
+
+    const system = createBuildSystem(plugin, paths)
 
     await system.init()
     await system.build()
@@ -197,26 +227,30 @@ const pipe = async ({
 
         if (!contents.success) return extracted
 
-        const contentsFilenames = contents.data
-            .map((fileDirent) => fileDirent.name)
-            .filter((fileName) => selector(targetFiles, fileName))
+        const contentsDirentList = contents.data.filter((fileDirent) =>
+            selector(targetFiles, fileDirent.name)
+        )
 
-        for (const fileName of contentsFilenames) {
-            const content = await io.reader.readFile(`${folder}/${fileName}`)
-
-            if (!content.success) {
-                const prefix = `${folder}/${fileName}`
+        for (const dirent of contentsDirentList) {
+            const fileName = dirent.name
+            if (dirent.isDir) {
+                const prefix = io.pathResolver.resolveToOsPath(
+                    `${folder}/${fileName}`
+                )
 
                 const innerContents = (
                     await extractContentsDir(targetFiles, prefix)
-                ).map((innerFileName) => `${fileName}/${innerFileName}`)
+                ).map((innerFileName) =>
+                    io.pathResolver.resolveToOsPath(
+                        `${fileName}/${innerFileName}`
+                    )
+                )
 
                 extracted.push(...innerContents)
             } else {
                 extracted.push(fileName)
             }
         }
-
         return extracted
     }
 
@@ -224,11 +258,8 @@ const pipe = async ({
         contents: Array<string>
         assets: Array<string>
     } = {
-        contents: await extractContentsDir(
-            targetContents,
-            `${distFolder}/contents`
-        ),
-        assets: await extractContentsDir(targetAssets, `${distFolder}/assets`),
+        contents: await extractContentsDir(targetContents, paths.contents),
+        assets: await extractContentsDir(targetAssets, paths.assets),
     }
 
     const buildFiles: {
@@ -238,7 +269,7 @@ const pipe = async ({
         contents: (
             await Promise.all(
                 buildFileNames.contents.map(async (fileName) => {
-                    const contentsPath = `${distFolder}/contents/${fileName}`
+                    const contentsPath = paths.contentsPath(fileName)
                     const content = await io.reader.readFile(contentsPath)
 
                     return {
@@ -254,7 +285,7 @@ const pipe = async ({
         assets: (
             await Promise.all(
                 buildFileNames.assets.map(async (fileName) => {
-                    const assetsPath = `${distFolder}/assets/${fileName}`
+                    const assetsPath = paths.assetsPath(fileName)
                     const asset = await io.reader.readFile(assetsPath)
 
                     return {
@@ -272,8 +303,8 @@ const pipe = async ({
         contents: string
         assets: string
     } = {
-        contents: `${distFolder}/contents`,
-        assets: `${distFolder}/assets`,
+        contents: paths.contents,
+        assets: paths.assets,
     }
 
     return {
@@ -287,7 +318,231 @@ const meta = (source: string) => {
     return MetaEngine.read(source)
 }
 
+const transactions = {
+    /**
+     * Simulates adding a file to the vault.
+     * @param filePath - The path of the file relative to the vault root.
+     * @param content - The content of the new file.
+     * @returns A cleanup function to remove the added file.
+     */
+    add: async (
+        pluginName: string,
+        { filePath, content }: { filePath: string; content: string }
+    ) => {
+        const absolutePath = getPluginPaths(pluginName).vaultPath(filePath)
+        const write = await io.writer.write({
+            filePath: absolutePath,
+            data: content,
+        })
+        if (!write.success) {
+            throw new Error(`[transaction:add] add ${filePath} failed.`)
+        }
+
+        return async () => {
+            await io.writer.deleteFile(absolutePath)
+        }
+    },
+
+    /**
+     * Simulates removing a file from the vault.
+     * @param filePath - The path of the file to remove, relative to the vault root.
+     * @returns A cleanup function to restore the removed file.
+     */
+    remove: async (pluginName: string, { filePath }: { filePath: string }) => {
+        const absolutePath = getPluginPaths(pluginName).vaultPath(filePath)
+        const originalContent = await io.reader.readFile(absolutePath)
+
+        if (!originalContent.success) {
+            // File doesn't exist, so no-op for removal and cleanup
+            return async () => {}
+        }
+
+        const deleteResult = await io.writer.deleteFile(absolutePath)
+        if (!deleteResult.success) {
+            throw new Error(
+                `[transaction:remove] remove ${absolutePath} failed.`
+            )
+        }
+
+        return async () => {
+            await io.writer.write({
+                filePath: absolutePath,
+                data: originalContent.data,
+            })
+        }
+    },
+
+    /**
+     * Simulates updating a file in the vault.
+     * @param filePath - The path of the file to update, relative to the vault root.
+     * @param newContent - The new content for the file.
+     * @returns A cleanup function to restore the original file content.
+     */
+    update: async (
+        pluginName: string,
+        {
+            filePath,
+            newContent,
+        }: { filePath: string; newContent: string | ((prev: string) => string) }
+    ) => {
+        const absolutePath = getPluginPaths(pluginName).vaultPath(filePath)
+        const originalContent = await io.reader.readFile(absolutePath)
+
+        if (!originalContent.success) {
+            throw new Error(
+                `[transaction:update] Cannot update file that does not exist: ${absolutePath}`
+            )
+        }
+
+        if (typeof newContent === 'string') {
+            await io.writer.write({ filePath: absolutePath, data: newContent })
+        } else {
+            await io.writer.write({
+                filePath: absolutePath,
+                data: newContent(originalContent.data),
+            })
+        }
+
+        return async () => {
+            await io.writer.write({
+                filePath: absolutePath,
+                data: originalContent.data,
+            })
+        }
+    },
+
+    /**
+     * Simulates moving or renaming a file in the vault.
+     * @param oldFilePath - The original path of the file, relative to the vault root.
+     * @param newFilePath - The new path for the file, relative to the vault root.
+     * @returns A cleanup function to move the file back to its original location.
+     */
+    move: async (
+        pluginName: string,
+        {
+            oldFilePath,
+            newFilePath,
+        }: { oldFilePath: string; newFilePath: string }
+    ) => {
+        const paths = getPluginPaths(pluginName)
+        const oldAbsolutePath = paths.vaultPath(oldFilePath)
+        const newAbsolutePath = paths.vaultPath(newFilePath)
+
+        const content = await io.reader.readFile(oldAbsolutePath)
+        if (!content.success) {
+            throw new Error(
+                `[transaction:move] Cannot move file that does not exist: ${oldAbsolutePath}`
+            )
+        }
+
+        const newFileExists = await io.reader.readFile(newAbsolutePath)
+        if (newFileExists.success) {
+            throw new Error(
+                `[transaction:move] Cannot move to destination, it already exists: ${newAbsolutePath}`
+            )
+        }
+
+        const moved = await io.moveFile({
+            from: oldAbsolutePath,
+            to: newAbsolutePath,
+        })
+
+        if (!moved.success) {
+            throw new Error(
+                `[transaction:move] Can not move from : ${oldAbsolutePath} to : ${newAbsolutePath}`
+            )
+        }
+
+        return async () => {
+            // Move it back
+            await io.moveFile({
+                from: newAbsolutePath,
+                to: oldAbsolutePath,
+            })
+        }
+    },
+
+    /**
+     * Simulates updating an file's size in the vault.
+     * @param filePath - The path of the asset file to update, relative to the vault root.
+     * @param options - The options for updating the asset size.
+     * @returns A cleanup function to restore the original file content.
+     */
+    updateSize: async (
+        pluginName: string,
+        {
+            filePath,
+            newSize,
+            reduceByBytes,
+            reduceByPercent,
+        }: {
+            filePath: string
+            newSize?: number
+            reduceByPercent?: number
+            reduceByBytes?: number
+        }
+    ) => {
+        const absolutePath = getPluginPaths(pluginName).vaultPath(filePath)
+        const originalContent = await io.reader.readMedia(absolutePath)
+
+        if (!originalContent.success) {
+            throw new Error(
+                `[transaction:updateSize] Cannot update asset file that does not exist: ${absolutePath}`
+            )
+        }
+
+        const originalSize = originalContent.data.length
+        let newSizeCalc: number
+
+        if (newSize !== undefined) {
+            if (newSize < 0) {
+                throw new Error(
+                    '[transaction:updateSize] newSize cannot be negative.'
+                )
+            }
+            newSizeCalc = newSize
+        } else if (reduceByPercent !== undefined) {
+            if (reduceByPercent < 0 || reduceByPercent > 100) {
+                throw new Error(
+                    '[transaction:updateSize] reduceByPercent must be between 0 and 100.'
+                )
+            }
+            newSizeCalc = Math.floor(originalSize * (1 - reduceByPercent / 100))
+        } else if (reduceByBytes !== undefined) {
+            if (reduceByBytes < 0) {
+                throw new Error(
+                    '[transaction:updateSize] reduceByBytes cannot be negative.'
+                )
+            }
+            newSizeCalc = originalSize - reduceByBytes
+        } else {
+            throw new Error(
+                '[transaction:updateSize] One of newSize, reduceByPercent, or reduceByBytes must be provided.'
+            )
+        }
+
+        if (newSizeCalc < 0) {
+            newSizeCalc = 0
+        }
+
+        const truncatedContent = originalContent.data.slice(0, newSizeCalc)
+
+        await io.writer.write({
+            filePath: absolutePath,
+            data: truncatedContent,
+        })
+
+        return async () => {
+            await io.writer.write({
+                filePath: absolutePath,
+                data: originalContent.data,
+            })
+        }
+    },
+}
+
 export const Tester = {
     pipe,
     meta,
+    transactions,
 }
