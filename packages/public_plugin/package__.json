@@ -1,0 +1,41 @@
+{
+    "name": "@obsidian_blogger/public_plugin",
+    "version": "0.1.0",
+    "description": "A collection of publicly available plugins for the Obsidian Blogger system.",
+    "author": "danpacho",
+    "license": "MIT",
+    "type": "module",
+    "keywords": [],
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": ["dist"],
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup",
+        "build:fast": "tsup --no-dts",
+        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "format": "prettier --write \"./{src,tests}/**/*\"",
+        "test": "vitest",
+        "test:ci": "vitest run",
+        "lint:ts": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.16.0",
+        "@obsidian_blogger/build_system": "workspace:^",
+        "@obsidian_blogger/helpers": "workspace:^",
+        "@react-email/components": "^0.1.1",
+        "@supabase/supabase-js": "^2.50.3",
+        "nodemailer": "^7.0.4",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0"
+    },
+    "devDependencies": {
+        "@types/nodemailer": "^6.4.17",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6"
+    }
+}

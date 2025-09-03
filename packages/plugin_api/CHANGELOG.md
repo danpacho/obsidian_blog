@@ -1,5 +1,17 @@
 # @obsidian_blogger/plugin
 
+## 0.5.0
+
+### Minor Changes
+
+- Stabilize plugin-runner api, update execute method shape.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+    - @obsidian_blogger/helpers@0.6.0
+
 ## 0.4.6
 
 ### Patch Changes

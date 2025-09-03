@@ -1,5 +1,15 @@
 # @obsidian_blogger/helpers
 
+## 0.6.0
+
+### Minor Changes
+
+- Stabilize plugin-runner api, update execute method shape.
+
+### Patch Changes
+
+- Stabilize delete directory operation.
+
 ## 0.5.4
 
 ### Patch Changes

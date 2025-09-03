@@ -1,5 +1,11 @@
 # create-obsidian-blogger
 
+## 0.4.0
+
+### Minor Changes
+
+- Stabilize plugin runner structure with updated interface, fix remained updated file at build system and fix reference plugin. Improve plugin testing core.
+
 ## 0.3.3
 
 ### Patch Changes

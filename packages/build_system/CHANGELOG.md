@@ -1,5 +1,18 @@
 # @obsidian_blogger/build_system
 
+## 0.7.0
+
+### Minor Changes
+
+- Stabilize plugin runner structure with updated interface, fix remained updated file at build system and fix reference plugin. Improve plugin testing core.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies
+    - @obsidian_blogger/plugin_api@0.5.0
+    - @obsidian_blogger/helpers@0.6.0
+
 ## 0.6.10
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/plugin_api",
-    "version": "0.4.6",
+    "version": "0.5.0",
     "type": "module",
     "description": "Plugin abstraction",
     "private": false,
