@@ -109,13 +109,13 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
 
         try {
             const isInstalled =
-                await this.$io.reader.fileExists(bridge_install_root)
+                await this.$io.reader.checkExists(bridge_install_root)
             if (isInstalled) {
                 this.$logger.info('Bridge package already installed')
                 return
             }
 
-            await this.$io.writer.createFolder(bridge_install_root)
+            await this.$io.writer.createDirectory(bridge_install_root)
 
             await this.$repo.downloadAndExtractRepo(
                 bridge_install_root,
@@ -130,7 +130,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
             )
 
             const success =
-                await this.$io.reader.fileExists(bridge_install_root)
+                await this.$io.reader.checkExists(bridge_install_root)
             if (!success) {
                 this.$logger.error('Failed to install bridge package')
             }
@@ -207,13 +207,13 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         }
 
         try {
-            const isInstalled = await this.$io.reader.fileExists(install_path)
+            const isInstalled = await this.$io.reader.checkExists(install_path)
             if (isInstalled) {
                 this.$logger.info('Template already installed')
                 return
             }
 
-            await this.$io.writer.createFolder(install_path)
+            await this.$io.writer.createDirectory(install_path)
 
             await this.$repo.downloadAndExtractRepo(install_path, repoInfo, {
                 onRetry: (e, attempt) => {
@@ -223,7 +223,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 },
             })
 
-            const success = await this.$io.reader.fileExists(install_path)
+            const success = await this.$io.reader.checkExists(install_path)
             if (!success) {
                 this.$logger.error('Failed to install template')
             }
@@ -274,7 +274,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
         try {
             const pluginWorkspace = `${bridge_root_path}/plugin/${type}/${plugin_type}`
 
-            await this.$io.writer.createFolder(pluginWorkspace)
+            await this.$io.writer.createDirectory(pluginWorkspace)
             await this.$repo.downloadAndExtractRepo(pluginWorkspace, repoInfo, {
                 onRetry: (e, attempt) => {
                     this.$logger.log(
@@ -283,7 +283,7 @@ export class BloggerCLI extends CLI<BloggerCLIOptions> {
                 },
             })
 
-            const success = await this.$io.reader.fileExists(pluginWorkspace)
+            const success = await this.$io.reader.checkExists(pluginWorkspace)
             if (!success) {
                 this.$logger.error('Failed to generate plugin')
             }
