@@ -32,7 +32,7 @@ describe('FileReader', () => {
 
         const allFolderNames = await reader.readDirectory(basePath, undefined, {
             recursive: true,
-            encoding: 'utf-8',
+            encoding: 'buffer',
         })
         if (allFolderNames.success) {
             expect(allFolderNames.data).toMatchSnapshot()
