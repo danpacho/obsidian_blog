@@ -7,34 +7,10 @@ import { PluginRunner } from '../plugin.runner'
 import { PluginConfigStorage } from './plugin.config.storage'
 import { PluginManager } from './plugin.manager'
 
-import type {
-    PluginInterfaceStaticConfig,
-    PluginShape,
-} from '../plugin.interface'
+import type { PluginInterfaceStaticConfig } from '../plugin.interface'
 
 describe('PluginManager', () => {
-    class Runner extends PluginRunner {
-        public async run(pipes: Array<PluginShape>): Promise<this['history']> {
-            for (const plugin of pipes) {
-                this.$pluginRunner.registerJob({
-                    name: plugin.name,
-                    prepare: async () => {
-                        return await plugin.prepare?.()
-                    },
-                    execute: async (controller, prepared) => {
-                        return await plugin.execute(controller, prepared)
-                    },
-                    cleanup: async (job) => {
-                        await plugin.cleanup?.(job)
-                    },
-                })
-            }
-
-            await this.$pluginRunner.processJobs()
-
-            return this.history
-        }
-    }
+    class Runner extends PluginRunner {}
     const pluginManager = new PluginManager({
         name: 'plugin-manager',
         root: `${process.cwd()}/packages/helpers/src/plugin/__fixtures__/manager_storage.json`,
@@ -129,7 +105,7 @@ describe('PluginManager', () => {
             },
         ])
         // Run
-        const response = await pluginManager.$runner.run(pipes)
+        const response = await pluginManager.$runner.run(pipes, null)
 
         expect(response).toHaveLength(3)
     })

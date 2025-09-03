@@ -14,28 +14,7 @@ import type {
 } from '../plugin.interface'
 
 describe('LoadConfigBridgeStorage', async () => {
-    class Runner extends PluginRunner {
-        public async run(pipes: Array<PluginShape>): Promise<this['history']> {
-            for (const plugin of pipes) {
-                this.$pluginRunner.registerJob({
-                    name: plugin.name,
-                    prepare: async () => {
-                        return await plugin.prepare?.()
-                    },
-                    execute: async (controller, prepared) => {
-                        return await plugin.execute(controller, prepared)
-                    },
-                    cleanup: async (job) => {
-                        await plugin.cleanup?.(job)
-                    },
-                })
-            }
-
-            await this.$pluginRunner.processJobs()
-
-            return this.history
-        }
-    }
+    class Runner extends PluginRunner {}
 
     const pluginManager = new PluginManager({
         name: 'plugin-manager',

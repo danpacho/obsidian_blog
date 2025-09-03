@@ -96,26 +96,6 @@ describe('PluginRunner', () => {
         public get count(): Array<number> {
             return this._count
         }
-
-        public async run(pluginPipes: Array<Plugin | Plugin2 | ErrorPlugin>) {
-            for (const plugin of pluginPipes) {
-                this.$pluginRunner.registerJob({
-                    name: plugin.name,
-                    prepare: async () => {
-                        this._count.push(1)
-                        return await plugin.prepare?.()
-                    },
-                    execute: async () => await plugin.execute(),
-                    cleanup: async (job) => {
-                        this._count.pop()
-                        await plugin.cleanup?.(job)
-                    },
-                })
-            }
-            await this.$pluginRunner.processJobs()
-
-            return this.history
-        }
     }
     const runner = new Runner()
 
@@ -124,7 +104,7 @@ describe('PluginRunner', () => {
     })
 
     it('should run plugins', async () => {
-        const res = await runner.run([new Plugin(), new Plugin2()])
+        const res = await runner.run([new Plugin(), new Plugin2()], null)
         expect(res.length).toBe(2)
     })
 
@@ -133,7 +113,7 @@ describe('PluginRunner', () => {
     })
 
     it('should catch errors', async () => {
-        const res = await runner.run([new Plugin(), new ErrorPlugin()])
+        const res = await runner.run([new Plugin(), new ErrorPlugin()], null)
         expect(res.length).toBe(4)
         expect(res.map((e) => e.error).filter(Boolean).length).toBe(1)
     })
