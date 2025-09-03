@@ -11,6 +11,7 @@ import type {
     PluginShape,
 } from './plugin.interface'
 import type { PluginExecutionResponse } from './plugin.interface'
+import type { JobRegistration } from '@obsidian_blogger/helpers/job'
 
 export type PluginRunnerExecutionResponse<Response = unknown> =
     PluginExecutionResponse<Response>
@@ -99,8 +100,119 @@ export abstract class PluginRunner<
         return this.history
      * ```
      */
-    public abstract run(
+    public async run(
         pluginPipes: Array<Plugin>,
-        runtimeDependencies?: RuntimeDependencies
-    ): Promise<this['history']>
+        runtimeDependencies: RuntimeDependencies
+    ): Promise<this['history']> {
+        for (const plugin of pluginPipes) {
+            // Register jobs
+            this.$pluginRunner.registerJob(
+                this.registerPlugin(plugin, runtimeDependencies)
+            )
+        }
+
+        // Process jobs
+        await this.$pluginRunner.processJobs()
+
+        // Return result
+        return this.history
+    }
+
+    /**
+     * Run before plugin prepare called.
+     * @param plugin
+     * @param runtimeDependencies
+     */
+    protected pluginPrepare?(
+        plugin: Plugin,
+        runtimeDependencies: RuntimeDependencies
+    ): Promise<void>
+    /**
+     * Run before plugin execute called.
+     * @param plugin
+     * @param runtimeDependencies
+     */
+    protected pluginExecuteBefore?(
+        plugin: Plugin,
+        runtimeDependencies: RuntimeDependencies
+    ): Promise<void>
+    /**
+     * Run after plugin execute called.
+     * @param plugin
+     * @param runtimeDependencies
+     */
+    protected pluginExecuteAfter?(
+        plugin: Plugin,
+        runtimeDependencies: RuntimeDependencies,
+        response: InferPluginConfig<Plugin>['jobConfig']['response']
+    ): Promise<void>
+    /**
+     * Run before plugin cleanup all called.
+     * @param plugin
+     * @param runtimeDependencies
+     * @param response
+     */
+    protected pluginCleanupAll?(
+        plugin: Plugin,
+        runtimeDependencies: RuntimeDependencies,
+        response: PluginRunnerExecutionResponse<
+            InferPluginConfig<Plugin>['jobConfig']['response']
+        >
+    ): Promise<void>
+
+    protected registerPlugin(
+        plugin: Plugin,
+        runtimeDependencies: RuntimeDependencies
+    ): JobRegistration<
+        PluginRunnerExecutionResponse<
+            InferPluginConfig<Plugin>['jobConfig']['response']
+        >,
+        InferPluginConfig<Plugin>['jobConfig']['prepare']
+    > {
+        return {
+            name: plugin.name,
+            prepare: async () => {
+                plugin.injectDependencies(runtimeDependencies)
+
+                await this.pluginPrepare?.(plugin, runtimeDependencies)
+
+                return await plugin.prepare?.()
+            },
+            execute: async (controller, preparedCalculation) => {
+                await this.pluginExecuteBefore?.(plugin, runtimeDependencies)
+
+                const response = await plugin.execute(
+                    controller,
+                    runtimeDependencies,
+                    preparedCalculation ?? null
+                )
+
+                await this.pluginExecuteAfter?.(
+                    plugin,
+                    runtimeDependencies,
+                    response
+                )
+
+                return response
+            },
+            cleanup: async (jobs) => {
+                const { response } = jobs
+
+                // each
+                for (const res of response ?? []) {
+                    await plugin.cleanup?.(res)
+                }
+
+                // all
+                if (response) {
+                    await this.pluginCleanupAll?.(
+                        plugin,
+                        runtimeDependencies,
+                        response
+                    )
+                    await plugin.cleanupAll?.(response)
+                }
+            },
+        }
+    }
 }
