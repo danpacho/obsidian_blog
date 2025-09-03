@@ -14,19 +14,18 @@ import type { Plugin } from 'unified'
 type ImageReference = Array<{
     origin: string
     build: string
-    origin_old?: string
+    oldBuild?: string
+}>
+
+type ReferenceValue = Array<{
+    origin: string
+    build: string
+    buildReplaced: string
+    oldBuild?: string
 }>
 
 interface ObsidianReferencePluginOptions {
-    referenceMap: Map<
-        string,
-        Array<{
-            origin: string
-            build: string
-            buildReplaced: string
-            origin_old?: string
-        }>
-    >
+    referenceMap: Map<string, ReferenceValue>
 }
 
 export class ObsidianReferencePlugin extends BuildContentsPlugin {
@@ -51,7 +50,21 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             const fullFileName = this.$io.pathResolver.normalize(link)
 
             if (!fileNameWithExt) return null
-            const candidates = referenceMap.get(fileNameWithExt)
+
+            const getPureFileName = (link: string) => {
+                const FILE_NAME_DIVIDING_TOKEN = '_' as const
+                const [, ...originalFileNames] = link.split(
+                    FILE_NAME_DIVIDING_TOKEN
+                )
+                const fileName = originalFileNames.join('')
+
+                return this.$io.pathResolver.getFileNameWithExtension(fileName)
+            }
+
+            const candidates =
+                referenceMap.get(fileNameWithExt) ??
+                referenceMap.get(getPureFileName(link))
+
             if (!candidates?.length) return null
             if (candidates.length === 1) return candidates[0]!.buildReplaced
 
@@ -61,9 +74,9 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                     this.$io.pathResolver
                         .normalize(r.origin)
                         .includes(fullFileName) ||
-                    (r.origin_old &&
+                    (r.oldBuild &&
                         this.$io.pathResolver
-                            .normalize(r.origin_old)
+                            .normalize(r.oldBuild)
                             .includes(fullFileName))
             )
 
@@ -279,15 +292,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
     private buildReferenceMap(
         imageReference: ImageReference,
         buildAssetPath: string
-    ): Map<
-        string,
-        Array<{
-            origin: string
-            build: string
-            buildReplaced: string
-            origin_old?: string
-        }>
-    > {
+    ): Map<string, ReferenceValue> {
         const referenceMap: ObsidianReferencePluginOptions['referenceMap'] =
             new Map()
 
@@ -303,12 +308,12 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             const buildReplaced = buildPath.replace(buildAssetPath, '')
 
             entry.push(
-                ref.origin_old
+                ref.oldBuild
                     ? {
                           origin: ref.origin,
                           build: buildPath,
                           buildReplaced: buildReplaced,
-                          origin_old: ref.origin_old,
+                          oldBuild: ref.oldBuild,
                       }
                     : {
                           origin: ref.origin,
@@ -324,7 +329,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         | ObsidianReferencePluginOptions['referenceMap']
         | undefined = undefined
 
-    private hasMovedAssets = false
+    private hasUpdatedAssets = false
     private referenceUpdateTextFileList: BuildStoreList | undefined = undefined
 
     public override async prepare(): Promise<void> {
@@ -333,35 +338,59 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         const buildStorePrev =
             this.getRunTimeDependency('buildStore').getStoreList('prev')
 
-        const assetReferences = buildStoreCurrent.filter(
-            ({ file_type }) =>
-                file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
-        )
+        const assetReferences = buildStoreCurrent
+            .filter(
+                ({ file_type }) =>
+                    file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
+            )
+            .filter(({ build_state }) => build_state !== 'REMOVED')
 
         this.referenceUpdateTextFileList = buildStoreCurrent.filter(
             ({ file_type }) => file_type === 'TEXT_FILE'
         )
 
-        this.hasMovedAssets = assetReferences.some(
-            (report) => report.build_state === 'MOVED'
+        this.hasUpdatedAssets = assetReferences.some(
+            (report) =>
+                // should re-check
+                report.build_state === 'MOVED' ||
+                report.build_state === 'UPDATED' ||
+                report.build_state === 'REMOVED'
         )
 
         const assetReferencesUUIDList: ImageReference = assetReferences.map(
             (report) => {
-                let origin_old: string | undefined = undefined
-                if (report.build_state === 'MOVED') {
-                    const prevReport = buildStorePrev.find(
+                let oldBuild: string | undefined = undefined
+                if (
+                    // should re-check
+                    report.build_state === 'MOVED' ||
+                    report.build_state === 'UPDATED' ||
+                    report.build_state === 'REMOVED'
+                ) {
+                    // MOVED | REMOVED -> inquired by content_id
+                    const prevReportByContentId = buildStorePrev.find(
                         (prev) => prev.content_id === report.content_id
                     )
-                    if (prevReport) {
-                        origin_old = prevReport.build_path.origin
+                    if (prevReportByContentId) {
+                        oldBuild = prevReportByContentId.build_path.build
+                    }
+
+                    // UPDATED -> content_id is changed, but original build is same.
+                    if (!prevReportByContentId) {
+                        const prevReportByFullPath = buildStorePrev.find(
+                            (prev) =>
+                                prev.build_path.origin ===
+                                report.build_path.origin
+                        )
+                        if (prevReportByFullPath) {
+                            oldBuild = prevReportByFullPath.build_path.build
+                        }
                     }
                 }
-                return origin_old
+                return oldBuild
                     ? {
                           build: report.build_path.build,
                           origin: report.build_path.origin,
-                          origin_old,
+                          oldBuild,
                       }
                     : {
                           build: report.build_path.build,
@@ -376,13 +405,14 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             assetReferencesUUIDList,
             buildAssetPath
         )
+        console.log(this.referenceMap)
     }
 
     public override cacheChecker = (
         buildState: BuildInformation['build_state']
     ): boolean => {
         // filtering => true === target
-        if (this.hasMovedAssets) {
+        if (this.hasUpdatedAssets) {
             // If assets were moved, we must re-process all text files
             // to ensure links are updated, regardless of their cache status.
             return true
