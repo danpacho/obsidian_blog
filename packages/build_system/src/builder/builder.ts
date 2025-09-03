@@ -234,11 +234,7 @@ export class Builder {
         this.options.logger.updateName('build-report')
 
         const buildReport = this.$store.getStoreList('current')
-        const ast = await this.getAST()
-        if (!ast) return
-
         await this.$buildLogger.writeBuilderLog({
-            ast,
             buildReport,
         })
     }
