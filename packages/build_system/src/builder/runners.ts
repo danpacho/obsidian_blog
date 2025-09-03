@@ -7,93 +7,24 @@ import type {
     BuildContentsUpdateInformation,
     BuildTreePlugin,
     BuildTreePluginDependencies,
-    BuildTreePluginDynamicConfig,
-    BuildTreePluginStaticConfig,
     WalkTreePlugin,
     WalkTreePluginDependencies,
-    WalkTreePluginDynamicConfig,
-    WalkTreePluginStaticConfig,
 } from './plugin'
-import type { BuildPluginDynamicConfig } from './plugin/build.plugin'
+import type {
+    BuildPluginDynamicConfig,
+    BuildPluginResponse,
+} from './plugin/build.plugin'
+import type { Job } from '@obsidian_blogger/helpers/job'
 
 export class BuildTreePluginRunner extends Runner.PluginRunner<
     BuildTreePlugin,
     BuildTreePluginDependencies
-> {
-    public async run(
-        pluginPipes: BuildTreePlugin<
-            BuildTreePluginStaticConfig,
-            BuildTreePluginDynamicConfig
-        >[],
-        dependencies: BuildTreePluginDependencies
-    ) {
-        for (const plugin of pluginPipes) {
-            this.$pluginRunner.registerJob({
-                name: plugin.name,
-                prepare: async () => {
-                    dependencies.logger.updateName(plugin.name)
-                    plugin.injectDependencies(dependencies)
-                    await plugin.prepare?.()
-                },
-                execute: async (controller) => {
-                    return await plugin.execute(
-                        controller,
-                        dependencies.cachePipeline
-                    )
-                },
-                cleanup: async (job) => {
-                    for (const res of job.response ?? []) {
-                        await plugin.cleanup?.(res)
-                    }
-                },
-            })
-        }
-
-        await this.$pluginRunner.processJobs()
-
-        return this.history
-    }
-}
+> {}
 
 export class WalkTreePluginRunner extends Runner.PluginRunner<
     WalkTreePlugin,
     WalkTreePluginDependencies
-> {
-    public async run(
-        pluginPipes: WalkTreePlugin<
-            WalkTreePluginStaticConfig,
-            WalkTreePluginDynamicConfig
-        >[],
-        dependencies: WalkTreePluginDependencies
-    ): Promise<this['history']> {
-        for (const plugin of pluginPipes) {
-            this.$pluginRunner.registerJob({
-                name: plugin.name,
-                prepare: async () => {
-                    dependencies.logger.updateName(plugin.name)
-                    plugin.injectDependencies(dependencies)
-                    await plugin.prepare?.()
-                },
-                execute: async (controller) => {
-                    const res = await plugin.execute(
-                        controller,
-                        dependencies.cachePipeline
-                    )
-                    return res
-                },
-                cleanup: async (job) => {
-                    for (const res of job.response ?? []) {
-                        await plugin.cleanup?.(res)
-                    }
-                },
-            })
-        }
-
-        await this.$pluginRunner.processJobs()
-
-        return this.history
-    }
-}
+> {}
 
 export class BuildContentsPluginRunner extends Runner.PluginRunner<
     BuildContentsPlugin,
@@ -138,50 +69,25 @@ export class BuildContentsPluginRunner extends Runner.PluginRunner<
         await Promise.all(writeTasks)
     }
 
-    public async run(
-        pluginPipes: BuildContentsPlugin<
+    protected override async pluginCleanupAll(
+        _: BuildContentsPlugin<
             BuildContentsPluginStaticConfig,
             BuildPluginDynamicConfig
-        >[],
-        dependencies: BuildContentsPluginDependencies
-    ) {
-        for (const plugin of pluginPipes) {
-            this.$pluginRunner.registerJob({
-                name: plugin.name,
-                prepare: async () => {
-                    dependencies.logger.updateName(plugin.name)
-                    plugin.injectDependencies(dependencies)
-                    await plugin.prepare?.()
-                },
-                execute: async (controller) => {
-                    const buildedContents = await plugin.execute(
-                        controller,
-                        dependencies.cachePipeline
-                    )
+        >,
+        dependencies: BuildContentsPluginDependencies,
+        response: Job<
+            BuildPluginResponse & {
+                contentsUpdateInfo: BuildContentsUpdateInformation
+            }
+        >[]
+    ): Promise<void> {
+        // update
+        const buildContentsInformationList = response
+            .map((e) => e.response?.contentsUpdateInfo)
+            .filter((e) => e !== undefined)
 
-                    const buildContentsInformationList = buildedContents
-                        .map((e) => e.response?.contentsUpdateInfo)
-                        .filter((e) => e !== undefined)
-
-                    if (buildContentsInformationList.length !== 0) {
-                        await this.write(
-                            buildContentsInformationList,
-                            dependencies
-                        )
-                    }
-
-                    return buildedContents
-                },
-                cleanup: async (job) => {
-                    for (const res of job.response ?? []) {
-                        await plugin.cleanup?.(res)
-                    }
-                },
-            })
+        if (buildContentsInformationList.length !== 0) {
+            await this.write(buildContentsInformationList, dependencies)
         }
-
-        await this.$pluginRunner.processJobs()
-
-        return this.history
     }
 }
