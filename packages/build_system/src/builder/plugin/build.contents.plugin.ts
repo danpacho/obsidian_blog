@@ -93,16 +93,13 @@ export abstract class BuildContentsPlugin<
         buildStore: BuildStoreList
     }): Promise<BuildContentsUpdateInformation>
 
-    public async execute(
-        _: { stop: () => void; resume: () => void },
-        cachePipe: PluginCachePipelines['buildContentsCachePipeline']
-    ) {
+    public async execute() {
         this.$jobManager.registerJob({
             name: 'build:contents',
             prepare: async () => {
                 const buildStore = this.getRunTimeDependency('buildStore')
-
-                const cachedStore = cachePipe({
+                const cachePipeline = this.getRunTimeDependency('cachePipeline')
+                const cachedStore = cachePipeline({
                     config: this.dynamicConfig,
                     store: buildStore,
                     pluginCacheChecker: this.cacheChecker,

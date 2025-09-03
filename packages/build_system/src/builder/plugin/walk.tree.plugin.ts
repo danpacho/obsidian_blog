@@ -136,10 +136,7 @@ export abstract class WalkTreePlugin<
         }
     ) => boolean
 
-    public async execute(
-        _: { stop: () => void; resume: () => void },
-        cachePipe: PluginCachePipelines['treeCachePipeline']
-    ): Promise<BuildPluginExecutionResponse> {
+    public async execute(): Promise<BuildPluginExecutionResponse> {
         this.$jobManager.registerJob({
             name: 'walk:tree',
             prepare: async () => {
@@ -149,6 +146,7 @@ export abstract class WalkTreePlugin<
                 const parser = this.getRunTimeDependency('parser')
                 const cacheManager = this.getRunTimeDependency('cacheManager')
                 const walkRoot = this.getRunTimeDependency('walkRoot')
+                const cachePipeline = this.getRunTimeDependency('cachePipeline')
 
                 const defaultWalkOptions: WalkOption = {
                     type: this.dynamicConfig?.walkType ?? 'DFS',
@@ -161,7 +159,7 @@ export abstract class WalkTreePlugin<
                 await parser.walk(
                     async (node, context) => {
                         if (
-                            cachePipe({
+                            cachePipeline({
                                 node,
                                 context,
                                 cacheManager,
