@@ -31,10 +31,8 @@ export class BuildResultLogger {
      * It orchestrates the logging in a single pass over the file tree.
      */
     public async writeBuilderLog({
-        ast,
         buildReport,
     }: {
-        ast: FolderNode
         buildReport: BuildStoreList
     }): Promise<void> {
         this.writeBuildReportHeader()
@@ -48,11 +46,18 @@ export class BuildResultLogger {
         this.logRemovedFiles(reportMap)
 
         // 3. Walk the tree ONCE to log content files.
-        // This method will also remove the logged files from the reportMap.
-        await this.logContentTree(ast, reportMap)
+        this.$parser.updateRootFolder(this.option.buildPath.contents)
+        await this.$parser.parse()
+        if (this.$parser.ast) {
+            await this.logContentTree(this.$parser.ast, reportMap)
+        }
 
         // 4. Any reports left in the map must be assets. Log them.
-        this.logAssets(reportMap)
+        this.$parser.updateRootFolder(this.option.buildPath.assets)
+        await this.$parser.parse()
+        if (this.$parser.ast) {
+            await this.logAssets(this.$parser.ast, reportMap)
+        }
     }
 
     private writeBuildReportHeader(): void {
@@ -132,28 +137,42 @@ export class BuildResultLogger {
     /**
      * Logs the remaining reports in the map, which are guaranteed to be assets.
      */
-    private logAssets(assetMap: Map<string, BuildInformation>): void {
+    private async logAssets(
+        ast: FolderNode,
+        assetMap: Map<string, BuildInformation>
+    ): Promise<void> {
         if (assetMap.size === 0) return
 
         this.$logger.log(
-            this.$logger.c.green(` ● [ ${this.$logger.c.bold('assets')} ]`),
+            this.$logger.c.green(
+                ` ● [ ${this.$logger.c.bold(
+                    ast.fileName
+                )} ] » ${this.$logger.c.underline(
+                    this.$parser.options.rootFolder
+                )}`
+            ),
             { prefix: 'none' }
         )
 
         const buildLog: string[] = []
-        const assetReports = Array.from(assetMap.values())
 
-        assetReports.forEach((report, index) => {
-            const isLastElement = index === assetReports.length - 1
-            const fileName =
-                report.build_path.build.split(/[/\\]/).pop() ??
-                report.build_path.build
+        await this.$parser.walk(
+            async (node, { siblings, siblingsIndex }) => {
+                const report = assetMap.get(node.absolutePath)
+                const isLastElement =
+                    (siblings?.length ?? 0) - 1 === siblingsIndex
 
-            const fileLeaf = isLastElement ? ` └─${'─'}` : ` ├─${'─'}`
-            const fileLog = `${fileLeaf} ${this.$logger.c.white(fileName)}`
-            const stateLog = this.getBuildState(report.build_state)
-            buildLog.push(`${fileLog}${stateLog}`)
-        })
+                const treeLog = this.getTreeLogMessage(node, isLastElement)
+                const stateLog = this.getBuildState(report?.build_state)
+                buildLog.push(`${treeLog}${stateLog}`)
+
+                // Critical step: remove the processed content file from the map.
+                if (report) {
+                    assetMap.delete(node.absolutePath)
+                }
+            },
+            { type: 'DFS' }
+        )
 
         this.$logger.log(buildLog.join('\n'), { prefix: 'none' })
     }
