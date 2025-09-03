@@ -196,7 +196,12 @@ export class FileWriter {
     ): Promisify<string> {
         const normalizedPath = this.pathResolver.normalize(directoryPath)
         try {
-            await rm(normalizedPath, { recursive: true, force: true })
+            await rm(normalizedPath, {
+                recursive: true,
+                force: true,
+                maxRetries: 3,
+                retryDelay: 100,
+            })
             handler?.onSuccess?.(normalizedPath)
             return { success: true, data: normalizedPath }
         } catch (error) {
@@ -225,6 +230,8 @@ export class FileWriter {
             await rm(normalizedPath, {
                 recursive: stats.isDirectory(),
                 force: true,
+                maxRetries: 3,
+                retryDelay: 100,
             })
 
             handler?.onSuccess?.(normalizedPath)
