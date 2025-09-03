@@ -1,4 +1,5 @@
 import {
+    type JobFlowController,
     JobManager,
     type JobManagerConstructor,
     type JobRegistration,
@@ -180,9 +181,16 @@ export abstract class PluginInterface<
         prepare: unknown
     },
 > implements
-        JobRegistration<PluginJobConfig['response'], PluginJobConfig['prepare']>
+        Omit<
+            JobRegistration<
+                PluginJobConfig['response'],
+                PluginJobConfig['prepare']
+            >,
+            'execute'
+            // Need to define custom execute function
+        >
 {
-    /** 👇 phantom field – never touched at run-time */
+    /** phantom field – never touched at run-time */
     protected readonly __marker!: {
         static: StaticConfig
         dynamic: DynamicConfig
@@ -558,14 +566,20 @@ export abstract class PluginInterface<
         /**
          * Execution flow controller
          */
-        controller: { stop: () => void; resume: () => void },
+        controller: JobFlowController,
+
         /**
          * Context of the execution, we can inject any data
          *
          * - `PluginRunner` class
          * - Plugin itself by return data of `prepare` method
          */
-        context: unknown
+        context: Dependencies,
+
+        /**
+         * Prepared calculation result calculated via `return plugin.prepare()`
+         */
+        prepared: PluginJobConfig['prepare'] | null
     ): Promise<PluginExecutionResponse<PluginJobConfig['response']>>
 
     /**
@@ -579,12 +593,23 @@ export abstract class PluginInterface<
     /**
      * Lifecycle hooks for the job registration.
      *
-     * A function that is **executed after** the job completes.
+     * A function that is **executed after** the **Each job completes**.
      * @param job The completed job.
      * @returns A promise that resolves when the after-job tasks are completed.
      */
     public cleanup?(
         job: PluginExecutionResponse<PluginJobConfig['response']>[number]
+    ): Promise<void>
+
+    /**
+     * Lifecycle hooks for the job registration.
+     *
+     * A function that is **executed after** the **All job completes**.
+     * @param job The completed job.
+     * @returns A promise that resolves when the after-job tasks are completed.
+     */
+    public cleanupAll?(
+        job: PluginExecutionResponse<PluginJobConfig['response']>
     ): Promise<void>
 }
 
