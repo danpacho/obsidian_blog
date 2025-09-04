@@ -129,10 +129,16 @@ export class SeriesInfoGeneratorPlugin extends WalkTreePlugin<
                 return acc
             }
 
-            const selfOmittedMetadata = this.omit(
+            const metadataWithoutSeriesInfo = this.omit(
                 metaData,
                 this.dynamicConfig
                     .seriesInfoPropertyName as keyof typeof metaData
+            )
+
+            // pagination can cause infinite recursion if not omitted
+            const selfOmittedMetadata = this.omit(
+                metadataWithoutSeriesInfo,
+                'pagination' as keyof typeof metadataWithoutSeriesInfo
             ) as Exclude<DefaultContentMeta['seriesInfo'], undefined>[number]
 
             if (!selfOmittedMetadata) {
