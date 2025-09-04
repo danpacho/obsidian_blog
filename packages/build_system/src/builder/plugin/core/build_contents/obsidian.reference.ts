@@ -405,7 +405,6 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             assetReferencesUUIDList,
             buildAssetPath
         )
-        console.log(this.referenceMap)
     }
 
     public override cacheChecker = (
