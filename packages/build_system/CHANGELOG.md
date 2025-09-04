@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.7.1
+
+### Patch Changes
+
+- Fix redundant metadata parsing at pagination / series info builder plugin
+
 ## 0.7.0
 
 ### Minor Changes
