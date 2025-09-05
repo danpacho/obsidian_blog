@@ -318,6 +318,17 @@ const meta = (source: string) => {
     return MetaEngine.read(source)
 }
 
+const reset = async (pluginName: string) => {
+    const { dist, build, bridge, vault } = getPluginPaths(pluginName)
+
+    await Promise.all([
+        io.writer.delete(dist),
+        io.writer.delete(build),
+        io.writer.delete(bridge),
+        io.writer.delete(vault),
+    ])
+}
+
 const transactions = {
     /**
      * Simulates adding a file to the vault.
@@ -545,4 +556,5 @@ export const Tester = {
     pipe,
     meta,
     transactions,
+    reset,
 }
