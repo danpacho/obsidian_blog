@@ -271,7 +271,6 @@ export class DuplicateObsidianVaultIntoSource extends BuilderInternalPlugin {
             }
         )
         if (prevInfoByContentID.success) {
-            this.$logger.info(prevInfoByContentID)
             // we should remove prev file
             // image node id is changed based on <fileSize> -> ID changed -> prev delete needed.
             const deletePrev = await this.$io.writer.delete(
