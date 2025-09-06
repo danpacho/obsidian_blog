@@ -7,8 +7,12 @@ import type {
     BuildContentsUpdateInformation,
     BuildTreePlugin,
     BuildTreePluginDependencies,
+    BuildTreePluginDynamicConfig,
+    BuildTreePluginStaticConfig,
     WalkTreePlugin,
     WalkTreePluginDependencies,
+    WalkTreePluginDynamicConfig,
+    WalkTreePluginStaticConfig,
 } from './plugin'
 import type {
     BuildPluginDynamicConfig,
@@ -19,17 +23,47 @@ import type { Job } from '@obsidian_blogger/helpers/job'
 export class BuildTreePluginRunner extends Runner.PluginRunner<
     BuildTreePlugin,
     BuildTreePluginDependencies
-> {}
+> {
+    protected override async pluginPrepare(
+        plugin: BuildTreePlugin<
+            BuildTreePluginStaticConfig,
+            BuildTreePluginDynamicConfig
+        >,
+        runtimeDependencies: BuildTreePluginDependencies
+    ): Promise<void> {
+        runtimeDependencies.logger.updateName(plugin.name)
+    }
+}
 
 export class WalkTreePluginRunner extends Runner.PluginRunner<
     WalkTreePlugin,
     WalkTreePluginDependencies
-> {}
+> {
+    protected override async pluginPrepare(
+        plugin: WalkTreePlugin<
+            WalkTreePluginStaticConfig,
+            WalkTreePluginDynamicConfig
+        >,
+        runtimeDependencies: WalkTreePluginDependencies
+    ): Promise<void> {
+        runtimeDependencies.logger.updateName(plugin.name)
+    }
+}
 
 export class BuildContentsPluginRunner extends Runner.PluginRunner<
     BuildContentsPlugin,
     BuildContentsPluginDependencies
 > {
+    protected override async pluginPrepare(
+        plugin: BuildContentsPlugin<
+            BuildContentsPluginStaticConfig,
+            BuildPluginDynamicConfig
+        >,
+        runtimeDependencies: BuildContentsPluginDependencies
+    ): Promise<void> {
+        runtimeDependencies.logger.updateName(plugin.name)
+    }
+
     private async write(
         buildContentsInformationList: BuildContentsUpdateInformation[],
         deps: BuildContentsPluginDependencies
