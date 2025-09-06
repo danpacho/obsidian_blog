@@ -1,5 +1,11 @@
 # @obsidian_blogger/publish_system
 
+## 0.5.1
+
+### Patch Changes
+
+- Update link reference management logic for complex all possible transaction situation
+
 ## 0.5.0
 
 ### Minor Changes

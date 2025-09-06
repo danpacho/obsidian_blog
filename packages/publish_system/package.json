@@ -1,6 +1,6 @@
 {
     "name": "@obsidian_blogger/publish_system",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "type": "module",
     "description": "Blog publish system for blogger",
     "private": false,
@@ -19,7 +19,7 @@
         "build": "tsup --config=publish_system.tsup.config.ts && pnpm build:script",
         "build:fast": "tsup --config=publish_system.tsup.config.ts --no-dts",
         "build:script": "tsup --config=script.tsup.config.ts",
-        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "dev": "pnpm build --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "vitest",
         "test:publish": "pnpm build:script && node ./dist/publish_test.js",
