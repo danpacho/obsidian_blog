@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { ObsidianReferencePlugin } from '../core'
 
@@ -6,17 +6,18 @@ import { Tester } from './tester'
 
 describe('ObsidianReferencePlugin', () => {
     const plugin = new ObsidianReferencePlugin()
-    it('should reference obsidian images', async () => {
-        const res = await Tester.pipe({
-            plugin: {
-                'build:contents': plugin,
-            },
-            cleanupDist: true,
-        })
 
+    beforeAll(async () => {
+        await Tester.reset(plugin.name)
+    })
+
+    const validate = (
+        res: Awaited<ReturnType<(typeof Tester)['pipe']>>
+    ): string => {
         const imgFile = res.buildFiles.contents.find(
             (e) => e.fileName === 'img.md'
         )
+        //
         const content = imgFile?.content!
 
         const imgFileNames = res.buildFiles.assets
@@ -39,6 +40,18 @@ describe('ObsidianReferencePlugin', () => {
         expect(content).toContain(`width="200px"`)
         expect(content).toContain(`height="100px"`)
         expect(content).toContain(`width="75px"`)
+
+        return content
+    }
+
+    it('should reference obsidian images', async () => {
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: true,
+        })
+        validate(res)
     })
 
     it('should handle image MOVED status automatic reference update', async () => {
@@ -53,32 +66,7 @@ describe('ObsidianReferencePlugin', () => {
             },
             cleanupDist: false,
         })
-
-        const imgFile = res.buildFiles.contents.find(
-            (e) => e.fileName === 'img.md'
-        )
-        const content = imgFile?.content!
-
-        const imgFileNames = res.buildFiles.assets
-            .filter((e) => e.fileName.includes('.png'))
-            .map((e) => e.fileName)
-
-        const imgPath__replaced_origin_build_path = imgFileNames.map((e) =>
-            e.replace(res.buildPath.assets, '')
-        )
-
-        imgPath__replaced_origin_build_path.forEach((e) => {
-            expect(imgFile?.content).toContain(`src="/${e}"`)
-        })
-
-        expect(content).toContain(`width="150px"`)
-        expect(content).toContain(`height="50px"`)
-        expect(content).toContain(`alt="Custom Alt"`)
-        expect(content).toContain(`class="obsidian-outline-anchor"`)
-        expect(content).toContain(`alt="Cover"`)
-        expect(content).toContain(`width="200px"`)
-        expect(content).toContain(`height="100px"`)
-        expect(content).toContain(`width="75px"`)
+        validate(res)
     })
 
     it('should handle image UPDATE status automatic reference update', async () => {
@@ -93,82 +81,7 @@ describe('ObsidianReferencePlugin', () => {
             },
             cleanupDist: false,
         })
-
-        const imgFile = res.buildFiles.contents.find(
-            (e) => e.fileName === 'img.md'
-        )
-        const content = imgFile?.content!
-
-        const imgFileNames = res.buildFiles.assets
-            .filter((e) => e.fileName.includes('.png'))
-            .map((e) => e.fileName)
-
-        const imgPath__replaced_origin_build_path = imgFileNames.map((e) =>
-            e.replace(res.buildPath.assets, '')
-        )
-
-        imgPath__replaced_origin_build_path.forEach((e) => {
-            expect(imgFile?.content).toContain(`src="/${e}"`)
-        })
-
-        expect(content).toContain(`width="150px"`)
-        expect(content).toContain(`height="50px"`)
-        expect(content).toContain(`alt="Custom Alt"`)
-        expect(content).toContain(`class="obsidian-outline-anchor"`)
-        expect(content).toContain(`alt="Cover"`)
-        expect(content).toContain(`width="200px"`)
-        expect(content).toContain(`height="100px"`)
-        expect(content).toContain(`width="75px"`)
-    })
-
-    it('should handle image ADD status automatic reference update', async () => {
-        await Tester.transactions.update(plugin.name, {
-            filePath: 'img.md',
-            newContent(prev) {
-                const newFile = `${prev}\n8. Added image : \n   ![[added_img.png#outline|Cover|200x1000]]`
-                return newFile
-            },
-        })
-        await Tester.transactions.add(plugin.name, {
-            filePath: 'added_img.png',
-            content: ``,
-        })
-
-        const res = await Tester.pipe({
-            plugin: {
-                'build:contents': plugin,
-            },
-            cleanupDist: false,
-        })
-
-        const imgFile = res.buildFiles.contents.find(
-            (e) => e.fileName === 'img.md'
-        )
-        const content = imgFile?.content!
-
-        const imgFileNames = res.buildFiles.assets
-            .filter((e) => e.fileName.includes('.png'))
-            .map((e) => e.fileName)
-
-        const imgPath__replaced_origin_build_path = imgFileNames.map((e) =>
-            e.replace(res.buildPath.assets, '')
-        )
-
-        imgPath__replaced_origin_build_path.forEach((e) => {
-            expect(imgFile?.content).toContain(`src="/${e}"`)
-        })
-
-        expect(content).toContain(`width="150px"`)
-        expect(content).toContain(`height="50px"`)
-        expect(content).toContain(`alt="Custom Alt"`)
-        expect(content).toContain(`class="obsidian-outline-anchor"`)
-        expect(content).toContain(`alt="Cover"`)
-        expect(content).toContain(`width="200px"`)
-        expect(content).toContain(`height="100px"`)
-        expect(content).toContain(`width="75px"`)
-
-        // Newly written property
-        expect(content).toContain(`height="1000px"`)
+        validate(res)
     })
 
     it('should handle image REMOVED status automatic reference update', async () => {
@@ -182,31 +95,100 @@ describe('ObsidianReferencePlugin', () => {
             },
             cleanupDist: false,
         })
+        validate(res)
+    })
 
-        const imgFile = res.buildFiles.contents.find(
-            (e) => e.fileName === 'img.md'
-        )
-        const content = imgFile?.content!
-
-        const imgFileNames = res.buildFiles.assets
-            .filter((e) => e.fileName.includes('.png'))
-            .map((e) => e.fileName)
-
-        const imgPath__replaced_origin_build_path = imgFileNames.map((e) =>
-            e.replace(res.buildPath.assets, '')
-        )
-
-        imgPath__replaced_origin_build_path.forEach((e) => {
-            expect(imgFile?.content).toContain(`src="/${e}"`)
+    it('should handle image ADD status automatic reference update', async () => {
+        await Tester.transactions.update(plugin.name, {
+            filePath: 'img.md',
+            newContent(prev) {
+                const newFile = `${prev}\n8. Added image : \n   ![[added_img.png#outline|Cover|200x1000]]`
+                return newFile
+            },
+        })
+        await Tester.transactions.add(plugin.name, {
+            filePath: 'assets/added_img.png',
+            content: ``,
         })
 
-        expect(content).toContain(`width="150px"`)
-        expect(content).toContain(`height="50px"`)
-        expect(content).toContain(`alt="Custom Alt"`)
-        expect(content).toContain(`class="obsidian-outline-anchor"`)
-        expect(content).toContain(`alt="Cover"`)
-        expect(content).toContain(`width="200px"`)
-        expect(content).toContain(`height="100px"`)
-        expect(content).toContain(`width="75px"`)
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: false,
+        })
+        const content = validate(res)
+
+        // Newly written property
+        expect(content).toContain(`height="1000px"`)
+    })
+
+    it('should handle image ADD status automatic reference update', async () => {
+        await Tester.transactions.update(plugin.name, {
+            filePath: 'img.md',
+            newContent(prev) {
+                const newFile = `${prev}\n9. Added image 2: \n   ![[added_img_2.png#outline|Cover|200x1000]]`
+                return newFile
+            },
+        })
+        await Tester.transactions.add(plugin.name, {
+            filePath: 'assets/added_img_2.png',
+            content: `added_img_2`,
+        })
+
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: false,
+        })
+        const content = validate(res)
+
+        // Newly written property
+        expect(content).toContain(`height="1000px"`)
+    })
+
+    it('should handle image MOVED status automatic reference update', async () => {
+        await Tester.transactions.move(plugin.name, {
+            oldFilePath: 'assets/added_img_2.png',
+            newFilePath: 'added_img_2.png',
+        })
+
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: false,
+        })
+        validate(res)
+    })
+
+    it('should handle image UPDATE status automatic reference update', async () => {
+        await Tester.transactions.updateSize(plugin.name, {
+            filePath: 'added_img_2.png',
+            reduceByPercent: 15,
+        })
+
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: false,
+        })
+        validate(res)
+    })
+
+    it('should handle image REMOVED status automatic reference update', async () => {
+        await Tester.transactions.remove(plugin.name, {
+            filePath: 'added_img_2.png',
+        })
+
+        const res = await Tester.pipe({
+            plugin: {
+                'build:contents': plugin,
+            },
+            cleanupDist: false,
+        })
+        validate(res)
     })
 })
