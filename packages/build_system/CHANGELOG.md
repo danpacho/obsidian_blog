@@ -1,5 +1,12 @@
 # @obsidian_blogger/build_system
 
+## 0.7.2
+
+### Patch Changes
+
+- Fix add missing logger name update progress at builder plugin runners
+- Update link reference management logic for complex all possible transaction situation
+
 ## 0.7.1
 
 ### Patch Changes
