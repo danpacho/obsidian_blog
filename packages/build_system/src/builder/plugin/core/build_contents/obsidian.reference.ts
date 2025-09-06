@@ -12,20 +12,24 @@ import type { Parent, RootContent } from 'mdast'
 import type { Plugin } from 'unified'
 
 type ImageReference = Array<{
-    origin: string
-    build: string
-    oldBuild?: string
+    curr: BuildInformation['build_path']
+    prev: BuildInformation['build_path'] | null
 }>
 
-type ReferenceValue = Array<{
+type RefInfo = {
     origin: string
     build: string
     buildReplaced: string
-    oldBuild?: string
+}
+
+type ReferenceValue = Array<{
+    curr: RefInfo
+    prev: RefInfo | null
 }>
 
 interface ObsidianReferencePluginOptions {
     referenceMap: Map<string, ReferenceValue>
+    textOriginPath: string
 }
 
 export class ObsidianReferencePlugin extends BuildContentsPlugin {
@@ -44,48 +48,190 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         const EMBED_REGEX =
             /!\[\[([^|\]]+?)(?:\|([^|\]]+?))?(?:\|([^|\]]+?))?\]\]/g
 
-        const resolveAssetPath = (link: string): string | null => {
-            const fileNameWithExt =
-                this.$io.pathResolver.getFileNameWithExtension(link)
-            const fullFileName = this.$io.pathResolver.normalize(link)
+        const containsUUID = (input: string): boolean => {
+            const uuidRegex =
+                /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
 
-            if (!fileNameWithExt) return null
+            return uuidRegex.test(input)
+        }
 
-            const getPureFileName = (link: string) => {
-                const FILE_NAME_DIVIDING_TOKEN = '_' as const
-                const [, ...originalFileNames] = link.split(
-                    FILE_NAME_DIVIDING_TOKEN
-                )
-                const fileName = originalFileNames.join('')
-
-                return this.$io.pathResolver.getFileNameWithExtension(fileName)
-            }
-
-            const candidates =
-                referenceMap.get(fileNameWithExt) ??
-                referenceMap.get(getPureFileName(link))
-
-            if (!candidates?.length) return null
-            if (candidates.length === 1) return candidates[0]!.buildReplaced
-
-            // Prefer exact matches in origin path (current or old)
-            const exactMatch = candidates.find(
-                (r) =>
-                    this.$io.pathResolver
-                        .normalize(r.origin)
-                        .includes(fullFileName) ||
-                    (r.oldBuild &&
-                        this.$io.pathResolver
-                            .normalize(r.oldBuild)
-                            .includes(fullFileName))
+        const getPureFileName = (link: string) => {
+            const FILE_NAME_DIVIDING_TOKEN = '_' as const
+            const [firstToken, ...originalFileNames] = link.split(
+                FILE_NAME_DIVIDING_TOKEN
             )
 
-            if (exactMatch) {
-                return exactMatch.buildReplaced
+            const isFirstTokenContainsUUID = containsUUID(firstToken ?? '')
+
+            const fileName = isFirstTokenContainsUUID
+                ? originalFileNames.join(FILE_NAME_DIVIDING_TOKEN)
+                : link
+
+            const generated = this.$io.pathResolver
+                .getFileNameWithExtension(fileName)
+                .trim()
+            if (generated === '') {
+                return this.$io.pathResolver.getFileNameWithExtension(link)
+            }
+            return generated
+        }
+
+        const resolveAssetPath = (link: string): string | null => {
+            // link
+            // first-pass -> pure file path
+            // second-pass -> build file path
+
+            // reference id should be pure filename
+            const prevResolvedLinkPath = this.$io.pathResolver.normalize(link)
+            const prevLinkFileName =
+                this.$io.pathResolver.getFileNameWithExtension(
+                    prevResolvedLinkPath
+                )
+
+            // extract pure filename by prev link filename
+            const referenceId = getPureFileName(prevLinkFileName)
+
+            if (!referenceId) return null
+
+            const candidates = referenceMap.get(referenceId)
+
+            if (!candidates?.length) return null
+            if (candidates.length === 1)
+                return candidates[0]!.curr.buildReplaced
+
+            // search by prev, cause current uniqueFileId is build path after second pass
+            let exactFounded: boolean = false
+            const possibilities = candidates.reduce<
+                Array<
+                    {
+                        buildReplaced: string
+                        type: 'exact' | 'ambiguous'
+                    } & ReferenceValue[number]
+                >
+            >((acc, { curr, prev }) => {
+                if (prev) {
+                    // prev is always first
+                    const prevBuildedId =
+                        this.$io.pathResolver.getFileNameWithExtension(
+                            prev.buildReplaced
+                        )
+
+                    const exactCondition = prevBuildedId === prevLinkFileName
+
+                    if (exactFounded === false && exactCondition) {
+                        exactFounded = true
+                        acc.push({
+                            buildReplaced: curr.buildReplaced,
+                            type: 'exact',
+                            curr,
+                            prev,
+                        })
+                        return acc
+                    }
+
+                    // Edge condition can be error cause
+                    const ambiguousCondition =
+                        getPureFileName(prevBuildedId) ===
+                        getPureFileName(prevLinkFileName)
+
+                    if (ambiguousCondition) {
+                        acc.push({
+                            buildReplaced: curr.buildReplaced,
+                            type: 'ambiguous',
+                            curr,
+                            prev,
+                        })
+                    }
+
+                    return acc
+                }
+
+                // this is first added situation
+                const isFirstAdded = curr.origin.endsWith(prevResolvedLinkPath)
+                if (isFirstAdded) {
+                    acc.push({
+                        buildReplaced: curr.buildReplaced,
+                        type: 'ambiguous',
+                        curr,
+                        prev,
+                    })
+                }
+
+                return acc
+            }, [])
+
+            if (exactFounded) {
+                const exactBuildPath = possibilities.find(
+                    (e) => e.type === 'exact'
+                )!.buildReplaced
+
+                return exactBuildPath
             }
 
-            // If no exact match, we should not guess.
+            const determineByPrev = possibilities.filter((p) => {
+                if (!p.prev) return false
+
+                const matchedByFilePath =
+                    p.prev.origin.endsWith(prevResolvedLinkPath)
+
+                const filePrevPathMatched =
+                    this.$io.pathResolver
+                        .splitToPathSegments(
+                            p.prev.origin.replace(
+                                this.dependencies?.vaultRoot ?? '',
+                                ''
+                            )
+                        )
+                        .join('') ===
+                    this.$io.pathResolver
+                        .splitToPathSegments(prevResolvedLinkPath)
+                        .join('')
+
+                const prevBuildReplacedMatched =
+                    prevResolvedLinkPath === p.prev.buildReplaced
+
+                return (
+                    (matchedByFilePath && filePrevPathMatched) ||
+                    prevBuildReplacedMatched
+                )
+            })
+
+            if (determineByPrev.length === 0) {
+                // should search by name
+                const determineByCurrent = possibilities.filter((p) => {
+                    const matchedByFilePathCurrent =
+                        p.curr.origin.endsWith(prevResolvedLinkPath)
+
+                    const fileCurrentPathMatched =
+                        this.$io.pathResolver
+                            .splitToPathSegments(
+                                p.curr.origin.replace(
+                                    this.dependencies?.vaultRoot ?? '',
+                                    ''
+                                )
+                            )
+                            .join('') ===
+                        this.$io.pathResolver
+                            .splitToPathSegments(prevResolvedLinkPath)
+                            .join('')
+
+                    return matchedByFilePathCurrent && fileCurrentPathMatched
+                })
+
+                if (determineByCurrent.length === 1) {
+                    return determineByCurrent[0]!.buildReplaced
+                } else {
+                    return null
+                }
+            }
+
+            if (determineByPrev.length === 1) {
+                return determineByPrev[0]!.buildReplaced
+            }
+
             return null
+
+            // ambiguous situation -> same filename
         }
 
         // Parse dimension strings like "300x200" or "150"
@@ -280,51 +426,54 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
 
     /**
      * Build a Map from the final filename to an array of references that share this filename.
-     *
-     * @example
-     * ```
-     * e.g.  "img.png" -> [
-     *   { origin: "nested/img.png", build: "/images/abc_img.png" },
-     *   { origin: "img.png",        build: "/images/xyz_img.png" }
-     * ]
-     * ```
      */
     private buildReferenceMap(
         imageReference: ImageReference,
         buildAssetPath: string
-    ): Map<string, ReferenceValue> {
+    ): ObsidianReferencePluginOptions['referenceMap'] {
         const referenceMap: ObsidianReferencePluginOptions['referenceMap'] =
             new Map()
 
-        for (const ref of imageReference) {
-            const pureFilename = this.$io.pathResolver.getFileNameWithExtension(
-                ref.origin
-            )
-            if (!pureFilename) continue
+        const collectRef = (
+            ref: BuildInformation['build_path']
+        ): RefInfo | null => {
+            const currPureFilename =
+                this.$io.pathResolver.getFileNameWithExtension(ref.origin)
 
-            const entry = referenceMap.get(pureFilename) || []
+            if (!currPureFilename) {
+                return null
+            }
 
             const buildPath = ref.build
             const buildReplaced = buildPath.replace(buildAssetPath, '')
 
-            entry.push(
-                ref.oldBuild
-                    ? {
-                          origin: ref.origin,
-                          build: buildPath,
-                          buildReplaced: buildReplaced,
-                          oldBuild: ref.oldBuild,
-                      }
-                    : {
-                          origin: ref.origin,
-                          build: buildPath,
-                          buildReplaced: buildReplaced,
-                      }
-            )
-            referenceMap.set(pureFilename, entry)
+            return {
+                origin: ref.origin,
+                build: buildPath,
+                buildReplaced,
+            }
         }
+
+        for (const ref of imageReference) {
+            const currPureFilename =
+                this.$io.pathResolver.getFileNameWithExtension(ref.curr.origin)
+
+            if (!currPureFilename) continue
+
+            const entry = referenceMap.get(currPureFilename) || []
+
+            const collectedCurr = collectRef(ref.curr)
+            const collectedPrev = ref.prev ? collectRef(ref.prev) : null
+            if (collectedCurr) {
+                entry.push({ curr: collectedCurr, prev: collectedPrev ?? null })
+            }
+
+            referenceMap.set(currPureFilename, entry)
+        }
+
         return referenceMap
     }
+
     private referenceMap:
         | ObsidianReferencePluginOptions['referenceMap']
         | undefined = undefined
@@ -338,7 +487,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         const buildStorePrev =
             this.getRunTimeDependency('buildStore').getStoreList('prev')
 
-        const assetReferences = buildStoreCurrent
+        const assetCurrentReferences = buildStoreCurrent
             .filter(
                 ({ file_type }) =>
                     file_type === 'IMAGE_FILE' || file_type === 'AUDIO_FILE'
@@ -349,55 +498,33 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             ({ file_type }) => file_type === 'TEXT_FILE'
         )
 
-        this.hasUpdatedAssets = assetReferences.some(
+        this.hasUpdatedAssets = assetCurrentReferences.some(
             (report) =>
                 // should re-check
-                report.build_state === 'MOVED' ||
-                report.build_state === 'UPDATED' ||
-                report.build_state === 'REMOVED'
+                report.build_state !== 'CACHED'
         )
 
-        const assetReferencesUUIDList: ImageReference = assetReferences.map(
-            (report) => {
-                let oldBuild: string | undefined = undefined
-                if (
-                    // should re-check
-                    report.build_state === 'MOVED' ||
-                    report.build_state === 'UPDATED' ||
-                    report.build_state === 'REMOVED'
-                ) {
-                    // MOVED | REMOVED -> inquired by content_id
-                    const prevReportByContentId = buildStorePrev.find(
-                        (prev) => prev.content_id === report.content_id
-                    )
-                    if (prevReportByContentId) {
-                        oldBuild = prevReportByContentId.build_path.build
-                    }
-
-                    // UPDATED -> content_id is changed, but original build is same.
-                    if (!prevReportByContentId) {
-                        const prevReportByFullPath = buildStorePrev.find(
-                            (prev) =>
-                                prev.build_path.origin ===
-                                report.build_path.origin
+        const assetReferencesUUIDList: ImageReference =
+            assetCurrentReferences.map((report) => {
+                const curr = report.build_path
+                const getPrev = () => {
+                    if (report.build_state === 'MOVED') {
+                        return buildStorePrev.find(
+                            (e) => report.content_id === e.content_id
                         )
-                        if (prevReportByFullPath) {
-                            oldBuild = prevReportByFullPath.build_path.build
-                        }
+                    } else {
+                        return buildStorePrev.find(
+                            (e) =>
+                                report.build_path.origin === e.build_path.origin
+                        )
                     }
                 }
-                return oldBuild
-                    ? {
-                          build: report.build_path.build,
-                          origin: report.build_path.origin,
-                          oldBuild,
-                      }
-                    : {
-                          build: report.build_path.build,
-                          origin: report.build_path.origin,
-                      }
-            }
-        )
+                const prev = getPrev()?.build_path ?? null
+                return {
+                    curr,
+                    prev: prev,
+                }
+            })
 
         const buildAssetPath = this.$buildPath.assets
 
@@ -418,11 +545,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
         }
 
         // Default behavior: Only process new, updated, or moved text files.
-        return (
-            buildState === 'UPDATED' ||
-            buildState === 'ADDED' ||
-            buildState === 'MOVED'
-        )
+        return buildState !== 'CACHED'
     }
 
     public async buildContents(): Promise<BuildContentsUpdateInformation> {
@@ -435,11 +558,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
             return []
         }
 
-        const filesToProcess = this.referenceUpdateTextFileList.filter(
-            (textFile) => this.cacheChecker(textFile.build_state)
-        )
-
-        const buildAssetPath = this.$buildPath.assets
+        const filesToProcess = this.referenceUpdateTextFileList
 
         const processingPromises = filesToProcess.map(async (textFile) => {
             const textFileContent = await this.$io.reader.readFile(
@@ -449,7 +568,7 @@ export class ObsidianReferencePlugin extends BuildContentsPlugin {
                 const updatedVFile = await this.$processor.remark
                     .use(this.RemarkObsidianReferencePlugin, {
                         referenceMap: this.referenceMap!,
-                        buildAssetPath,
+                        textOriginPath: textFile.build_path.origin,
                     })
                     .process(textFileContent.data)
 
