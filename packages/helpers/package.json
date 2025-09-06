@@ -40,7 +40,7 @@
     "scripts": {
         "build": "tsup",
         "build:fast": "tsup --no-dts",
-        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "dev": "pnpm build --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "vitest",
         "test:ci": "vitest run",

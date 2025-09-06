@@ -20,7 +20,7 @@
         "build": "tsup --config=plugin.tsup.config.ts",
         "build:fast": "tsup --config=plugin.tsup.config.ts --no-dts",
         "hotreload": "node ./dist/hot_reload.mjs",
-        "dev": "pnpm build:script && concurrently \"pnpm build:fast --sourcemap --clean=false --watch\" \"pnpm hotreload\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
+        "dev": "pnpm build:script && concurrently \"pnpm build --sourcemap --clean=false --watch\" \"pnpm hotreload\" \"npx @tailwindcss/cli -i ./src/css/main.css -o ./dist/styles.css --watch\""
     },
     "dependencies": {
         "@obsidian_blogger/design_system": "workspace:^",

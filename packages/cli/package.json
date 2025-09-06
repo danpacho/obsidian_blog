@@ -22,7 +22,7 @@
     "scripts": {
         "build": "tsup",
         "build:fast": "tsup --no-dts",
-        "dev": "pnpm build:fast --sourcemap --clean=false --watch",
+        "dev": "pnpm build --sourcemap --clean=false --watch",
         "format": "prettier --write \"./{src,tests}/**/*\"",
         "test": "pnpm build && chmod +x ./scripts/test_cli_gen.sh && ./scripts/test_cli_gen.sh",
         "lint:ts": "tsc --noEmit",
