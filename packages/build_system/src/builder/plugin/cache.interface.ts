@@ -18,7 +18,7 @@ export abstract class PluginCachePipelines {
         node: FileTreeNode
         context:
             | Parameters<WalkTreePlugin['walk']>[1]
-            | Parameters<BuildTreePlugin['walk']>[1]
+            | Parameters<BuildTreePlugin['buildNode']>[1]
         cacheManager: BuildCacheManager
         config:
             | WalkTreePlugin['dynamicConfig']

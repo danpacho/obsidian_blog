@@ -1,5 +1,11 @@
 # @obsidian_blogger/build_system
 
+## 0.8.0
+
+### Minor Changes
+
+- Add support for file tree node visit/modification/helper utility methods
+
 ## 0.7.2
 
 ### Patch Changes

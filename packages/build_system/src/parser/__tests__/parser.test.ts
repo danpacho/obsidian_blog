@@ -1,7 +1,7 @@
 import { IO as IOManager } from '@obsidian_blogger/helpers'
 import { describe, expect, it } from 'vitest'
 
-import { FileTreeParser } from './parser'
+import { FileTreeParser } from '../parser'
 
 describe('FileTreeParser', () => {
     const parser = new FileTreeParser({
