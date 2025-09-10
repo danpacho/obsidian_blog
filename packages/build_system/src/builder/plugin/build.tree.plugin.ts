@@ -7,7 +7,7 @@ import {
     type BuildPluginStaticConfig,
 } from './build.plugin'
 
-import type { FileTreeNode, WalkOption } from '../../parser'
+import type { FileTreeNode, FolderNode, WalkOption } from '../../parser'
 import type { BuildInformation } from '../core'
 import type { PluginCachePipelines } from './cache.interface'
 import type { PluginDynamicConfigSchema } from '@obsidian_blogger/plugin_api'
@@ -77,8 +77,10 @@ export abstract class BuildTreePlugin<
 
     /**
      * Walking a original file tree for rebuilding the file tree
+     *
+     * Direct modification of vault root origin generated AST
      */
-    public abstract walk(
+    public abstract buildNode(
         /**
          * Current node
          */
@@ -101,6 +103,15 @@ export abstract class BuildTreePlugin<
             siblingsIndex: number | undefined
         }
     ): Promise<void>
+
+    /**
+     * Build final tree
+     *
+     * Direct modification of root ast folder node
+     *
+     * @param finalAst Final generated ast via `walk` by `buildNode` call.
+     */
+    public async buildTree?(finalAst: FolderNode): Promise<void>
 
     /**
      * Optional cache checker function for determining if the build state and node information
@@ -142,7 +153,7 @@ export abstract class BuildTreePlugin<
         this.$jobManager.registerJob({
             name: 'build:tree',
             prepare: async () => {
-                this.walk = this.walk.bind(this)
+                this.buildNode = this.buildNode.bind(this)
             },
             execute: async () => {
                 const parser = this.getRunTimeDependency('parser')
@@ -173,7 +184,7 @@ export abstract class BuildTreePlugin<
                         }
                         // Execute plugin
                         try {
-                            await this.walk(node, context)
+                            await this.buildNode(node, context)
                         } catch (e) {
                             error.push({
                                 filepath: node.fileName,
@@ -198,6 +209,16 @@ export abstract class BuildTreePlugin<
                     error,
                     history: this.$logger.getHistory(),
                 }
+            },
+            cleanup: async () => {
+                const parser = this.getRunTimeDependency('parser')
+
+                const finalAst = parser.ast
+
+                if (finalAst && this.buildTree) {
+                    await this.buildTree(finalAst)
+                }
+                return
             },
         })
 
