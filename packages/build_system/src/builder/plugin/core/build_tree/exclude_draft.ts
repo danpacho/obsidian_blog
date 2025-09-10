@@ -43,7 +43,7 @@ export class ExcludeDraftPlugin extends BuildTreePlugin<
         }
     }
 
-    public override async walk(node: FileTreeNode): Promise<void> {
+    public override async buildNode(node: FileTreeNode): Promise<void> {
         if (node.category !== 'TEXT_FILE') return
 
         const content = await this.$io.reader.readFile(node.absolutePath)

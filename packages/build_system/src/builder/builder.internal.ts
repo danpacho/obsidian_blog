@@ -519,7 +519,7 @@ export class BuilderPluginCachePipelines extends PluginCachePipelines {
         node: FileTreeNode
         context:
             | Parameters<WalkTreePlugin['walk']>[1]
-            | Parameters<BuildTreePlugin['walk']>[1]
+            | Parameters<BuildTreePlugin['buildNode']>[1]
         config:
             | WalkTreePlugin['dynamicConfig']
             | BuildTreePlugin['dynamicConfig']
